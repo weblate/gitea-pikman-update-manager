@@ -49,3 +49,8 @@
 .success-color-text {
     color: @success_bg_color;
 }
+
+.size-20-bold-text {
+    font-weight: 800;
+    font-size: 20px;
+}
