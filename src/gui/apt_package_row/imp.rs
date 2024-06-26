@@ -4,6 +4,7 @@ use adw::*;
 use adw::{prelude::*, subclass::prelude::*};
 use glib::{subclass::Signal, Properties};
 use gtk::{Align, glib, Orientation, SizeGroupMode, SelectionMode};
+use gtk::Orientation::Horizontal;
 use crate::apt_update_page::AptPackageSocket;
 
 // ANCHOR: custom_button
@@ -46,9 +47,8 @@ impl ObjectImpl for AptPackageRow {
         let obj = self.obj();
 
         let prefix_box = gtk::Box::new(Orientation::Horizontal, 0);
+        prefix_box.append(&create_version_badge("1.0-100-pika1".to_string(), "1.1-101-pika1".to_string()));
         obj.add_prefix(&prefix_box);
-
-        obj.add_prefix(&create_version_badge("1.0-100-pika1".to_string(), "1.1-101-pika1".to_string()));
 
         // Bind label to number
         // `SYNC_CREATE` ensures that the label will be immediately set
@@ -72,18 +72,24 @@ impl ActionRowImpl for AptPackageRow {}
 fn create_version_badge(installed_version: String, candidate_version: String) -> gtk::ListBox {
     let (base_version, installed_diff, candidate_diff) = get_diff_by_prefix(installed_version, candidate_version);
 
-    let badge_box = gtk::Box::builder().build();
+    let badge_box = gtk::Box::builder()
+        .halign(Align::Start)
+        .hexpand(false)
+        .orientation(Orientation::Horizontal)
+        .margin_start(5)
+        .margin_end(5)
+        .margin_bottom(5)
+        .margin_top(5)
+        .build();
 
-    let group_size = gtk::SizeGroup::new(SizeGroupMode::Both);
-
-    let installed_version_box = gtk::Box::new(Orientation::Horizontal, 0);
+    let installed_version_box = gtk::Box::builder()
+        .halign(Align::Start)
+        .hexpand(false)
+        .orientation(Orientation::Horizontal)
+        .build();
 
     let installed_version_base_version_label = gtk::Label::builder()
         .label(&base_version)
-        .margin_start(5)
-        .margin_end(5)
-        .margin_bottom(1)
-        .margin_top(1)
         .valign(Align::Center)
         .halign(Align::Start)
         .hexpand(false)
@@ -92,10 +98,6 @@ fn create_version_badge(installed_version: String, candidate_version: String) ->
 
     let installed_diff_label = gtk::Label::builder()
         .label(installed_diff)
-        .margin_start(5)
-        .margin_end(5)
-        .margin_bottom(1)
-        .margin_top(1)
         .valign(Align::Center)
         .halign(Align::Start)
         .hexpand(false)
@@ -105,18 +107,21 @@ fn create_version_badge(installed_version: String, candidate_version: String) ->
 
     installed_version_box.append(&installed_version_base_version_label.clone());
     installed_version_box.append(&installed_diff_label);
-    group_size.add_widget(&installed_version_box);
 
-    let label_seprator = gtk::Separator::builder().build();
+    let label_separator = gtk::Separator::builder()
+        .margin_start(5)
+        .margin_end(5)
+        .margin_bottom(5)
+        .margin_top(5).build();
 
-    let candidate_version_box = gtk::Box::new(Orientation::Horizontal, 0);
+    let candidate_version_box = gtk::Box::builder()
+        .halign(Align::Start)
+        .hexpand(false)
+        .orientation(Orientation::Horizontal)
+        .build();
 
     let candidate_version_base_version_label = gtk::Label::builder()
         .label(base_version)
-        .margin_start(5)
-        .margin_end(5)
-        .margin_bottom(1)
-        .margin_top(1)
         .valign(Align::Center)
         .halign(Align::Start)
         .hexpand(false)
@@ -125,10 +130,6 @@ fn create_version_badge(installed_version: String, candidate_version: String) ->
 
     let candidate_diff_label = gtk::Label::builder()
         .label(candidate_diff)
-        .margin_start(5)
-        .margin_end(5)
-        .margin_bottom(1)
-        .margin_top(1)
         .valign(Align::Center)
         .halign(Align::Start)
         .hexpand(false)
@@ -138,20 +139,15 @@ fn create_version_badge(installed_version: String, candidate_version: String) ->
 
     candidate_version_box.append(&candidate_version_base_version_label);
     candidate_version_box.append(&candidate_diff_label);
-    group_size.add_widget(&candidate_diff_label);
 
     badge_box.append(&installed_version_box);
-    badge_box.append(&label_seprator);
+    badge_box.append(&label_separator);
     badge_box.append(&candidate_version_box);
 
     let boxedlist = gtk::ListBox::builder()
         .selection_mode(SelectionMode::None)
-        .halign(Align::Center)
+        .halign(Align::Start)
         .valign(Align::End)
-        .margin_start(5)
-        .margin_end(5)
-        .margin_bottom(5)
-        .margin_top(5)
         .build();
 
     boxedlist.add_css_class("boxed-list");
