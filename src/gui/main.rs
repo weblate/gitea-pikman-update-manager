@@ -2,6 +2,7 @@
 mod config;
 mod build_ui;
 mod apt_update_page;
+mod apt_package_row;
 
 use std::env;
 use adw::prelude::*;

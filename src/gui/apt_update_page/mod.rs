@@ -4,25 +4,29 @@ use rust_apt::*;
 use rust_apt::cache::*;
 use rust_apt::new_cache;
 use std::process::Command;
-use gtk::glib::prelude::*;
-use gtk::glib::{clone, MainContext};
-use gtk::prelude::*;
+use gtk::glib::*;
 use adw::prelude::*;
 use gtk::*;
-use adw::*;
-use gtk::Orientation::Vertical;
 use tokio::net::{UnixListener, UnixStream};
 use tokio::io::AsyncReadExt;
 use tokio::runtime::Runtime;
 use tokio::task;
 use pika_unixsocket_tools::*;
+use crate::apt_package_row::AptPackageRow;
 
-pub fn apt_update_page(window: &adw::ApplicationWindow) -> gtk::Box {
+pub struct AptPackageSocket {
+    pub name: String,
+    pub arch: String,
+    pub installed_version: String,
+    pub candidate_version: String
+}
+
+pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
     let (update_percent_sender, update_percent_receiver) = async_channel::unbounded::<String>();
     let update_percent_sender = update_percent_sender.clone();
     let (update_status_sender, update_status_receiver) = async_channel::unbounded::<String>();
     let update_status_sender = update_status_sender.clone();
-    let (get_upgradable_sender, get_upgradable_receiver) = async_channel::unbounded::<String>();
+    let (get_upgradable_sender, get_upgradable_receiver) = async_channel::unbounded();
     let get_upgradable_sender = get_upgradable_sender.clone();
 
     thread::spawn(move || {
@@ -33,16 +37,56 @@ pub fn apt_update_page(window: &adw::ApplicationWindow) -> gtk::Box {
         Runtime::new().unwrap().block_on(update_status_socket_server(update_status_sender));
     });
 
-    thread::spawn(move || {
-        Runtime::new().unwrap().block_on(get_upgradable_socket_server(get_upgradable_sender));
-    });
-
     Command::new("pkexec")
         .args(["/home/ward/RustroverProjects/project-leoali/target/debug/apt_update"])
         .spawn();
 
+    let main_box = gtk::Box::builder()
+        .hexpand(true)
+        .vexpand(true)
+        .orientation(Orientation::Vertical)
+        .build();
+
+    let searchbar = gtk::SearchEntry::builder()
+        .search_delay(500)
+        .margin_bottom(15)
+        .margin_start(15)
+        .margin_end(30)
+        .margin_start(30)
+        .build();
+    searchbar.add_css_class("rounded-all-25");
+
+    let packages_boxedlist = gtk::ListBox::builder()
+        .selection_mode(SelectionMode::None)
+        .margin_bottom(15)
+        .margin_start(15)
+        .margin_end(15)
+        .margin_start(15)
+        .build();
+    packages_boxedlist.add_css_class("boxed-list");
+    let rows_size_group = gtk::SizeGroup::new(SizeGroupMode::Both);
+
+    packages_boxedlist.append(&AptPackageRow::new(AptPackageSocket{
+        name: "name".to_string(),
+        arch: "arch".to_string(),
+        installed_version: "0.0".to_string(),
+        candidate_version: "0.0".to_string()
+    }));
+
+    let packages_viewport = gtk::ScrolledWindow::builder()
+        .hscrollbar_policy(PolicyType::Never)
+        .vexpand(true)
+        .hexpand(true)
+        .margin_bottom(15)
+        .margin_start(15)
+        .margin_end(15)
+        .margin_start(15)
+        .height_request(390)
+        .child(&packages_boxedlist)
+        .build();
+
     let apt_update_dialog_child_box = gtk::Box::builder()
-        .orientation(Vertical)
+        .orientation(Orientation::Vertical)
         .build();
 
     let apt_update_dialog_progress_bar = gtk::ProgressBar::builder()
@@ -61,7 +105,7 @@ pub fn apt_update_page(window: &adw::ApplicationWindow) -> gtk::Box {
     apt_update_dialog_child_box.append(&apt_update_dialog_progress_bar);
 
     let apt_update_dialog = adw::MessageDialog::builder()
-        .transient_for(window)
+        .transient_for(&window)
         .extra_child(&apt_update_dialog_child_box)
         .heading(t!("apt_update_dialog_heading"))
         .hide_on_close(true)
@@ -70,11 +114,29 @@ pub fn apt_update_page(window: &adw::ApplicationWindow) -> gtk::Box {
 
     let update_percent_server_context = MainContext::default();
     // The main loop executes the asynchronous block
-    update_percent_server_context.spawn_local(clone!(@weak apt_update_dialog_progress_bar, @weak apt_update_dialog   => async move {
+    update_percent_server_context.spawn_local(clone!(@weak apt_update_dialog_progress_bar, @weak apt_update_dialog, @strong get_upgradable_sender => async move {
         while let Ok(state) = update_percent_receiver.recv().await {
             match state.as_ref() {
                 "FN_OVERRIDE_SUCCESSFUL" => {
-                    apt_update_dialog.close()
+                    let get_upgradable_sender = get_upgradable_sender.clone();
+                    thread::spawn( move || {
+                        // Create upgradable list cache
+                        let upgradable_cache = new_cache!().unwrap();
+
+                        // Create pack sort from upgradable_cache
+                        let upgradable_sort = PackageSort::default().upgradable().names();
+
+                        for pkg in upgradable_cache.packages(&upgradable_sort) {
+                            let package_struct = AptPackageSocket {
+                                name: pkg.name().to_string(),
+                                arch: pkg.arch().to_string(),
+                                installed_version: pkg.installed().unwrap().version().to_string(),
+                                candidate_version: pkg.candidate().unwrap().version().to_string()
+                            };
+                            get_upgradable_sender.send_blocking(package_struct).unwrap()
+                        }
+                    });
+                    apt_update_dialog.close();
                 }
                 _ => {
                     apt_update_dialog_progress_bar.set_fraction(state.parse::<f64>().unwrap()/100.0)
@@ -98,13 +160,16 @@ pub fn apt_update_page(window: &adw::ApplicationWindow) -> gtk::Box {
     // The main loop executes the asynchronous block
     get_upgradable_server_context.spawn_local(clone!(@weak window => async move {
         while let Ok(state) = get_upgradable_receiver.recv().await {
-            println!("{}", state)
+            println!("{}", state.name)
         }
         }));
 
 
+    main_box.append(&searchbar);
+    main_box.append(&packages_viewport);
+
     apt_update_dialog.present();
-    gtk::Box::new(Vertical, 0)
+    main_box
 }
 
 

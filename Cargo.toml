@@ -13,20 +13,8 @@ name = "pika_unixsocket_tools"
 path = "src/pika_unixsocket_tools/lib.rs"
 
 [[bin]]
-name = "debug_server_update_percent"
-path = "src/debug_server/update_percent.rs"
-
-[[bin]]
-name = "debug_server_update_status"
-path = "src/debug_server/update_status.rs"
-
-[[bin]]
 name = "apt_update"
 path = "src/apt_update/main.rs"
-
-[[bin]]
-name = "apt_get_upgradable"
-path = "src/apt_get_upgradable/main.rs"
 
 [dependencies]
 adw = { version = "0.5.3", package = "libadwaita", features = ["v1_4"] }
