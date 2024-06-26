@@ -86,6 +86,7 @@ fn create_version_badge(installed_version: String, candidate_version: String) ->
         .halign(Align::Start)
         .hexpand(false)
         .orientation(Orientation::Horizontal)
+        .tooltip_text(t!("installed_version_box_tooltip_text"))
         .build();
 
     let installed_version_base_version_label = gtk::Label::builder()
@@ -111,13 +112,13 @@ fn create_version_badge(installed_version: String, candidate_version: String) ->
     let label_separator = gtk::Separator::builder()
         .margin_start(5)
         .margin_end(5)
-        .margin_bottom(5)
-        .margin_top(5).build();
+        .build();
 
     let candidate_version_box = gtk::Box::builder()
         .halign(Align::Start)
         .hexpand(false)
         .orientation(Orientation::Horizontal)
+        .tooltip_text(t!("candidate_version_box_tooltip_text"))
         .build();
 
     let candidate_version_base_version_label = gtk::Label::builder()
