@@ -10,10 +10,6 @@ use rust_apt::raw::{AcqTextStatus, ItemDesc, ItemState, PkgAcquire};
 use std::thread;
 use tokio::runtime::Runtime;
 
-
-
-
-
 use serde::{Serialize, Deserialize};
 #[derive(Serialize)]
 struct AptSendablePackage {
@@ -22,25 +18,27 @@ struct AptSendablePackage {
     installed_version: String,
     candidate_version: String
 }
-pub struct AptUpdateProgressSocket {
+pub struct AptUpdateProgressSocket<'a> {
     pulse_interval: usize,
     max: usize,
-    progress: f32
+    progress: f32,
+    socket_path: &'a str,
 }
 
-impl<'a> AptUpdateProgressSocket {
+impl<'a> AptUpdateProgressSocket<'a> {
     /// Returns a new default progress instance.
-    pub fn new() -> Self {
+    pub fn new(socket_path: &'a str) -> Self {
         let mut progress = Self {
             pulse_interval: 0,
             max: 0,
             progress: 0.0,
+            socket_path: socket_path
         };
         progress
     }
 }
 
-impl<'a> DynAcquireProgress for AptUpdateProgressSocket {
+impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
     /// Used to send the pulse interval to the apt progress class.
     ///
     /// Pulse Interval is in microseconds.
@@ -107,22 +105,19 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket {
     /// meter along with an overall bandwidth and ETA indicator.
     fn pulse(&mut self, status: &AcqTextStatus, owner: &PkgAcquire) {
         let progress_percent: f32 = (status.current_bytes() as f32 * 100.0) / status.total_bytes() as f32;
-        Runtime::new().unwrap().block_on(send_update_progress(progress_percent));
+        Runtime::new().unwrap().block_on(send_progress_percent(progress_percent, self.socket_path));
     }
 }
 
 fn main() {
     let update_cache = new_cache!().unwrap();
-    match update_cache.update(&mut AcquireProgress::new(AptUpdateProgressSocket::new())) {
+    match update_cache.update(&mut AcquireProgress::new(AptUpdateProgressSocket::new("/tmp/pika_apt_update.sock"))) {
         Ok(_) => {}
         Err(e) => panic!("{}", e.to_string())
     };
 }
 
-async fn send_update_progress(progress_f32: f32) {
-    // Path to the Unix socket file
-    let socket_path = "/tmp/pika_apt_update.sock";
-
+async fn send_progress_percent(progress_f32: f32, socket_path: &str) {
     // Connect to the Unix socket
     let mut stream = UnixStream::connect(socket_path).await.expect("Could not connect to server");
 
