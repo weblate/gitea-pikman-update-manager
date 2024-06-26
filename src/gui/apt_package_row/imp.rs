@@ -42,31 +42,33 @@ impl ObjectImpl for AptPackageRow {
     fn constructed(&self) {
         self.parent_constructed();
 
-        let package_name = *self.package_name.borrow();
-        let package_arch= *self.package_arch.borrow();
-        let package_installed_version= *self.package_installed_version.borrow();
-        let package_candidate_version= *self.package_candidate_version.borrow();
-
         // Bind label to number
         // `SYNC_CREATE` ensures that the label will be immediately set
         let obj = self.obj();
 
+        let package_name = obj.package_name();
+        let package_arch = obj.package_arch();
+        let package_installed_version= obj.package_installed_version();
+        let package_candidate_version= obj.package_candidate_version();
+
+        println!("tetst {}" package_name);
+
         let prefix_box = gtk::Box::new(Orientation::Vertical, 0);
 
         let package_label = gtk::Label::builder()
-            .label(package_name)
             .build();
         package_label.add_css_class("size-20-bold-text");
 
-        prefix_box.append(package_installed_version, package_candidate_version);
+        prefix_box.append(&package_label);
+        prefix_box.append(&create_version_badge(package_installed_version, package_candidate_version));
 
         obj.add_prefix(&prefix_box);
 
-        //let obj = self.obj();
-        //obj.bind_property("package", &basic_expander_row_package_label, "label")
-        //    .sync_create()
-        //    .bidirectional()
-        //    .build();
+        let obj = self.obj();
+        obj.bind_property("package-name", &package_label, "label")
+            .sync_create()
+            .bidirectional()
+            .build();
     }
 }
 // Trait shared by all widgets
