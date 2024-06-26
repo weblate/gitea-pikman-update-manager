@@ -1,13 +1,9 @@
-use std::time::Duration;
-use adw::glib::Sender;
-use async_channel::Receiver;
 use rust_apt::new_cache;
 use rust_apt::cache::*;
-use tokio::net::{UnixListener, UnixStream};
+use tokio::net::{UnixStream};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use rust_apt::progress::{AcquireProgress, DynAcquireProgress};
-use rust_apt::raw::{AcqTextStatus, ItemDesc, ItemState, PkgAcquire};
-use std::thread;
+use rust_apt::raw::{AcqTextStatus, ItemDesc, PkgAcquire};
 use tokio::runtime::Runtime;
 
 use serde::{Serialize, Deserialize};
