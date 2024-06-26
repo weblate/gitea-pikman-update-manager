@@ -1,19 +1,11 @@
 use rust_apt::new_cache;
-use rust_apt::cache::*;
 use tokio::net::{UnixStream};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use rust_apt::progress::{AcquireProgress, DynAcquireProgress};
 use rust_apt::raw::{AcqTextStatus, ItemDesc, PkgAcquire};
 use tokio::runtime::Runtime;
+use pika_unixsocket_tools::*;
 
-use serde::{Serialize, Deserialize};
-#[derive(Serialize)]
-struct AptSendablePackage {
-    name: String,
-    arch: String,
-    installed_version: String,
-    candidate_version: String
-}
 pub struct AptUpdateProgressSocket<'a> {
     pulse_interval: usize,
     max: usize,
@@ -63,7 +55,7 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
     ///
     /// Prints out the short description and the expected size.
     fn fetch(&mut self, item: &ItemDesc) {
-        let message = format!("Downloading: {} {}", item.description(), item.short_desc());
+        let message = format!("Fetching: {} {}", item.description(), item.short_desc());
         println!("{}", message);
         Runtime::new().unwrap().block_on(send_progress_status(message, self.status_socket_path));
     }
@@ -72,7 +64,7 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
     ///
     /// We don't print anything here to remain consistent with apt.
     fn done(&mut self, item: &ItemDesc) {
-        let message = format!("Download Successful: {} {}", item.description(), item.short_desc());
+        let message = format!("Downloading: {} {}", item.description(), item.short_desc());
         println!("{}", message);
         Runtime::new().unwrap().block_on(send_progress_status(message, self.status_socket_path));
     }
@@ -113,9 +105,18 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
 
 fn main() {
     let update_cache = new_cache!().unwrap();
-    match update_cache.update(&mut AcquireProgress::new(AptUpdateProgressSocket::new("/tmp/pika_apt_update.sock", "/tmp/pika_apt_update.sock"))) {
-        Ok(_) => {}
-        Err(e) => panic!("{}", e.to_string())
+    let percent_socket_path = "/tmp/pika_apt_update_percent.sock";
+    let status_socket_path = "/tmp/pika_apt_update_status.sock";
+    match update_cache.update(&mut AcquireProgress::new(AptUpdateProgressSocket::new(percent_socket_path, status_socket_path))) {
+        Ok(_) => {
+            Runtime::new().unwrap().block_on(send_successful_to_socket(percent_socket_path));
+            Runtime::new().unwrap().block_on(send_successful_to_socket(status_socket_path));
+        }
+        Err(e) => {
+            Runtime::new().unwrap().block_on(send_failed_to_socket(percent_socket_path));
+            Runtime::new().unwrap().block_on(send_failed_to_socket(status_socket_path));
+            panic!("{}", e.to_string())
+        }
     };
 }
 
@@ -126,21 +127,6 @@ async fn send_progress_percent(progress_f32: f32, socket_path: &str) {
     let message = progress_f32.to_string();
     // Send the message to the server
     stream.write_all(message.as_bytes()).await.expect("Failed to write to stream");
-
-    // Buffer to store the server's response
-    let mut buffer = [0; 2024];
-
-    // Read the response from the server
-    match stream.read(&mut buffer).await {
-        Ok(size) => {
-            // Print the received response
-            //println!("Response from Server on GTK4: {}", String::from_utf8_lossy(&buffer[..size]));
-        }
-        Err(e) => {
-            // Print error message if reading fails
-            //eprintln!("Failed to read Server on GTK4 with Error: {}", e);
-        }
-    }
 }
 
 async fn send_progress_status(message: String, socket_path: &str) {
@@ -149,61 +135,4 @@ async fn send_progress_status(message: String, socket_path: &str) {
 
     // Send the message to the server
     stream.write_all(message.as_bytes()).await.expect("Failed to write to stream");
-
-    // Buffer to store the server's response
-    let mut buffer = [0; 2024];
-
-    // Read the response from the server
-    match stream.read(&mut buffer).await {
-        Ok(size) => {
-            // Print the received response
-            //println!("Response from Server on GTK4: {}", String::from_utf8_lossy(&buffer[..size]));
-        }
-        Err(e) => {
-            // Print error message if reading fails
-            //eprintln!("Failed to read Server on GTK4 with Error: {}", e);
-        }
-    }
-}
-
-async fn get_upgradable_packages() {
-    // Create upgradable list cache
-    let upgradable_cache = new_cache!().unwrap();
-
-    // Create pack sort from upgradable_cache
-    let upgradable_sort = PackageSort::default().upgradable().names();
-
-    for pkg in upgradable_cache.packages(&upgradable_sort) {
-        let package_struct = AptSendablePackage {
-            name: pkg.name().to_string(),
-            arch: pkg.arch().to_string(),
-            installed_version: pkg.installed().unwrap().version().to_string(),
-            candidate_version: pkg.candidate().unwrap().version().to_string()
-        };
-
-        // Path to the Unix socket file
-        let socket_path = "/tmp/pika_apt_update.sock";
-
-        // Connect to the Unix socket
-        let mut stream = UnixStream::connect(socket_path).await.expect("Could not connect to server");
-
-        let message = serde_json::to_string(&package_struct).unwrap();
-        // Send the message to the server
-        stream.write_all(message.as_bytes()).await.expect("Failed to write to stream");
-
-        // Buffer to store the server's response
-        let mut buffer = [0; 2024];
-
-        // Read the response from the server
-        match stream.read(&mut buffer).await {
-            Ok(size) => {
-                // Print the received response
-                //println!("Response from Server on GTK4: {}", String::from_utf8_lossy(&buffer[..size]));
-            }
-            Err(e) => {
-                // Print error message if reading fails
-                //eprintln!("Failed to read Server on GTK4 with Error: {}", e);
-            }
-        }
-    }
 }

@@ -1,5 +1,6 @@
 use adw::prelude::*;
 use adw::*;
+use gtk::Orientation;
 use crate::apt_update_page;
 use crate::apt_update_page::apt_update_page;
 use crate::config::{APP_ICON, APP_ID};
@@ -8,6 +9,8 @@ pub fn build_ui(app: &adw::Application) {
     // setup glib
     gtk::glib::set_prgname(Some(t!("app_name").to_string()));
     glib::set_application_name(&t!("app_name").to_string());
+
+    let window_child = gtk::Box::new(Orientation::Vertical, 0);
 
     // create the main Application window
     let window = adw::ApplicationWindow::builder()
@@ -21,13 +24,14 @@ pub fn build_ui(app: &adw::Application) {
         // Minimum Size/Default
         .width_request(700)
         .height_request(500)
+        .content(&window_child)
         .deletable(false)
         // Startup
         .startup_id(APP_ID)
         // build the window
         .build();
 
-    apt_update_page::apt_update_page();
+    window_child.append(&apt_update_page::apt_update_page(&window));
 
     // show the window
     window.present()

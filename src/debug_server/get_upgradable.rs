@@ -8,7 +8,7 @@ use std::fs;
 #[tokio::main]
 async fn main() {
     // Path to the Unix socket file
-    let pika_apt_update_socket_path = "/tmp/pika_apt_update.sock";
+    let pika_apt_update_socket_path = "/tmp/pika_apt_get_upgradable.sock";
 
     // Remove the socket file if it already exists
     if Path::new(pika_apt_update_socket_path).exists() {
