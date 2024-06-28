@@ -3,7 +3,7 @@ use std::{cell::RefCell, default, sync::OnceLock};
 use adw::*;
 use adw::{prelude::*, subclass::prelude::*};
 use glib::{subclass::Signal, Properties, clone};
-use gtk::{Align, glib, Orientation, SizeGroupMode, SelectionMode, Widget};
+use gtk::{*};
 use gtk::Orientation::Horizontal;
 use crate::apt_update_page::AptPackageSocket;
 use std::env;
@@ -240,7 +240,7 @@ fn create_arch_badge(arch: String) -> gtk::ListBox {
     boxedlist
 }
 
-fn remove_all_children(parent: &impl IsA<Widget>) where impl IsA<Widget>: libadwaita::prelude::IsA<ActionRow>, impl IsA<Widget>: libadwaita::prelude::IsA<CellArea>, impl IsA<Widget>: libadwaita::prelude::IsA<EntryRow>, impl IsA<Widget>: libadwaita::prelude::IsA<ExpanderRow>, impl IsA<Widget>: libadwaita::prelude::IsA<MultiFilter>, impl IsA<Widget>: libadwaita::prelude::IsA<PreferencesGroup>, impl IsA<Widget>: libadwaita::prelude::IsA<PreferencesPage>, impl IsA<Widget>: libadwaita::prelude::IsA<PreferencesWindow>, impl IsA<Widget>: libadwaita::prelude::IsA<TextView>, impl IsA<Widget>: libadwaita::prelude::IsA<gtk4::Box>, impl IsA<Widget>: libadwaita::prelude::IsA<gtk4::Fixed>, impl IsA<Widget>: libadwaita::prelude::IsA<gtk4::Grid> {
+fn remove_all_children(parent: &impl IsA<Widget> -> Box) {
     while let Some(child) = parent.last_child() {
         parent.remove(&child);
     }

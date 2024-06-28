@@ -8,20 +8,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="df2ca9e1-e07d-43f4-bc68-0a6113fc1fa2" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/locales/en_US.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/project-leoali.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gui/apt_package_row/imp.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/apt_package_row/imp.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gui/apt_package_row/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/apt_package_row/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gui/apt_update_page/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/apt_update_page/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gui/build_ui/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/build_ui/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gui/config.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/config.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gui/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gui/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/style.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/apt_package_row/imp.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/apt_package_row/imp.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -112,7 +99,7 @@
       <updated>1719504951223</updated>
       <workItem from="1719504952240" duration="1363000" />
       <workItem from="1719510804090" duration="7000" />
-      <workItem from="1719609702948" duration="2234000" />
+      <workItem from="1719609702948" duration="2696000" />
     </task>
     <servers />
   </component>
