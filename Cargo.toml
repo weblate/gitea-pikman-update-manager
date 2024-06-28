@@ -1,13 +1,9 @@
 [package]
-name = "project-leoali"
+name = "pika-idk-manager"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[[bin]]
-name = "gui"
-path = "src/gui/main.rs"
-
 [lib]
 name = "pika_unixsocket_tools"
 path = "src/pika_unixsocket_tools/lib.rs"

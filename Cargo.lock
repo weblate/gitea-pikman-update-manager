@@ -1139,6 +1139,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
+name = "pika-idk-manager"
+version = "0.1.0"
+dependencies = [
+ "async-channel",
+ "async-trait",
+ "futures 0.3.30",
+ "gtk4",
+ "libadwaita",
+ "rust-apt",
+ "rust-i18n",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-uds",
+]
+
+[[package]]
 name = "pin-project-lite"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1206,23 +1223,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e719e8df665df0d1c8fbfd238015744736151d4445ec0836b8e628aae103b77"
 dependencies = [
  "unicode-ident",
-]
-
-[[package]]
-name = "project-leoali"
-version = "0.1.0"
-dependencies = [
- "async-channel",
- "async-trait",
- "futures 0.3.30",
- "gtk4",
- "libadwaita",
- "rust-apt",
- "rust-i18n",
- "serde",
- "serde_json",
- "tokio",
- "tokio-uds",
 ]
 
 [[package]]

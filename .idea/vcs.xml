@@ -2,5 +2,6 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/target/debug/build/rust-apt-bdd275358b00de07/out/cxxbridge/crate/rust-apt" vcs="Git" />
   </component>
 </project>

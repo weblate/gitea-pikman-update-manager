@@ -6,7 +6,7 @@ use crate::apt_update_page::AptPackageSocket;
 
 glib::wrapper! {
     pub struct AptPackageRow(ObjectSubclass<imp::AptPackageRow>)
-        @extends adw::ActionRow, gtk::Widget, gtk::ListBoxRow, adw::PreferencesRow,
+        @extends adw::ExpanderRow, gtk::Widget, gtk::ListBoxRow, adw::PreferencesRow,
         @implements gtk::Accessible, gtk::Actionable, gtk::Buildable, gtk::ConstraintTarget;
 }
 

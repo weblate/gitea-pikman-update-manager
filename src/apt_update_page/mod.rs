@@ -38,7 +38,7 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
     });
 
     Command::new("pkexec")
-        .args(["/home/ward/RustroverProjects/project-leoali/target/debug/apt_update"])
+        .args(["/home/ward/RustroverProjects/pika-idk-manager/target/debug/apt_update"])
         .spawn();
 
     let main_box = gtk::Box::builder()
@@ -66,13 +66,6 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
     packages_boxedlist.add_css_class("boxed-list");
     let rows_size_group = gtk::SizeGroup::new(SizeGroupMode::Both);
 
-    packages_boxedlist.append(&AptPackageRow::new(AptPackageSocket{
-        name: "name".to_string(),
-        arch: "arch".to_string(),
-        installed_version: "0.0".to_string(),
-        candidate_version: "0.0".to_string()
-    }));
-
     let packages_viewport = gtk::ScrolledWindow::builder()
         .hscrollbar_policy(PolicyType::Never)
         .vexpand(true)
@@ -94,14 +87,16 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
         .hexpand(true)
         .build();
 
-    apt_update_dialog_child_box.append(&gtk::Spinner::builder()
+    let apt_update_dialog_spinner = gtk::Spinner::builder()
         .hexpand(true)
         .valign(Align::Start)
         .halign(Align::Center)
         .spinning(true)
         .height_request(128)
         .width_request(128)
-        .build());
+        .build();
+
+    apt_update_dialog_child_box.append(&apt_update_dialog_spinner);
     apt_update_dialog_child_box.append(&apt_update_dialog_progress_bar);
 
     let apt_update_dialog = adw::MessageDialog::builder()
@@ -147,10 +142,14 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
 
     let update_status_server_context = MainContext::default();
     // The main loop executes the asynchronous block
-    update_status_server_context.spawn_local(clone!(@weak apt_update_dialog => async move {
+    update_status_server_context.spawn_local(clone!(@weak apt_update_dialog, @weak apt_update_dialog_spinner => async move {
         while let Ok(state) = update_status_receiver.recv().await {
             match state.as_ref() {
                 "FN_OVERRIDE_SUCCESSFUL" => {}
+                "FN_OVERRIDE_FAILED" => {
+                    apt_update_dialog_spinner.set_spinning(false);
+                    apt_update_dialog.set_body(&t!("apt_update_dialog_status_failed").to_string())
+                }
                 _ => apt_update_dialog.set_body(&state)
             }
         }
@@ -158,9 +157,14 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
 
     let get_upgradable_server_context = MainContext::default();
     // The main loop executes the asynchronous block
-    get_upgradable_server_context.spawn_local(clone!(@weak window => async move {
+    get_upgradable_server_context.spawn_local(clone!(@weak packages_boxedlist => async move {
         while let Ok(state) = get_upgradable_receiver.recv().await {
-            println!("{}", state.name)
+            packages_boxedlist.append(&AptPackageRow::new(AptPackageSocket {
+                name: state.name,
+                arch: state.arch,
+                installed_version: state.installed_version,
+                candidate_version: state.candidate_version
+            }));
         }
         }));
 
