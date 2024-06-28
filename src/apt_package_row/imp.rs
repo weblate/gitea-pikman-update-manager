@@ -61,28 +61,15 @@ impl ObjectImpl for AptPackageRow {
         expandable_box.add_css_class("linked");
 
         obj.connect_package_name_notify(clone!(@weak prefix_box, @weak expandable_box, @strong obj => move |obj| {
-            remove_all_children(&prefix_box);
-            remove_all_children(&expandable_box);
+            remove_all_children_from_box(&prefix_box);
+            remove_all_children_from_box(&expandable_box);
             //
             let package_name = obj.package_name();
             let package_arch = obj.package_arch();
             let package_installed_version= obj.package_installed_version();
             let package_candidate_version= obj.package_candidate_version();
             //
-            let package_label = gtk::Label::builder()
-                .halign(Align::Start)
-                .margin_start(5)
-                .margin_end(5)
-                .margin_bottom(5)
-                .margin_top(5)
-                .label(package_name)
-                .build();
-            package_label.add_css_class("size-20-bold-text");
-            let version_box = gtk::Box::new(Orientation::Horizontal, 0);
-            version_box.append(&create_version_badge(package_installed_version, package_candidate_version));
-            version_box.append(&create_arch_badge(package_arch));
-            prefix_box.append(&package_label);
-            prefix_box.append(&version_box);
+            create_prefix_content(&prefix_box, &package_arch, &package_installed_version, &package_candidate_version);
             //
             let expandable_page_selection_box = gtk::Box::builder()
                 .orientation(Orientation::Horizontal)
@@ -240,10 +227,27 @@ fn create_arch_badge(arch: String) -> gtk::ListBox {
     boxedlist
 }
 
-fn remove_all_children(parent: &impl IsA<Widget> -> Box) {
+fn remove_all_children_from_box(parent: &gtk::Box) {
     while let Some(child) = parent.last_child() {
         parent.remove(&child);
     }
+}
+
+fn create_prefix_content(prefix_box: &gtk::Box, package_name: &str ,package_arch: &str, package_installed_version: &str, package_candidate_version: &str) {
+    let package_label = gtk::Label::builder()
+        .halign(Align::Start)
+        .margin_start(5)
+        .margin_end(5)
+        .margin_bottom(5)
+        .margin_top(5)
+        .label(package_name)
+        .build();
+    package_label.add_css_class("size-20-bold-text");
+    let version_box = gtk::Box::new(Orientation::Horizontal, 0);
+    version_box.append(&create_version_badge(package_installed_version, package_candidate_version));
+    version_box.append(&create_arch_badge(package_arch));
+    prefix_box.append(&package_label);
+    prefix_box.append(&version_box);
 }
 
 pub fn get_diff_by_prefix(xs: String, ys: String) -> (String, String, String) {
