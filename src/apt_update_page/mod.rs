@@ -3,6 +3,7 @@ use std::path::Path;
 use rust_apt::*;
 use rust_apt::cache::*;
 use rust_apt::new_cache;
+use rust_apt::records::RecordField;
 use std::process::Command;
 use gtk::glib::*;
 use adw::prelude::*;
@@ -18,7 +19,12 @@ pub struct AptPackageSocket {
     pub name: String,
     pub arch: String,
     pub installed_version: String,
-    pub candidate_version: String
+    pub candidate_version: String,
+    pub description: String,
+    pub source_uri: String,
+    pub maintainer: String,
+    pub size: u64,
+    pub installed_size: u64
 }
 
 pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
@@ -122,11 +128,23 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
                         let upgradable_sort = PackageSort::default().upgradable().names();
 
                         for pkg in upgradable_cache.packages(&upgradable_sort) {
+                            let candidate_version_pkg = pkg.candidate().unwrap();
                             let package_struct = AptPackageSocket {
                                 name: pkg.name().to_string(),
                                 arch: pkg.arch().to_string(),
                                 installed_version: pkg.installed().unwrap().version().to_string(),
-                                candidate_version: pkg.candidate().unwrap().version().to_string()
+                                candidate_version: candidate_version_pkg.version().to_string(),
+                                description: match candidate_version_pkg.description() {
+                                    Some(s) => s,
+                                    _ => t!("apt_pkg_property_unknown").to_string()
+                                },
+                                source_uri: candidate_version_pkg.uris().collect::<Vec<String>>().join("\n"),
+                                maintainer: match candidate_version_pkg.get_record(RecordField::Maintainer) {
+                                    Some(s) => s,
+                                    _ => t!("apt_pkg_property_unknown").to_string()
+                                },
+                                size: candidate_version_pkg.size(),
+                                installed_size: candidate_version_pkg.installed_size()
                             };
                             get_upgradable_sender.send_blocking(package_struct).unwrap()
                         }
@@ -163,7 +181,12 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
                 name: state.name,
                 arch: state.arch,
                 installed_version: state.installed_version,
-                candidate_version: state.candidate_version
+                candidate_version: state.candidate_version,
+                description: state.description,
+                source_uri: state.source_uri,
+                maintainer: state.maintainer,
+                size: state.size,
+                installed_size: state.installed_size
             }));
         }
         }));
