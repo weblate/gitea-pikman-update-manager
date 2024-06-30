@@ -1,19 +1,22 @@
-use std::{fs, thread};
-use std::path::Path;
-use rust_apt::*;
+use crate::apt_package_row::AptPackageRow;
+use adw::prelude::*;
+use gtk::glib::*;
+use gtk::*;
+use pika_unixsocket_tools::*;
 use rust_apt::cache::*;
 use rust_apt::new_cache;
 use rust_apt::records::RecordField;
+use rust_apt::*;
+use std::borrow::BorrowMut;
+use std::path::Path;
 use std::process::Command;
-use gtk::glib::*;
-use adw::prelude::*;
-use gtk::*;
-use tokio::net::{UnixListener, UnixStream};
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+use std::{fs, thread};
 use tokio::io::AsyncReadExt;
+use tokio::net::{UnixListener, UnixStream};
 use tokio::runtime::Runtime;
 use tokio::task;
-use pika_unixsocket_tools::*;
-use crate::apt_package_row::AptPackageRow;
 
 pub struct AptPackageSocket {
     pub name: String,
@@ -24,7 +27,7 @@ pub struct AptPackageSocket {
     pub source_uri: String,
     pub maintainer: String,
     pub size: u64,
-    pub installed_size: u64
+    pub installed_size: u64,
 }
 
 pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
@@ -36,11 +39,15 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
     let get_upgradable_sender = get_upgradable_sender.clone();
 
     thread::spawn(move || {
-        Runtime::new().unwrap().block_on(update_percent_socket_server(update_percent_sender));
+        Runtime::new()
+            .unwrap()
+            .block_on(update_percent_socket_server(update_percent_sender));
     });
 
     thread::spawn(move || {
-        Runtime::new().unwrap().block_on(update_status_socket_server(update_status_sender));
+        Runtime::new()
+            .unwrap()
+            .block_on(update_status_socket_server(update_status_sender));
     });
 
     Command::new("pkexec")
@@ -68,6 +75,7 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
         .margin_start(15)
         .margin_end(15)
         .margin_start(15)
+        .sensitive(false)
         .build();
     packages_boxedlist.add_css_class("boxed-list");
     let rows_size_group = gtk::SizeGroup::new(SizeGroupMode::Both);
@@ -113,17 +121,21 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
         .width_request(500)
         .build();
 
+    let mut updates_parsed = Arc::new(AtomicBool::new(false));
+
+    let update_parsed_clone0 = Arc::clone(&updates_parsed);
+
     let update_percent_server_context = MainContext::default();
     // The main loop executes the asynchronous block
-    update_percent_server_context.spawn_local(clone!(@weak apt_update_dialog_progress_bar, @weak apt_update_dialog, @strong get_upgradable_sender => async move {
+    update_percent_server_context.spawn_local(clone!(@weak apt_update_dialog_progress_bar, @weak apt_update_dialog, @strong get_upgradable_sender, @strong update_parsed_clone0 => async move {
         while let Ok(state) = update_percent_receiver.recv().await {
             match state.as_ref() {
                 "FN_OVERRIDE_SUCCESSFUL" => {
                     let get_upgradable_sender = get_upgradable_sender.clone();
-                    thread::spawn( move || {
+                    let update_parsed_clone = Arc::clone(&update_parsed_clone0);
+                    thread::spawn(move || {
                         // Create upgradable list cache
                         let upgradable_cache = new_cache!().unwrap();
-
                         // Create pack sort from upgradable_cache
                         let upgradable_sort = PackageSort::default().upgradable().names();
 
@@ -148,6 +160,7 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
                             };
                             get_upgradable_sender.send_blocking(package_struct).unwrap()
                         }
+                        update_parsed_clone.store(true, std::sync::atomic::Ordering::Relaxed)
                     });
                     apt_update_dialog.close();
                 }
@@ -160,7 +173,8 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
 
     let update_status_server_context = MainContext::default();
     // The main loop executes the asynchronous block
-    update_status_server_context.spawn_local(clone!(@weak apt_update_dialog, @weak apt_update_dialog_spinner => async move {
+    update_status_server_context.spawn_local(
+        clone!(@weak apt_update_dialog, @weak apt_update_dialog_spinner => async move {
         while let Ok(state) = update_status_receiver.recv().await {
             match state.as_ref() {
                 "FN_OVERRIDE_SUCCESSFUL" => {}
@@ -171,11 +185,14 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
                 _ => apt_update_dialog.set_body(&state)
             }
         }
-        }));
+        }),
+    );
 
+    let update_parsed_clone1 = Arc::clone(&updates_parsed);
     let get_upgradable_server_context = MainContext::default();
     // The main loop executes the asynchronous block
-    get_upgradable_server_context.spawn_local(clone!(@weak packages_boxedlist => async move {
+    get_upgradable_server_context.spawn_local(
+        clone!(@weak packages_boxedlist, @strong update_parsed_clone1 => async move {
         while let Ok(state) = get_upgradable_receiver.recv().await {
             packages_boxedlist.append(&AptPackageRow::new(AptPackageSocket {
                 name: state.name,
@@ -188,9 +205,12 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
                 size: state.size,
                 installed_size: state.installed_size
             }));
+            if update_parsed_clone1.load(std::sync::atomic::Ordering::Relaxed) {
+                packages_boxedlist.set_sensitive(true)
+            }
         }
-        }));
-
+        }),
+    );
 
     main_box.append(&searchbar);
     main_box.append(&packages_viewport);
@@ -198,7 +218,6 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
     apt_update_dialog.present();
     main_box
 }
-
 
 async fn update_percent_socket_server(buffer_sender: async_channel::Sender<String>) {
     // Path to the Unix socket file

@@ -1,8 +1,8 @@
 mod imp;
 
+use crate::apt_update_page::AptPackageSocket;
 use glib::Object;
 use gtk::glib;
-use crate::apt_update_page::AptPackageSocket;
 
 glib::wrapper! {
     pub struct AptPackageRow(ObjectSubclass<imp::AptPackageRow>)
@@ -29,7 +29,7 @@ impl AptPackageRow {
 
 impl Default for AptPackageRow {
     fn default() -> Self {
-        Self::new(AptPackageSocket{
+        Self::new(AptPackageSocket {
             name: "name".to_string(),
             arch: "arch".to_string(),
             installed_version: "0.0".to_string(),
@@ -38,7 +38,7 @@ impl Default for AptPackageRow {
             source_uri: "??".to_string(),
             maintainer: "??".to_string(),
             size: 0,
-            installed_size: 0
+            installed_size: 0,
         })
     }
 }

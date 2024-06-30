@@ -8,10 +8,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="df2ca9e1-e07d-43f4-bc68-0a6113fc1fa2" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/apt_package_row/imp.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/apt_package_row/imp.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/apt_package_row/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/apt_package_row/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/apt_update_page/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/apt_update_page/mod.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -103,6 +100,7 @@
       <workItem from="1719504952240" duration="1363000" />
       <workItem from="1719510804090" duration="7000" />
       <workItem from="1719609702948" duration="9756000" />
+      <workItem from="1719635307639" duration="18000" />
     </task>
     <servers />
   </component>

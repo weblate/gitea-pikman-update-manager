@@ -1,17 +1,16 @@
-
-mod config;
-mod build_ui;
-mod apt_update_page;
 mod apt_package_row;
+mod apt_update_page;
+mod build_ui;
+mod config;
 
-use std::env;
+use crate::config::APP_ID;
 use adw::prelude::*;
 use adw::*;
+use build_ui::build_ui;
 use gdk::Display;
 use gtk::*;
 use std::boxed::Box;
-use build_ui::build_ui;
-use crate::config::{APP_ID};
+use std::env;
 
 // Init translations for current crate.
 #[macro_use]
@@ -21,16 +20,16 @@ i18n!("locales", fallback = "en_US");
 /// main function
 fn main() {
     let current_locale = match env::var_os("LANG") {
-        Some(v) => v.into_string().unwrap().chars()
+        Some(v) => v
+            .into_string()
+            .unwrap()
+            .chars()
             .take_while(|&ch| ch != '.')
             .collect::<String>(),
         None => panic!("$LANG is not set"),
     };
     rust_i18n::set_locale(&current_locale);
-    let application = adw::Application::new(
-        Some(APP_ID),
-        Default::default(),
-    );
+    let application = adw::Application::new(Some(APP_ID), Default::default());
     application.connect_startup(|app| {
         // The CSS "magic" happens here.
         let provider = CssProvider::new();

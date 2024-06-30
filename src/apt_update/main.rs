@@ -1,10 +1,10 @@
+use pika_unixsocket_tools::*;
 use rust_apt::new_cache;
-use tokio::net::{UnixStream};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use rust_apt::progress::{AcquireProgress, DynAcquireProgress};
 use rust_apt::raw::{AcqTextStatus, ItemDesc, PkgAcquire};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::UnixStream;
 use tokio::runtime::Runtime;
-use pika_unixsocket_tools::*;
 
 pub struct AptUpdateProgressSocket<'a> {
     pulse_interval: usize,
@@ -22,7 +22,7 @@ impl<'a> AptUpdateProgressSocket<'a> {
             max: 0,
             progress: 0.0,
             percent_socket_path: percent_socket_path,
-            status_socket_path: status_socket_path
+            status_socket_path: status_socket_path,
         };
         progress
     }
@@ -40,7 +40,9 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
     /// The higher the number, the less frequent pulse updates will be.
     ///
     /// Pulse Interval set to 0 assumes the apt defaults.
-    fn pulse_interval(&self) -> usize { self.pulse_interval }
+    fn pulse_interval(&self) -> usize {
+        self.pulse_interval
+    }
 
     /// Called when an item is confirmed to be up-to-date.
     ///
@@ -48,7 +50,9 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
     fn hit(&mut self, item: &ItemDesc) {
         let message = format!("Up-to-date: {} {}", item.description(), item.short_desc());
         println!("{}", message);
-        Runtime::new().unwrap().block_on(send_progress_status(message, self.status_socket_path));
+        Runtime::new()
+            .unwrap()
+            .block_on(send_progress_status(message, self.status_socket_path));
     }
 
     /// Called when an Item has started to download
@@ -57,7 +61,9 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
     fn fetch(&mut self, item: &ItemDesc) {
         let message = format!("Fetching: {} {}", item.description(), item.short_desc());
         println!("{}", message);
-        Runtime::new().unwrap().block_on(send_progress_status(message, self.status_socket_path));
+        Runtime::new()
+            .unwrap()
+            .block_on(send_progress_status(message, self.status_socket_path));
     }
 
     /// Called when an item is successfully and completely fetched.
@@ -66,7 +72,9 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
     fn done(&mut self, item: &ItemDesc) {
         let message = format!("Downloading: {} {}", item.description(), item.short_desc());
         println!("{}", message);
-        Runtime::new().unwrap().block_on(send_progress_status(message, self.status_socket_path));
+        Runtime::new()
+            .unwrap()
+            .block_on(send_progress_status(message, self.status_socket_path));
     }
 
     /// Called when progress has started.
@@ -87,9 +95,15 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
     ///
     /// Print out the ErrorText for the Item.
     fn fail(&mut self, item: &ItemDesc) {
-        let message = format!("Download Failed!: {} {}", item.description(), item.short_desc());
+        let message = format!(
+            "Download Failed!: {} {}",
+            item.description(),
+            item.short_desc()
+        );
         eprintln!("{}", message);
-        Runtime::new().unwrap().block_on(send_progress_status(message, self.status_socket_path));
+        Runtime::new()
+            .unwrap()
+            .block_on(send_progress_status(message, self.status_socket_path));
     }
 
     /// Called periodically to provide the overall progress information
@@ -98,8 +112,12 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
     /// Each line has an overall percent meter and a per active item status
     /// meter along with an overall bandwidth and ETA indicator.
     fn pulse(&mut self, status: &AcqTextStatus, owner: &PkgAcquire) {
-        let progress_percent: f32 = (status.current_bytes() as f32 * 100.0) / status.total_bytes() as f32;
-        Runtime::new().unwrap().block_on(send_progress_percent(progress_percent, self.percent_socket_path));
+        let progress_percent: f32 =
+            (status.current_bytes() as f32 * 100.0) / status.total_bytes() as f32;
+        Runtime::new().unwrap().block_on(send_progress_percent(
+            progress_percent,
+            self.percent_socket_path,
+        ));
     }
 }
 
@@ -107,14 +125,25 @@ fn main() {
     let update_cache = new_cache!().unwrap();
     let percent_socket_path = "/tmp/pika_apt_update_percent.sock";
     let status_socket_path = "/tmp/pika_apt_update_status.sock";
-    match update_cache.update(&mut AcquireProgress::new(AptUpdateProgressSocket::new(percent_socket_path, status_socket_path))) {
+    match update_cache.update(&mut AcquireProgress::new(AptUpdateProgressSocket::new(
+        percent_socket_path,
+        status_socket_path,
+    ))) {
         Ok(_) => {
-            Runtime::new().unwrap().block_on(send_successful_to_socket(percent_socket_path));
-            Runtime::new().unwrap().block_on(send_successful_to_socket(status_socket_path));
+            Runtime::new()
+                .unwrap()
+                .block_on(send_successful_to_socket(percent_socket_path));
+            Runtime::new()
+                .unwrap()
+                .block_on(send_successful_to_socket(status_socket_path));
         }
         Err(e) => {
-            Runtime::new().unwrap().block_on(send_failed_to_socket(percent_socket_path));
-            Runtime::new().unwrap().block_on(send_failed_to_socket(status_socket_path));
+            Runtime::new()
+                .unwrap()
+                .block_on(send_failed_to_socket(percent_socket_path));
+            Runtime::new()
+                .unwrap()
+                .block_on(send_failed_to_socket(status_socket_path));
             panic!("{}", e.to_string())
         }
     };
@@ -122,17 +151,27 @@ fn main() {
 
 async fn send_progress_percent(progress_f32: f32, socket_path: &str) {
     // Connect to the Unix socket
-    let mut stream = UnixStream::connect(socket_path).await.expect("Could not connect to server");
+    let mut stream = UnixStream::connect(socket_path)
+        .await
+        .expect("Could not connect to server");
 
     let message = progress_f32.to_string();
     // Send the message to the server
-    stream.write_all(message.as_bytes()).await.expect("Failed to write to stream");
+    stream
+        .write_all(message.as_bytes())
+        .await
+        .expect("Failed to write to stream");
 }
 
 async fn send_progress_status(message: String, socket_path: &str) {
     // Connect to the Unix socket
-    let mut stream = UnixStream::connect(socket_path).await.expect("Could not connect to server");
+    let mut stream = UnixStream::connect(socket_path)
+        .await
+        .expect("Could not connect to server");
 
     // Send the message to the server
-    stream.write_all(message.as_bytes()).await.expect("Failed to write to stream");
+    stream
+        .write_all(message.as_bytes())
+        .await
+        .expect("Failed to write to stream");
 }

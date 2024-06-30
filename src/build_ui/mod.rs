@@ -1,14 +1,14 @@
-use adw::prelude::*;
-use adw::*;
-use gtk::{Orientation, License};
 use crate::apt_update_page;
 use crate::apt_update_page::apt_update_page;
-use crate::config::{APP_ICON, APP_ID, APP_GITHUB, VERSION};
+use crate::config::{APP_GITHUB, APP_ICON, APP_ID, VERSION};
+use adw::prelude::*;
+use adw::*;
 use gtk::glib::{clone, MainContext};
-use std::thread;
-use std::process::Command;
+use gtk::{License, Orientation};
 use std::cell::RefCell;
+use std::process::Command;
 use std::rc::Rc;
+use std::thread;
 
 pub fn build_ui(app: &adw::Application) {
     // setup glib
