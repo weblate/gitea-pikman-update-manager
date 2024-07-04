@@ -8,6 +8,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="df2ca9e1-e07d-43f4-bc68-0a6113fc1fa2" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/apt_package_row/imp.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/apt_package_row/imp.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -101,6 +103,11 @@
       <workItem from="1719510804090" duration="7000" />
       <workItem from="1719609702948" duration="9756000" />
       <workItem from="1719635307639" duration="18000" />
+      <workItem from="1719797505365" duration="10000" />
+      <workItem from="1719797522707" duration="698000" />
+      <workItem from="1719847278228" duration="8841000" />
+      <workItem from="1719872581190" duration="4000" />
+      <workItem from="1720090281244" duration="2690000" />
     </task>
     <servers />
   </component>

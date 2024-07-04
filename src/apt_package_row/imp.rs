@@ -8,6 +8,7 @@ use gtk::Orientation::Horizontal;
 use crate::apt_update_page::AptPackageSocket;
 use pretty_bytes::converter::convert;
 use std::env;
+use std::os::unix::raw::nlink_t;
 
 // ANCHOR: custom_button
 // Object holding the state
@@ -262,7 +263,7 @@ fn create_expandable_content(apt_package_row: &impl IsA<ExpanderRow>, expandable
     expandable_page_selection_box.add_css_class("linked");
     //
     let description_page_button = gtk::ToggleButton::builder()
-        .label(t!("description_page_button_label"))
+        .label(t!("description_button_label"))
         .active(true)
         .build();
     let extra_info_page_button = gtk::ToggleButton::builder()
@@ -291,10 +292,28 @@ fn create_expandable_content(apt_package_row: &impl IsA<ExpanderRow>, expandable
         .vexpand(true)
         .build();
     //
+    description_page_button.connect_clicked(clone!(@strong expandable_bin, @strong description_page_button => move |_|{
+        if description_page_button.is_active() {
+            expandable_bin.set_child(Some(&description_stack_page(&package_description)));
+        }
+    }));
+
+    extra_info_page_button.connect_clicked(clone!(@strong expandable_bin, @strong extra_info_page_button => move |_|{
+        if extra_info_page_button.is_active() {
+           expandable_bin.set_child(Some(&extra_info_stack_page(&package_maintainer, package_size, package_installed_size)));
+        }
+    }));
+
+    uris_page_button.connect_clicked(clone!(@strong expandable_bin, @strong uris_page_button => move |_|{
+        if uris_page_button.is_active() {
+           expandable_bin.set_child(Some(&uris_stack_page(&package_source_uri)));
+        }
+    }));
+
     apt_package_row.connect_expanded_notify(clone!(@strong expandable_bin, @strong expandable_box, @strong apt_package_row, @strong description_page_button => move |apt_package_row| {
         if apt_package_row.property("expanded") {
-            expandable_bin.set_child(Some(&extra_info_stack_page(&package_maintainer, package_size, package_installed_size)));
             description_page_button.set_active(true);
+            description_page_button.emit_by_name::<()>("clicked", &[]);
             expandable_box.append(&expandable_bin)
         } else {
             expandable_box.remove(&expandable_bin)
@@ -304,12 +323,59 @@ fn create_expandable_content(apt_package_row: &impl IsA<ExpanderRow>, expandable
     //
 }
 
+fn uris_stack_page(package_source_uri: &str) -> gtk::Box {
+    let uris_content_box = gtk::Box::builder()
+        .hexpand(true)
+        .vexpand(true)
+        .orientation(Orientation::Vertical)
+        .build();
+    let uris_text_buffer = gtk::TextBuffer::builder()
+        .text(package_source_uri.to_owned()+"\n")
+        .build();
+    let uris_text_view = gtk::TextView::builder()
+        .buffer(&uris_text_buffer)
+        .hexpand(true)
+        .vexpand(true)
+        .margin_top(15)
+        .margin_bottom(15)
+        .margin_start(15)
+        .margin_end(15)
+        .editable(false)
+        .buffer(&uris_text_buffer)
+        .build();
+    uris_content_box.append(&uris_text_view);
+    uris_content_box
+}
+
+fn description_stack_page(package_description: &str) -> gtk::Box {
+    let description_content_box = gtk::Box::builder()
+        .hexpand(true)
+        .vexpand(true)
+        .orientation(Orientation::Vertical)
+        .build();
+    let description_text_buffer = gtk::TextBuffer::builder()
+        .text(package_description.to_owned()+"\n")
+        .build();
+    let description_text_view = gtk::TextView::builder()
+        .buffer(&description_text_buffer)
+        .hexpand(true)
+        .vexpand(true)
+        .margin_top(15)
+        .margin_bottom(15)
+        .margin_start(15)
+        .margin_end(15)
+        .editable(false)
+        .buffer(&description_text_buffer)
+        .build();
+    description_content_box.append(&description_text_view);
+    description_content_box
+}
+
 fn extra_info_stack_page(package_maintainer: &str, package_size: u64, package_installed_size: u64) -> gtk::Box  {
     let extra_info_badges_content_box = gtk::Box::builder()
         .hexpand(true)
         .vexpand(true)
         .orientation(Orientation::Vertical)
-        .sensitive(false)
         .build();
     let extra_info_badges_size_group = gtk::SizeGroup::new(SizeGroupMode::Both);
     let extra_info_badges_size_group0 = gtk::SizeGroup::new(SizeGroupMode::Both);
@@ -367,8 +433,8 @@ fn create_color_badge(
 
     let boxedlist = gtk::ListBox::builder()
         .selection_mode(SelectionMode::None)
-        .halign(Align::Center)
-        .valign(Align::End)
+        .halign(Align::Start)
+        .valign(Align::Start)
         .margin_start(10)
         .margin_end(10)
         .margin_bottom(10)
