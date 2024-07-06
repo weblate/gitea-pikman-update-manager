@@ -1,11 +1,11 @@
 use std::{cell::RefCell, default, sync::OnceLock};
 
+use crate::apt_update_page::AptPackageSocket;
 use adw::*;
 use adw::{prelude::*, subclass::prelude::*};
-use glib::{subclass::Signal, Properties, clone};
-use gtk::{*};
+use glib::{clone, subclass::Signal, Properties};
 use gtk::Orientation::Horizontal;
-use crate::apt_update_page::AptPackageSocket;
+use gtk::*;
 use pretty_bytes::converter::convert;
 use std::env;
 use std::os::unix::raw::nlink_t;
@@ -54,7 +54,10 @@ impl ObjectImpl for AptPackageRow {
     }
     fn constructed(&self) {
         let current_locale = match env::var_os("LANG") {
-            Some(v) => v.into_string().unwrap().chars()
+            Some(v) => v
+                .into_string()
+                .unwrap()
+                .chars()
                 .take_while(|&ch| ch != '.')
                 .collect::<String>(),
             None => panic!("$LANG is not set"),
@@ -111,7 +114,8 @@ impl PreferencesRowImpl for AptPackageRow {}
 impl ExpanderRowImpl for AptPackageRow {}
 
 fn create_version_badge(installed_version: &str, candidate_version: &str) -> gtk::ListBox {
-    let (base_version, installed_diff, candidate_diff) = get_diff_by_prefix(installed_version, candidate_version);
+    let (base_version, installed_diff, candidate_diff) =
+        get_diff_by_prefix(installed_version, candidate_version);
 
     let badge_box = gtk::Box::builder()
         .halign(Align::Start)
@@ -131,7 +135,11 @@ fn create_version_badge(installed_version: &str, candidate_version: &str) -> gtk
         .build();
 
     let installed_version_base_version_label = gtk::Label::builder()
-        .label(format!("{}: {}", t!("installed_version_badge_text"), &base_version))
+        .label(format!(
+            "{}: {}",
+            t!("installed_version_badge_text"),
+            &base_version
+        ))
         .valign(Align::Center)
         .halign(Align::Start)
         .hexpand(false)
@@ -163,7 +171,11 @@ fn create_version_badge(installed_version: &str, candidate_version: &str) -> gtk
         .build();
 
     let candidate_version_base_version_label = gtk::Label::builder()
-        .label(format!("{}: {}", t!("candidate_version_badge_text"), &base_version))
+        .label(format!(
+            "{}: {}",
+            t!("candidate_version_badge_text"),
+            &base_version
+        ))
         .valign(Align::Center)
         .halign(Align::Start)
         .hexpand(false)
@@ -231,7 +243,13 @@ fn remove_all_children_from_box(parent: &gtk::Box) {
     }
 }
 
-fn create_prefix_content(prefix_box: &gtk::Box, package_name: &str ,package_arch: &str, package_installed_version: &str, package_candidate_version: &str) {
+fn create_prefix_content(
+    prefix_box: &gtk::Box,
+    package_name: &str,
+    package_arch: &str,
+    package_installed_version: &str,
+    package_candidate_version: &str,
+) {
     let package_label = gtk::Label::builder()
         .halign(Align::Start)
         .margin_start(5)
@@ -242,13 +260,24 @@ fn create_prefix_content(prefix_box: &gtk::Box, package_name: &str ,package_arch
         .build();
     package_label.add_css_class("size-20-bold-text");
     let version_box = gtk::Box::new(Orientation::Horizontal, 0);
-    version_box.append(&create_version_badge(package_installed_version, package_candidate_version));
+    version_box.append(&create_version_badge(
+        package_installed_version,
+        package_candidate_version,
+    ));
     version_box.append(&create_arch_badge(package_arch));
     prefix_box.append(&package_label);
     prefix_box.append(&version_box);
 }
 
-fn create_expandable_content(apt_package_row: &impl IsA<ExpanderRow>, expandable_box: &gtk::Box, package_description: String, package_source_uri: String, package_maintainer: String, package_size: u64, package_installed_size: u64) {
+fn create_expandable_content(
+    apt_package_row: &impl IsA<ExpanderRow>,
+    expandable_box: &gtk::Box,
+    package_description: String,
+    package_source_uri: String,
+    package_maintainer: String,
+    package_size: u64,
+    package_installed_size: u64,
+) {
     let expandable_page_selection_box = gtk::Box::builder()
         .orientation(Orientation::Horizontal)
         .hexpand(false)
@@ -287,16 +316,15 @@ fn create_expandable_content(apt_package_row: &impl IsA<ExpanderRow>, expandable
     //
     expandable_box.append(&expandable_page_selection_box);
     //
-    let expandable_bin = adw::Bin::builder()
-        .hexpand(true)
-        .vexpand(true)
-        .build();
+    let expandable_bin = adw::Bin::builder().hexpand(true).vexpand(true).build();
     //
-    description_page_button.connect_clicked(clone!(@strong expandable_bin, @strong description_page_button => move |_|{
-        if description_page_button.is_active() {
-            expandable_bin.set_child(Some(&description_stack_page(&package_description)));
-        }
-    }));
+    description_page_button.connect_clicked(
+        clone!(@strong expandable_bin, @strong description_page_button => move |_|{
+            if description_page_button.is_active() {
+                expandable_bin.set_child(Some(&description_stack_page(&package_description)));
+            }
+        }),
+    );
 
     extra_info_page_button.connect_clicked(clone!(@strong expandable_bin, @strong extra_info_page_button => move |_|{
         if extra_info_page_button.is_active() {
@@ -304,11 +332,13 @@ fn create_expandable_content(apt_package_row: &impl IsA<ExpanderRow>, expandable
         }
     }));
 
-    uris_page_button.connect_clicked(clone!(@strong expandable_bin, @strong uris_page_button => move |_|{
-        if uris_page_button.is_active() {
-           expandable_bin.set_child(Some(&uris_stack_page(&package_source_uri)));
-        }
-    }));
+    uris_page_button.connect_clicked(
+        clone!(@strong expandable_bin, @strong uris_page_button => move |_|{
+            if uris_page_button.is_active() {
+               expandable_bin.set_child(Some(&uris_stack_page(&package_source_uri)));
+            }
+        }),
+    );
 
     apt_package_row.connect_expanded_notify(clone!(@strong expandable_bin, @strong expandable_box, @strong apt_package_row, @strong description_page_button => move |apt_package_row| {
         if apt_package_row.property("expanded") {
@@ -330,7 +360,7 @@ fn uris_stack_page(package_source_uri: &str) -> gtk::Box {
         .orientation(Orientation::Vertical)
         .build();
     let uris_text_buffer = gtk::TextBuffer::builder()
-        .text(package_source_uri.to_owned()+"\n")
+        .text(package_source_uri.to_owned() + "\n")
         .build();
     let uris_text_view = gtk::TextView::builder()
         .buffer(&uris_text_buffer)
@@ -354,7 +384,7 @@ fn description_stack_page(package_description: &str) -> gtk::Box {
         .orientation(Orientation::Vertical)
         .build();
     let description_text_buffer = gtk::TextBuffer::builder()
-        .text(package_description.to_owned()+"\n")
+        .text(package_description.to_owned() + "\n")
         .build();
     let description_text_view = gtk::TextView::builder()
         .buffer(&description_text_buffer)
@@ -371,7 +401,11 @@ fn description_stack_page(package_description: &str) -> gtk::Box {
     description_content_box
 }
 
-fn extra_info_stack_page(package_maintainer: &str, package_size: u64, package_installed_size: u64) -> gtk::Box  {
+fn extra_info_stack_page(
+    package_maintainer: &str,
+    package_size: u64,
+    package_installed_size: u64,
+) -> gtk::Box {
     let extra_info_badges_content_box = gtk::Box::builder()
         .hexpand(true)
         .vexpand(true)
@@ -382,9 +416,30 @@ fn extra_info_stack_page(package_maintainer: &str, package_size: u64, package_in
     let extra_info_badges_size_group1 = gtk::SizeGroup::new(SizeGroupMode::Both);
     let package_size = package_size as f64;
     let package_installed_size = package_installed_size as f64;
-    extra_info_badges_content_box.append(&create_color_badge(&t!("extra_info_maintainer").to_string(), package_maintainer, "background-accent-bg", &extra_info_badges_size_group, &extra_info_badges_size_group0, &extra_info_badges_size_group1));
-    extra_info_badges_content_box.append(&create_color_badge(&t!("extra_info_download_size").to_string(), &convert(package_size), "background-accent-bg", &extra_info_badges_size_group, &extra_info_badges_size_group0, &extra_info_badges_size_group1));
-    extra_info_badges_content_box.append(&create_color_badge(&t!("extra_info_installed_size").to_string(), &convert(package_installed_size), "background-accent-bg", &extra_info_badges_size_group, &extra_info_badges_size_group0, &extra_info_badges_size_group1));
+    extra_info_badges_content_box.append(&create_color_badge(
+        &t!("extra_info_maintainer").to_string(),
+        package_maintainer,
+        "background-accent-bg",
+        &extra_info_badges_size_group,
+        &extra_info_badges_size_group0,
+        &extra_info_badges_size_group1,
+    ));
+    extra_info_badges_content_box.append(&create_color_badge(
+        &t!("extra_info_download_size").to_string(),
+        &convert(package_size),
+        "background-accent-bg",
+        &extra_info_badges_size_group,
+        &extra_info_badges_size_group0,
+        &extra_info_badges_size_group1,
+    ));
+    extra_info_badges_content_box.append(&create_color_badge(
+        &t!("extra_info_installed_size").to_string(),
+        &convert(package_installed_size),
+        "background-accent-bg",
+        &extra_info_badges_size_group,
+        &extra_info_badges_size_group0,
+        &extra_info_badges_size_group1,
+    ));
     extra_info_badges_content_box
 }
 fn create_color_badge(
@@ -449,13 +504,17 @@ fn create_color_badge(
 
 pub fn get_diff_by_prefix(xs: &str, ys: &str) -> (String, String, String) {
     let mut count = String::new();
-    for (x,y) in xs.chars().zip(ys.chars()) {
+    for (x, y) in xs.chars().zip(ys.chars()) {
         if x == y {
             count.push(x)
         } else {
-            break
+            break;
         }
     }
     let count_clone0 = count.clone();
-    return(count_clone0, xs.trim_start_matches(&count.as_str()).to_string(), ys.trim_start_matches(&count.as_str()).to_string())
+    return (
+        count_clone0,
+        xs.trim_start_matches(&count.as_str()).to_string(),
+        ys.trim_start_matches(&count.as_str()).to_string(),
+    );
 }

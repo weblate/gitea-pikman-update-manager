@@ -1,5 +1,7 @@
 use crate::apt_package_row::AptPackageRow;
+use adw::gio::Action;
 use adw::prelude::*;
+use adw::ActionRow;
 use gtk::glib::*;
 use gtk::*;
 use pika_unixsocket_tools::*;
@@ -28,6 +30,7 @@ pub struct AptPackageSocket {
     pub maintainer: String,
     pub size: u64,
     pub installed_size: u64,
+    pub is_last: bool,
 }
 
 pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
@@ -121,25 +124,21 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
         .width_request(500)
         .build();
 
-    let mut updates_parsed = Arc::new(AtomicBool::new(false));
-
-    let update_parsed_clone0 = Arc::clone(&updates_parsed);
-
     let update_percent_server_context = MainContext::default();
     // The main loop executes the asynchronous block
-    update_percent_server_context.spawn_local(clone!(@weak apt_update_dialog_progress_bar, @weak apt_update_dialog, @strong get_upgradable_sender, @strong update_parsed_clone0 => async move {
+    update_percent_server_context.spawn_local(clone!(@weak apt_update_dialog_progress_bar, @weak apt_update_dialog, @strong get_upgradable_sender => async move {
         while let Ok(state) = update_percent_receiver.recv().await {
             match state.as_ref() {
                 "FN_OVERRIDE_SUCCESSFUL" => {
                     let get_upgradable_sender = get_upgradable_sender.clone();
-                    let update_parsed_clone = Arc::clone(&update_parsed_clone0);
                     thread::spawn(move || {
                         // Create upgradable list cache
                         let upgradable_cache = new_cache!().unwrap();
                         // Create pack sort from upgradable_cache
                         let upgradable_sort = PackageSort::default().upgradable().names();
 
-                        for pkg in upgradable_cache.packages(&upgradable_sort) {
+                        let mut upgradeable_iter = upgradable_cache.packages(&upgradable_sort).peekable();
+                        while let Some(pkg) = upgradeable_iter.next() {
                             let candidate_version_pkg = pkg.candidate().unwrap();
                             let package_struct = AptPackageSocket {
                                 name: pkg.name().to_string(),
@@ -156,11 +155,11 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
                                     _ => t!("apt_pkg_property_unknown").to_string()
                                 },
                                 size: candidate_version_pkg.size(),
-                                installed_size: candidate_version_pkg.installed_size()
+                                installed_size: candidate_version_pkg.installed_size(),
+                                is_last: upgradeable_iter.peek().is_none()
                             };
                             get_upgradable_sender.send_blocking(package_struct).unwrap()
                         }
-                        update_parsed_clone.store(true, std::sync::atomic::Ordering::Relaxed)
                     });
                     apt_update_dialog.close();
                 }
@@ -188,11 +187,10 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
         }),
     );
 
-    let update_parsed_clone1 = Arc::clone(&updates_parsed);
     let get_upgradable_server_context = MainContext::default();
     // The main loop executes the asynchronous block
     get_upgradable_server_context.spawn_local(
-        clone!(@weak packages_boxedlist, @strong update_parsed_clone1 => async move {
+        clone!(@weak packages_boxedlist => async move {
         while let Ok(state) = get_upgradable_receiver.recv().await {
             packages_boxedlist.append(&AptPackageRow::new(AptPackageSocket {
                 name: state.name,
@@ -203,12 +201,19 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
                 source_uri: state.source_uri,
                 maintainer: state.maintainer,
                 size: state.size,
-                installed_size: state.installed_size
+                installed_size: state.installed_size,
+                    is_last: state.is_last
             }));
-            if update_parsed_clone1.load(std::sync::atomic::Ordering::Relaxed) {
-                packages_boxedlist.set_sensitive(true)
+            if state.is_last {
+                packages_boxedlist.set_sensitive(true);
+                    let mut counter = packages_boxedlist.first_child();
+                while let Some(row) = counter {
+                    let row_next_sibling = row.next_sibling();
+                    row.downcast::<AptPackageRow>().unwrap().add_suffix(&gtk::Button::builder().label("gg").build());
+                    counter = row_next_sibling;
+                }
+                }
             }
-        }
         }),
     );
 

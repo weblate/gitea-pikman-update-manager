@@ -39,6 +39,7 @@ impl Default for AptPackageRow {
             maintainer: "??".to_string(),
             size: 0,
             installed_size: 0,
+            is_last: false,
         })
     }
 }
