@@ -9,7 +9,6 @@
   <component name="ChangeListManager">
     <list default="true" id="df2ca9e1-e07d-43f4-bc68-0a6113fc1fa2" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/apt_package_row/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/apt_package_row/mod.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/apt_update_page/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/apt_update_page/mod.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -108,7 +107,7 @@
       <workItem from="1719847278228" duration="8841000" />
       <workItem from="1719872581190" duration="4000" />
       <workItem from="1720090281244" duration="5582000" />
-      <workItem from="1720289925469" duration="4403000" />
+      <workItem from="1720289925469" duration="5474000" />
     </task>
     <servers />
   </component>

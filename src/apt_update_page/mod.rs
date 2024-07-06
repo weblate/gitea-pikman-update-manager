@@ -65,8 +65,8 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
 
     let searchbar = gtk::SearchEntry::builder()
         .search_delay(500)
+        .margin_top(15)
         .margin_bottom(15)
-        .margin_start(15)
         .margin_end(30)
         .margin_start(30)
         .build();
@@ -216,6 +216,25 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
             }
         }),
     );
+
+    searchbar.connect_search_changed(clone!(@weak searchbar, @weak packages_boxedlist => move |_| {
+        let mut counter = packages_boxedlist.first_child();
+        while let Some(row) = counter {
+            if row.widget_name() == "AptPackageRow" {
+                if !searchbar.text().is_empty() {
+                    if row.property::<String>("package-name").to_lowercase().contains(&searchbar.text().to_string().to_lowercase()) {
+                        row.set_property("visible", true);
+                        searchbar.grab_focus();
+                    } else {
+                        row.set_property("visible", false);
+                    }
+                } else {
+                    row.set_property("visible", true);
+                }
+            }
+            counter = row.next_sibling();
+        }
+    }));
 
     main_box.append(&searchbar);
     main_box.append(&packages_viewport);
