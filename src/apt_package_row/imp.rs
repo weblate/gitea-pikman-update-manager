@@ -33,6 +33,8 @@ pub struct AptPackageRow {
     package_size: RefCell<u64>,
     #[property(get, set)]
     package_installed_size: RefCell<u64>,
+    #[property(get, set)]
+    package_marked: RefCell<bool>,
 }
 // ANCHOR_END: custom_button
 
@@ -50,7 +52,7 @@ impl ObjectSubclass for AptPackageRow {
 impl ObjectImpl for AptPackageRow {
     fn signals() -> &'static [Signal] {
         static SIGNALS: OnceLock<Vec<Signal>> = OnceLock::new();
-        SIGNALS.get_or_init(|| vec![Signal::builder("row-deleted").build()])
+        SIGNALS.get_or_init(|| vec![Signal::builder("checkbutton-toggled").build(), Signal::builder("checkbutton-untoggled").build()])
     }
     fn constructed(&self) {
         let current_locale = match env::var_os("LANG") {
@@ -96,11 +98,32 @@ impl ObjectImpl for AptPackageRow {
         obj.add_prefix(&prefix_box);
         obj.add_row(&expandable_box);
 
-        //let obj = self.obj();
-        //obj.bind_property("package-name", &package_label, "label")
-        //    .sync_create()
-        //    .bidirectional()
-        //    .build();
+        let suffix_toggle = gtk::CheckButton::builder()
+            .tooltip_text(t!("mark_for_update"))
+            .halign(Align::Center)
+            .valign(Align::Center)
+            .hexpand(false)
+            .vexpand(false)
+            .build();
+
+        suffix_toggle.connect_toggled(clone!( @weak obj, @weak suffix_toggle => move |_| {
+            if suffix_toggle.is_active() {
+                obj.emit_by_name::<()>("checkbutton-toggled", &[]);
+            } else {
+                obj.emit_by_name::<()>("checkbutton-untoggled", &[]);
+            }
+        }));
+
+        obj.add_suffix(&suffix_toggle);
+
+        let obj = self.obj();
+        obj.bind_property("package-marked", &suffix_toggle, "active")
+            .sync_create()
+            .bidirectional()
+            .build();
+
+        // turn on by default
+        obj.set_property("package-marked", true)
     }
 }
 // Trait shared by all widgets

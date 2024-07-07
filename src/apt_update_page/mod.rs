@@ -124,6 +124,35 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
         .width_request(500)
         .build();
 
+    let bottom_bar = gtk::Box::builder()
+        .valign(Align::End)
+        .build();
+
+    let select_button = gtk::Button::builder()
+        .halign(Align::End)
+        .valign(Align::Center)
+        .hexpand(true)
+        .margin_start(10)
+        .margin_end(30)
+        .margin_top(2)
+        .margin_bottom(15)
+        .label(t!("select_button_deselect_all"))
+        .build();
+
+    select_button.connect_clicked(clone!(@weak select_button, @weak packages_boxedlist => move |_| {
+        let select_button_label = select_button.label().unwrap();
+        let value_to_mark = if select_button_label == t!("select_button_select_all").to_string() {
+            true
+        } else if select_button_label == t!("select_button_deselect_all").to_string()  {
+            false
+        } else {
+            panic!("Unexpected label on selection button")
+        };
+        set_all_apt_row_marks_to(&packages_boxedlist, value_to_mark)
+    }));
+
+    bottom_bar.append(&select_button);
+
     let update_percent_server_context = MainContext::default();
     // The main loop executes the asynchronous block
     update_percent_server_context.spawn_local(clone!(@weak apt_update_dialog_progress_bar, @weak apt_update_dialog, @strong get_upgradable_sender => async move {
@@ -192,26 +221,39 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
     get_upgradable_server_context.spawn_local(
         clone!(@weak packages_boxedlist => async move {
         while let Ok(state) = get_upgradable_receiver.recv().await {
-            packages_boxedlist.append(&AptPackageRow::new(AptPackageSocket {
-                name: state.name,
-                arch: state.arch,
-                installed_version: state.installed_version,
-                candidate_version: state.candidate_version,
-                description: state.description,
-                source_uri: state.source_uri,
-                maintainer: state.maintainer,
-                size: state.size,
-                installed_size: state.installed_size,
+                let apt_row = AptPackageRow::new(AptPackageSocket {
+                    name: state.name,
+                    arch: state.arch,
+                    installed_version: state.installed_version,
+                    candidate_version: state.candidate_version,
+                    description: state.description,
+                    source_uri: state.source_uri,
+                    maintainer: state.maintainer,
+                    size: state.size,
+                    installed_size: state.installed_size,
                     is_last: state.is_last
-            }));
-            if state.is_last {
-                packages_boxedlist.set_sensitive(true);
-                    let mut counter = packages_boxedlist.first_child();
-                while let Some(row) = counter {
-                    let row_next_sibling = row.next_sibling();
-                    row.downcast::<AptPackageRow>().unwrap().add_suffix(&gtk::Button::builder().label("gg").build());
-                    counter = row_next_sibling;
-                }
+                });
+                apt_row.connect_closure(
+                    "checkbutton-toggled",
+                    false,
+                    closure_local!(@strong apt_row, @strong select_button, @strong packages_boxedlist => move |apt_row: AptPackageRow| {
+                        if is_widget_select_all_ready(&packages_boxedlist) {
+                            select_button.set_label(&t!("select_button_select_all").to_string())
+                        } else {
+                            select_button.set_label(&t!("select_button_deselect_all").to_string())
+                        }
+                    }),
+                );
+                apt_row.connect_closure(
+                    "checkbutton-untoggled",
+                    false,
+                    closure_local!(@strong apt_row, @strong select_button, @strong packages_boxedlist => move |apt_row: AptPackageRow| {
+                        select_button.set_label(&t!("select_button_select_all").to_string())
+                    }),
+                );
+                packages_boxedlist.append(&apt_row);
+                if state.is_last {
+                    packages_boxedlist.set_sensitive(true);
                 }
             }
         }),
@@ -238,9 +280,35 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
 
     main_box.append(&searchbar);
     main_box.append(&packages_viewport);
+    main_box.append(&bottom_bar);
 
     apt_update_dialog.present();
     main_box
+}
+
+fn is_widget_select_all_ready(parent_listbox: &impl IsA<ListBox>) -> bool {
+    let mut is_ready = false;
+    let mut child_counter = parent_listbox.borrow().first_child();
+    while let Some(child) = child_counter {
+        let next_child = child.next_sibling();
+        let downcast = child.downcast::<AptPackageRow>().unwrap();
+        if !downcast.package_marked() {
+            is_ready = true;
+            break
+        }
+        child_counter = next_child
+    }
+    is_ready
+}
+
+fn set_all_apt_row_marks_to(parent_listbox: &impl IsA<ListBox>, value: bool) {
+    let mut child_counter = parent_listbox.borrow().first_child();
+    while let Some(child) = child_counter {
+        let next_child = child.next_sibling();
+        let downcast = child.downcast::<AptPackageRow>().unwrap();
+        downcast.set_package_marked(value);
+        child_counter = next_child
+    }
 }
 
 async fn update_percent_socket_server(buffer_sender: async_channel::Sender<String>) {
