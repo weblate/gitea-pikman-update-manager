@@ -32,18 +32,12 @@ pub struct AptPackageSocket {
     pub installed_size: u64,
     pub is_last: bool,
 }
-
-pub fn apt_update_page(window: adw::ApplicationWindow) -> adw::Bin {
-    adw::Bin::builder()
-        .child(&create_bin_content(window))
-        .build()
-}
-
-fn create_bin_content(window: adw::ApplicationWindow) -> gtk::Box {
+pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
     let (update_percent_sender, update_percent_receiver) = async_channel::unbounded::<String>();
     let update_percent_sender = update_percent_sender.clone();
     let (update_status_sender, update_status_receiver) = async_channel::unbounded::<String>();
     let update_status_sender = update_status_sender.clone();
+    let update_status_sender_clone0 = update_status_sender.clone();
     let (get_upgradable_sender, get_upgradable_receiver) = async_channel::unbounded();
     let get_upgradable_sender = get_upgradable_sender.clone();
 
@@ -59,9 +53,20 @@ fn create_bin_content(window: adw::ApplicationWindow) -> gtk::Box {
             .block_on(update_status_socket_server(update_status_sender));
     });
 
-    Command::new("pkexec")
-        .args(["/home/ward/RustroverProjects/pika-idk-manager/target/debug/apt_update"])
-        .spawn();
+    thread::spawn(move || {
+        let apt_update_command = Command::new("pkexec")
+            .args(["/home/ward/RustroverProjects/pika-idk-manager/target/debug/apt_update"])
+            .status()
+            .unwrap();
+        match apt_update_command.code().unwrap() {
+            0 => {}
+            53 => {}
+            _ => {
+                update_status_sender_clone0.send_blocking(t!("update_status_error_perms").to_string()).unwrap();
+                update_status_sender_clone0.send_blocking("FN_OVERRIDE_FAILED".to_owned()).unwrap()
+            }
+        }
+    });
 
     let main_box = gtk::Box::builder()
         .hexpand(true)
@@ -208,14 +213,14 @@ fn create_bin_content(window: adw::ApplicationWindow) -> gtk::Box {
     let update_status_server_context = MainContext::default();
     // The main loop executes the asynchronous block
     update_status_server_context.spawn_local(
-        clone!(@weak apt_update_dialog, @weak apt_update_dialog_spinner => async move {
+        clone!(@weak apt_update_dialog, @weak apt_update_dialog_child_box => async move {
         while let Ok(state) = update_status_receiver.recv().await {
-                println!("egg: {}", state);
             match state.as_ref() {
                 "FN_OVERRIDE_SUCCESSFUL" => {}
                 "FN_OVERRIDE_FAILED" => {
-                    apt_update_dialog_spinner.set_spinning(false);
-                    apt_update_dialog.set_body(&t!("apt_update_dialog_status_failed").to_string())
+                    apt_update_dialog_child_box.set_visible(false);
+                    apt_update_dialog.set_title(Some(&t!("apt_update_dialog_status_failed").to_string()))
+                    //apt_update_dialog.add_response("apt_update_dialog_retry", &t!("apt_update_dialog_retry_label").to_string());
                 }
                 _ => apt_update_dialog.set_body(&state)
             }

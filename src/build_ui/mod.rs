@@ -124,6 +124,11 @@ pub fn build_ui(app: &adw::Application) {
     // show the window
     window.present();
 
-    window_adw_view_stack.add_titled_with_icon(&apt_update_page::apt_update_page(window), Some("apt_update_page"), &t!("apt_update_page_title"), "software-update-available-symbolic");
+    // Apt Update Page
+    let apt_update_view_stack_bin = adw::Bin::builder()
+        .child(&apt_update_page::apt_update_page(window))
+        .build();
+
+    window_adw_view_stack.add_titled_with_icon(&apt_update_view_stack_bin, Some("apt_update_page"), &t!("apt_update_page_title"), "software-update-available-symbolic");
     window_adw_view_stack.add_titled(&gtk::Image::builder().icon_name("firefox").build(), Some("apt_update_page2"), &t!("apt_update_page_title2"));
 }

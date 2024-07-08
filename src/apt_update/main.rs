@@ -1,3 +1,4 @@
+use std::process::exit;
 use pika_unixsocket_tools::*;
 use rust_apt::new_cache;
 use rust_apt::progress::{AcquireProgress, DynAcquireProgress};
@@ -110,7 +111,7 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
         Runtime::new()
             .unwrap()
             .block_on(send_failed_to_socket(self.status_socket_path));
-        panic!("{}", message.to_string())
+        exit(53)
     }
 
     /// Called periodically to provide the overall progress information
