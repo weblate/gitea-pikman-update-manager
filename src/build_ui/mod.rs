@@ -41,16 +41,16 @@ pub fn build_ui(app: &adw::Application) {
         while let Ok(state) = internet_loop_receiver.recv().await {
             let banner_text = t!("banner_text_no_internet").to_string();
             if state == true {
-                *internet_connected_status.borrow_mut()=true;
-                if window_banner.title() == banner_text {
-                    window_banner.set_revealed(false)
-                }
-            } else {
-                *internet_connected_status.borrow_mut()=false;
-                if window_banner.title() != t!("banner_text_url_error").to_string() {
-                window_banner.set_title(&banner_text);
-                window_banner.set_revealed(true)
+                    *internet_connected_status.borrow_mut()=true;
+                    if window_banner.title() == banner_text {
+                        window_banner.set_revealed(false)
                     }
+                } else {
+                    *internet_connected_status.borrow_mut()=false;
+                    if window_banner.title() != t!("banner_text_url_error").to_string() {
+                    window_banner.set_title(&banner_text);
+                    window_banner.set_revealed(true)
+                }
             }
         }
     }));
@@ -63,7 +63,23 @@ pub fn build_ui(app: &adw::Application) {
         )
         .build();
 
-    let window_toolbar = adw::ToolbarView::builder().build();
+    let window_adw_view_stack = adw::ViewStack::builder()
+        .hhomogeneous(true)
+        .vhomogeneous(true)
+        .build();
+
+    let window_toolbar = adw::ToolbarView::builder()
+        .content(&window_adw_view_stack)
+        .top_bar_style(ToolbarStyle::Flat)
+        .bottom_bar_style(ToolbarStyle::Flat)
+        .build();
+
+    let window_adw_view_switcher_bar = adw::ViewSwitcherBar::builder()
+        .stack(&window_adw_view_stack)
+        .reveal(true)
+        .build();
+
+    window_headerbar.pack_start(&window_adw_view_switcher_bar);
 
     window_toolbar.add_top_bar(&window_headerbar);
     window_toolbar.add_top_bar(&window_banner);
@@ -108,5 +124,6 @@ pub fn build_ui(app: &adw::Application) {
     // show the window
     window.present();
 
-    window_toolbar.set_content(Some(&apt_update_page::apt_update_page(window)));
+    window_adw_view_stack.add_titled_with_icon(&apt_update_page::apt_update_page(window), Some("apt_update_page"), &t!("apt_update_page_title"), "software-update-available-symbolic");
+    window_adw_view_stack.add_titled(&gtk::Image::builder().icon_name("firefox").build(), Some("apt_update_page2"), &t!("apt_update_page_title2"));
 }

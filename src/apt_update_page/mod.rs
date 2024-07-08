@@ -33,7 +33,13 @@ pub struct AptPackageSocket {
     pub is_last: bool,
 }
 
-pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
+pub fn apt_update_page(window: adw::ApplicationWindow) -> adw::Bin {
+    adw::Bin::builder()
+        .child(&create_bin_content(window))
+        .build()
+}
+
+fn create_bin_content(window: adw::ApplicationWindow) -> gtk::Box {
     let (update_percent_sender, update_percent_receiver) = async_channel::unbounded::<String>();
     let update_percent_sender = update_percent_sender.clone();
     let (update_status_sender, update_status_receiver) = async_channel::unbounded::<String>();
@@ -204,6 +210,7 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
     update_status_server_context.spawn_local(
         clone!(@weak apt_update_dialog, @weak apt_update_dialog_spinner => async move {
         while let Ok(state) = update_status_receiver.recv().await {
+                println!("egg: {}", state);
             match state.as_ref() {
                 "FN_OVERRIDE_SUCCESSFUL" => {}
                 "FN_OVERRIDE_FAILED" => {

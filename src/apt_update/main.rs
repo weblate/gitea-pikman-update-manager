@@ -52,7 +52,7 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
         println!("{}", message);
         Runtime::new()
             .unwrap()
-            .block_on(send_progress_status(message, self.status_socket_path));
+            .block_on(send_progress_status(&message, self.status_socket_path));
     }
 
     /// Called when an Item has started to download
@@ -63,7 +63,7 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
         println!("{}", message);
         Runtime::new()
             .unwrap()
-            .block_on(send_progress_status(message, self.status_socket_path));
+            .block_on(send_progress_status(&message, self.status_socket_path));
     }
 
     /// Called when an item is successfully and completely fetched.
@@ -74,7 +74,7 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
         println!("{}", message);
         Runtime::new()
             .unwrap()
-            .block_on(send_progress_status(message, self.status_socket_path));
+            .block_on(send_progress_status(&message, self.status_socket_path));
     }
 
     /// Called when progress has started.
@@ -96,14 +96,21 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
     /// Print out the ErrorText for the Item.
     fn fail(&mut self, item: &ItemDesc) {
         let message = format!(
-            "Download Failed!: {} {}",
+            "Download Failed: {} {}",
             item.description(),
             item.short_desc()
         );
-        eprintln!("{}", message);
+        eprintln!("{}", &message);
         Runtime::new()
             .unwrap()
-            .block_on(send_progress_status(message, self.status_socket_path));
+            .block_on(send_progress_status(&message, self.status_socket_path));
+        Runtime::new()
+            .unwrap()
+            .block_on(send_failed_to_socket(self.percent_socket_path));
+        Runtime::new()
+            .unwrap()
+            .block_on(send_failed_to_socket(self.status_socket_path));
+        panic!("{}", message.to_string())
     }
 
     /// Called periodically to provide the overall progress information
@@ -163,7 +170,7 @@ async fn send_progress_percent(progress_f32: f32, socket_path: &str) {
         .expect("Failed to write to stream");
 }
 
-async fn send_progress_status(message: String, socket_path: &str) {
+async fn send_progress_status(message: &str, socket_path: &str) {
     // Connect to the Unix socket
     let mut stream = UnixStream::connect(socket_path)
         .await
