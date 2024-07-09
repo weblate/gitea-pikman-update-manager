@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use crate::apt_package_row::AptPackageRow;
 use adw::gio::Action;
 use adw::prelude::*;
@@ -15,6 +16,7 @@ use std::process::Command;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::{fs, thread};
+use std::ops::Deref;
 use tokio::io::AsyncReadExt;
 use tokio::net::{UnixListener, UnixStream};
 use tokio::runtime::Runtime;
@@ -32,7 +34,7 @@ pub struct AptPackageSocket {
     pub installed_size: u64,
     pub is_last: bool,
 }
-pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
+pub fn apt_update_page(window: adw::ApplicationWindow, retry_signal_action: &gtk::Button) -> gtk::Box {
     let (update_percent_sender, update_percent_receiver) = async_channel::unbounded::<String>();
     let update_percent_sender = update_percent_sender.clone();
     let (update_status_sender, update_status_receiver) = async_channel::unbounded::<String>();
@@ -135,6 +137,23 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
         .width_request(500)
         .build();
 
+    apt_update_dialog.add_response("apt_update_dialog_retry", &t!("apt_update_dialog_retry_label").to_string());
+
+    apt_update_dialog.set_response_appearance(
+        "apt_update_dialog_retry",
+        adw::ResponseAppearance::Suggested,
+    );
+
+    apt_update_dialog.set_response_enabled("apt_update_dialog_retry", false);
+
+    let retry_signal_action0 = retry_signal_action.clone();
+
+    apt_update_dialog.clone().choose(None::<&gio::Cancellable>, move |choice| {
+        if choice == "apt_update_dialog_retry" {
+            retry_signal_action0.emit_by_name("clicked", &[])
+        }
+    });
+
     let bottom_bar = gtk::Box::builder()
         .valign(Align::End)
         .build();
@@ -219,8 +238,8 @@ pub fn apt_update_page(window: adw::ApplicationWindow) -> gtk::Box {
                 "FN_OVERRIDE_SUCCESSFUL" => {}
                 "FN_OVERRIDE_FAILED" => {
                     apt_update_dialog_child_box.set_visible(false);
-                    apt_update_dialog.set_title(Some(&t!("apt_update_dialog_status_failed").to_string()))
-                    //apt_update_dialog.add_response("apt_update_dialog_retry", &t!("apt_update_dialog_retry_label").to_string());
+                    apt_update_dialog.set_title(Some(&t!("apt_update_dialog_status_failed").to_string()));
+                    apt_update_dialog.set_response_enabled("apt_update_dialog_retry", true);
                 }
                 _ => apt_update_dialog.set_body(&state)
             }

@@ -1,11 +1,13 @@
+use crate::glib::closure_local;
 use crate::apt_update_page;
 use crate::apt_update_page::apt_update_page;
 use crate::config::{APP_GITHUB, APP_ICON, APP_ID, VERSION};
 use adw::prelude::*;
 use adw::*;
 use gtk::glib::{clone, MainContext};
-use gtk::{License, Orientation};
+use gtk::{License, Orientation, SignalAction};
 use std::cell::RefCell;
+use std::ops::Deref;
 use std::process::Command;
 use std::rc::Rc;
 use std::thread;
@@ -122,12 +124,20 @@ pub fn build_ui(app: &adw::Application) {
         .connect_clicked(clone!(@weak credits_button => move |_| credits_window.present()));
 
     // show the window
+
     window.present();
 
     // Apt Update Page
+
+    let apt_retry_signal_action = gtk::Button::builder().build();
+
     let apt_update_view_stack_bin = adw::Bin::builder()
-        .child(&apt_update_page::apt_update_page(window))
+        .child(&apt_update_page::apt_update_page(window.clone(), &apt_retry_signal_action))
         .build();
+
+    apt_retry_signal_action.connect_clicked(clone!(@weak window, @strong apt_retry_signal_action, @strong apt_update_view_stack_bin => move |_| {
+        apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(window, &apt_retry_signal_action)));
+    }));
 
     window_adw_view_stack.add_titled_with_icon(&apt_update_view_stack_bin, Some("apt_update_page"), &t!("apt_update_page_title"), "software-update-available-symbolic");
     window_adw_view_stack.add_titled(&gtk::Image::builder().icon_name("firefox").build(), Some("apt_update_page2"), &t!("apt_update_page_title2"));
