@@ -1,3 +1,5 @@
+mod process;
+
 use std::rc::Rc;
 use crate::apt_package_row::AptPackageRow;
 use adw::gio::{Action, SimpleAction};
@@ -43,6 +45,8 @@ pub fn apt_update_page(window: adw::ApplicationWindow, retry_signal_action: &Sim
     let (get_upgradable_sender, get_upgradable_receiver) = async_channel::unbounded();
     let get_upgradable_sender = get_upgradable_sender.clone();
 
+    //let excluded_updates_vec = Vec::new();
+
     thread::spawn(move || {
         Runtime::new()
             .unwrap()
@@ -87,8 +91,6 @@ pub fn apt_update_page(window: adw::ApplicationWindow, retry_signal_action: &Sim
 
     let packages_boxedlist = gtk::ListBox::builder()
         .selection_mode(SelectionMode::None)
-        .margin_bottom(15)
-        .margin_start(15)
         .margin_end(15)
         .margin_start(15)
         .sensitive(false)
@@ -101,7 +103,7 @@ pub fn apt_update_page(window: adw::ApplicationWindow, retry_signal_action: &Sim
         .vexpand(true)
         .hexpand(true)
         .margin_bottom(15)
-        .margin_start(15)
+        .margin_top(15)
         .margin_end(15)
         .margin_start(15)
         .height_request(390)
@@ -163,8 +165,7 @@ pub fn apt_update_page(window: adw::ApplicationWindow, retry_signal_action: &Sim
         .valign(Align::Center)
         .hexpand(true)
         .margin_start(10)
-        .margin_end(30)
-        .margin_top(2)
+        .margin_end(10)
         .margin_bottom(15)
         .label(t!("select_button_deselect_all"))
         .build();
@@ -181,7 +182,19 @@ pub fn apt_update_page(window: adw::ApplicationWindow, retry_signal_action: &Sim
         set_all_apt_row_marks_to(&packages_boxedlist, value_to_mark)
     }));
 
+    let update_button = gtk::Button::builder()
+        .halign(Align::End)
+        .valign(Align::Center)
+        .hexpand(false)
+        .margin_start(10)
+        .margin_end(30)
+        .margin_bottom(15)
+        .label(t!("update_button_label"))
+        .build();
+    update_button.add_css_class("destructive-action");
+
     bottom_bar.append(&select_button);
+    bottom_bar.append(&update_button);
 
     let update_percent_server_context = MainContext::default();
     // The main loop executes the asynchronous block

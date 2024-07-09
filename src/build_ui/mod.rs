@@ -111,7 +111,8 @@ pub fn build_ui(app: &adw::Application) {
         .build();
 
     let refresh_button = gtk::Button::builder()
-        .label(t!("refresh_button_label"))
+        .icon_name("view-refresh-symbolic")
+        .tooltip_text(t!("refresh_button_tooltip_text"))
         .build();
 
     let credits_window = adw::AboutWindow::builder()
@@ -135,7 +136,6 @@ pub fn build_ui(app: &adw::Application) {
     window.present();
 
     // Apt Update Page
-
     let apt_retry_signal_action = gio::SimpleAction::new("retry", None);
 
     let apt_update_view_stack_bin = adw::Bin::builder()
@@ -147,11 +147,12 @@ pub fn build_ui(app: &adw::Application) {
     }));
 
     window_adw_view_stack.add_titled_with_icon(&apt_update_view_stack_bin, Some("apt_update_page"), &t!("apt_update_page_title"), "software-update-available-symbolic");
-    window_adw_view_stack.add_titled(&gtk::Image::builder().icon_name("firefox").build(), Some("apt_update_page2"), &t!("apt_update_page_title2"));
-
     //
 
-    refresh_button.connect_clicked(clone!(@weak apt_retry_signal_action => move |_| {
-        apt_retry_signal_action.activate(None);
+    refresh_button.connect_clicked(clone!(@weak apt_retry_signal_action, @weak window_adw_view_stack => move |_| {
+        match window_adw_view_stack.visible_child_name().unwrap().as_str() {
+            "apt_update_page" => apt_retry_signal_action.activate(None),
+            _ => {}
+        }
     }));
 }

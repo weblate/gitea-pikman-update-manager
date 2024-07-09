@@ -8,6 +8,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="df2ca9e1-e07d-43f4-bc68-0a6113fc1fa2" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/src/apt_update_page/process.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/apt_update_page/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/apt_update_page/mod.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/build_ui/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/build_ui/mod.rs" afterDir="false" />
@@ -112,7 +113,7 @@
       <workItem from="1720301553869" duration="12211000" />
       <workItem from="1720423242486" duration="3396000" />
       <workItem from="1720476457389" duration="7123000" />
-      <workItem from="1720502207843" duration="1286000" />
+      <workItem from="1720502207843" duration="3142000" />
     </task>
     <servers />
   </component>
