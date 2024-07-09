@@ -1,8 +1,8 @@
-use std::process::exit;
 use pika_unixsocket_tools::*;
 use rust_apt::new_cache;
 use rust_apt::progress::{AcquireProgress, DynAcquireProgress};
 use rust_apt::raw::{AcqTextStatus, ItemDesc, PkgAcquire};
+use std::process::exit;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UnixStream;
 use tokio::runtime::Runtime;

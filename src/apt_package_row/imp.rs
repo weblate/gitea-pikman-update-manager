@@ -52,7 +52,12 @@ impl ObjectSubclass for AptPackageRow {
 impl ObjectImpl for AptPackageRow {
     fn signals() -> &'static [Signal] {
         static SIGNALS: OnceLock<Vec<Signal>> = OnceLock::new();
-        SIGNALS.get_or_init(|| vec![Signal::builder("checkbutton-toggled").build(), Signal::builder("checkbutton-untoggled").build()])
+        SIGNALS.get_or_init(|| {
+            vec![
+                Signal::builder("checkbutton-toggled").build(),
+                Signal::builder("checkbutton-untoggled").build(),
+            ]
+        })
     }
     fn constructed(&self) {
         let current_locale = match env::var_os("LANG") {

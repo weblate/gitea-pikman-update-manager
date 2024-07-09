@@ -1,6 +1,5 @@
 mod process;
 
-use std::rc::Rc;
 use crate::apt_package_row::AptPackageRow;
 use adw::gio::{Action, SimpleAction};
 use adw::prelude::*;
@@ -12,13 +11,14 @@ use rust_apt::cache::*;
 use rust_apt::new_cache;
 use rust_apt::records::RecordField;
 use rust_apt::*;
-use std::borrow::BorrowMut;
+use std::cell::RefCell;
+use std::ops::Deref;
 use std::path::Path;
 use std::process::Command;
+use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::{fs, thread};
-use std::ops::Deref;
 use tokio::io::AsyncReadExt;
 use tokio::net::{UnixListener, UnixStream};
 use tokio::runtime::Runtime;
@@ -36,7 +36,10 @@ pub struct AptPackageSocket {
     pub installed_size: u64,
     pub is_last: bool,
 }
-pub fn apt_update_page(window: adw::ApplicationWindow, retry_signal_action: &SimpleAction) -> gtk::Box {
+pub fn apt_update_page(
+    window: adw::ApplicationWindow,
+    retry_signal_action: &SimpleAction,
+) -> gtk::Box {
     let (update_percent_sender, update_percent_receiver) = async_channel::unbounded::<String>();
     let update_percent_sender = update_percent_sender.clone();
     let (update_status_sender, update_status_receiver) = async_channel::unbounded::<String>();
@@ -45,7 +48,7 @@ pub fn apt_update_page(window: adw::ApplicationWindow, retry_signal_action: &Sim
     let (get_upgradable_sender, get_upgradable_receiver) = async_channel::unbounded();
     let get_upgradable_sender = get_upgradable_sender.clone();
 
-    //let excluded_updates_vec = Vec::new();
+    let excluded_updates_vec: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
 
     thread::spawn(move || {
         Runtime::new()
@@ -68,8 +71,12 @@ pub fn apt_update_page(window: adw::ApplicationWindow, retry_signal_action: &Sim
             0 => {}
             53 => {}
             _ => {
-                update_status_sender_clone0.send_blocking(t!("update_status_error_perms").to_string()).unwrap();
-                update_status_sender_clone0.send_blocking("FN_OVERRIDE_FAILED".to_owned()).unwrap()
+                update_status_sender_clone0
+                    .send_blocking(t!("update_status_error_perms").to_string())
+                    .unwrap();
+                update_status_sender_clone0
+                    .send_blocking("FN_OVERRIDE_FAILED".to_owned())
+                    .unwrap()
             }
         }
     });
@@ -139,7 +146,10 @@ pub fn apt_update_page(window: adw::ApplicationWindow, retry_signal_action: &Sim
         .width_request(500)
         .build();
 
-    apt_update_dialog.add_response("apt_update_dialog_retry", &t!("apt_update_dialog_retry_label").to_string());
+    apt_update_dialog.add_response(
+        "apt_update_dialog_retry",
+        &t!("apt_update_dialog_retry_label").to_string(),
+    );
 
     apt_update_dialog.set_response_appearance(
         "apt_update_dialog_retry",
@@ -150,15 +160,15 @@ pub fn apt_update_page(window: adw::ApplicationWindow, retry_signal_action: &Sim
 
     let retry_signal_action0 = retry_signal_action.clone();
 
-    apt_update_dialog.clone().choose(None::<&gio::Cancellable>, move |choice| {
-        if choice == "apt_update_dialog_retry" {
-            retry_signal_action0.activate(None);
-        }
-    });
+    apt_update_dialog
+        .clone()
+        .choose(None::<&gio::Cancellable>, move |choice| {
+            if choice == "apt_update_dialog_retry" {
+                retry_signal_action0.activate(None);
+            }
+        });
 
-    let bottom_bar = gtk::Box::builder()
-        .valign(Align::End)
-        .build();
+    let bottom_bar = gtk::Box::builder().valign(Align::End).build();
 
     let select_button = gtk::Button::builder()
         .halign(Align::End)
@@ -192,6 +202,10 @@ pub fn apt_update_page(window: adw::ApplicationWindow, retry_signal_action: &Sim
         .label(t!("update_button_label"))
         .build();
     update_button.add_css_class("destructive-action");
+
+    update_button.connect_clicked(clone!(@strong excluded_updates_vec => move |_| {
+        process::apt_process_update(&excluded_updates_vec.borrow());
+    }));
 
     bottom_bar.append(&select_button);
     bottom_bar.append(&update_button);
@@ -263,7 +277,7 @@ pub fn apt_update_page(window: adw::ApplicationWindow, retry_signal_action: &Sim
     let get_upgradable_server_context = MainContext::default();
     // The main loop executes the asynchronous block
     get_upgradable_server_context.spawn_local(
-        clone!(@weak packages_boxedlist => async move {
+        clone!(@weak select_button,  @weak update_button, @weak packages_boxedlist, @strong excluded_updates_vec => async move {
         while let Ok(state) = get_upgradable_receiver.recv().await {
                 let apt_row = AptPackageRow::new(AptPackageSocket {
                     name: state.name,
@@ -280,19 +294,23 @@ pub fn apt_update_page(window: adw::ApplicationWindow, retry_signal_action: &Sim
                 apt_row.connect_closure(
                     "checkbutton-toggled",
                     false,
-                    closure_local!(@strong apt_row, @strong select_button, @strong packages_boxedlist => move |apt_row: AptPackageRow| {
+                    closure_local!(@strong apt_row, @strong select_button, @strong update_button, @strong packages_boxedlist, @strong excluded_updates_vec => move |apt_row: AptPackageRow| {
                         if is_widget_select_all_ready(&packages_boxedlist) {
-                            select_button.set_label(&t!("select_button_select_all").to_string())
+                            select_button.set_label(&t!("select_button_select_all").to_string());
                         } else {
-                            select_button.set_label(&t!("select_button_deselect_all").to_string())
+                            select_button.set_label(&t!("select_button_deselect_all").to_string());
                         }
+                        update_button.set_sensitive(!is_all_children_unmarked(&packages_boxedlist));
+                        excluded_updates_vec.borrow_mut().retain(|x| x != &apt_row.package_name());
                     }),
                 );
                 apt_row.connect_closure(
                     "checkbutton-untoggled",
                     false,
-                    closure_local!(@strong apt_row, @strong select_button, @strong packages_boxedlist => move |apt_row: AptPackageRow| {
-                        select_button.set_label(&t!("select_button_select_all").to_string())
+                    closure_local!(@strong apt_row, @strong select_button, @strong update_button, @strong packages_boxedlist, @strong excluded_updates_vec => move |apt_row: AptPackageRow| {
+                        select_button.set_label(&t!("select_button_select_all").to_string());
+                        update_button.set_sensitive(!is_all_children_unmarked(&packages_boxedlist));
+                        excluded_updates_vec.borrow_mut().push(apt_row.package_name())
                     }),
                 );
                 packages_boxedlist.append(&apt_row);
@@ -338,11 +356,26 @@ fn is_widget_select_all_ready(parent_listbox: &impl IsA<ListBox>) -> bool {
         let downcast = child.downcast::<AptPackageRow>().unwrap();
         if !downcast.package_marked() {
             is_ready = true;
-            break
+            break;
         }
         child_counter = next_child
     }
     is_ready
+}
+
+fn is_all_children_unmarked(parent_listbox: &impl IsA<ListBox>) -> bool {
+    let mut is_all_unmarked = true;
+    let mut child_counter = parent_listbox.borrow().first_child();
+    while let Some(child) = child_counter {
+        let next_child = child.next_sibling();
+        let downcast = child.downcast::<AptPackageRow>().unwrap();
+        if downcast.package_marked() {
+            is_all_unmarked = false;
+            break;
+        }
+        child_counter = next_child
+    }
+    is_all_unmarked
 }
 
 fn set_all_apt_row_marks_to(parent_listbox: &impl IsA<ListBox>, value: bool) {

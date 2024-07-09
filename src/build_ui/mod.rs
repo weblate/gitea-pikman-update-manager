@@ -1,18 +1,18 @@
-use crate::glib::closure_local;
 use crate::apt_update_page;
 use crate::apt_update_page::apt_update_page;
 use crate::config::{APP_GITHUB, APP_ICON, APP_ID, VERSION};
+use crate::glib::closure_local;
+use adw::glib::ffi::G_VARIANT_TYPE_ANY;
 use adw::prelude::*;
 use adw::*;
 use gtk::glib::{clone, MainContext};
+use gtk::pango::AttrType::Variant;
 use gtk::{License, Orientation, SignalAction};
 use std::cell::RefCell;
 use std::ops::Deref;
 use std::process::Command;
 use std::rc::Rc;
 use std::thread;
-use adw::glib::ffi::G_VARIANT_TYPE_ANY;
-use gtk::pango::AttrType::Variant;
 
 pub fn build_ui(app: &adw::Application) {
     // setup glib
@@ -139,20 +139,30 @@ pub fn build_ui(app: &adw::Application) {
     let apt_retry_signal_action = gio::SimpleAction::new("retry", None);
 
     let apt_update_view_stack_bin = adw::Bin::builder()
-        .child(&apt_update_page::apt_update_page(window.clone(), &apt_retry_signal_action))
+        .child(&apt_update_page::apt_update_page(
+            window.clone(),
+            &apt_retry_signal_action,
+        ))
         .build();
 
     apt_retry_signal_action.connect_activate(clone!(@weak window, @strong apt_retry_signal_action, @strong apt_update_view_stack_bin => move |_, _| {
         apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(window, &apt_retry_signal_action)));
     }));
 
-    window_adw_view_stack.add_titled_with_icon(&apt_update_view_stack_bin, Some("apt_update_page"), &t!("apt_update_page_title"), "software-update-available-symbolic");
+    window_adw_view_stack.add_titled_with_icon(
+        &apt_update_view_stack_bin,
+        Some("apt_update_page"),
+        &t!("apt_update_page_title"),
+        "software-update-available-symbolic",
+    );
     //
 
-    refresh_button.connect_clicked(clone!(@weak apt_retry_signal_action, @weak window_adw_view_stack => move |_| {
-        match window_adw_view_stack.visible_child_name().unwrap().as_str() {
-            "apt_update_page" => apt_retry_signal_action.activate(None),
-            _ => {}
-        }
-    }));
+    refresh_button.connect_clicked(
+        clone!(@weak apt_retry_signal_action, @weak window_adw_view_stack => move |_| {
+            match window_adw_view_stack.visible_child_name().unwrap().as_str() {
+                "apt_update_page" => apt_retry_signal_action.activate(None),
+                _ => {}
+            }
+        }),
+    );
 }
