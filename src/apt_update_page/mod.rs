@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use crate::apt_package_row::AptPackageRow;
-use adw::gio::Action;
+use adw::gio::{Action, SimpleAction};
 use adw::prelude::*;
 use adw::ActionRow;
 use gtk::glib::*;
@@ -34,7 +34,7 @@ pub struct AptPackageSocket {
     pub installed_size: u64,
     pub is_last: bool,
 }
-pub fn apt_update_page(window: adw::ApplicationWindow, retry_signal_action: &gtk::Button) -> gtk::Box {
+pub fn apt_update_page(window: adw::ApplicationWindow, retry_signal_action: &SimpleAction) -> gtk::Box {
     let (update_percent_sender, update_percent_receiver) = async_channel::unbounded::<String>();
     let update_percent_sender = update_percent_sender.clone();
     let (update_status_sender, update_status_receiver) = async_channel::unbounded::<String>();
@@ -150,7 +150,7 @@ pub fn apt_update_page(window: adw::ApplicationWindow, retry_signal_action: &gtk
 
     apt_update_dialog.clone().choose(None::<&gio::Cancellable>, move |choice| {
         if choice == "apt_update_dialog_retry" {
-            retry_signal_action0.emit_by_name("clicked", &[])
+            retry_signal_action0.activate(None);
         }
     });
 

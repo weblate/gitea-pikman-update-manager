@@ -11,6 +11,8 @@ use std::ops::Deref;
 use std::process::Command;
 use std::rc::Rc;
 use std::thread;
+use adw::glib::ffi::G_VARIANT_TYPE_ANY;
+use gtk::pango::AttrType::Variant;
 
 pub fn build_ui(app: &adw::Application) {
     // setup glib
@@ -108,6 +110,10 @@ pub fn build_ui(app: &adw::Application) {
         .icon_name("dialog-information-symbolic")
         .build();
 
+    let refresh_button = gtk::Button::builder()
+        .label(t!("refresh_button_label"))
+        .build();
+
     let credits_window = adw::AboutWindow::builder()
         .application_icon(APP_ICON)
         .application_name(t!("application_name"))
@@ -119,6 +125,7 @@ pub fn build_ui(app: &adw::Application) {
         .issue_url(APP_GITHUB.to_owned() + "/issues")
         .build();
 
+    window_headerbar.pack_end(&refresh_button);
     window_headerbar.pack_end(&credits_button);
     credits_button
         .connect_clicked(clone!(@weak credits_button => move |_| credits_window.present()));
@@ -129,16 +136,22 @@ pub fn build_ui(app: &adw::Application) {
 
     // Apt Update Page
 
-    let apt_retry_signal_action = gtk::Button::builder().build();
+    let apt_retry_signal_action = gio::SimpleAction::new("retry", None);
 
     let apt_update_view_stack_bin = adw::Bin::builder()
         .child(&apt_update_page::apt_update_page(window.clone(), &apt_retry_signal_action))
         .build();
 
-    apt_retry_signal_action.connect_clicked(clone!(@weak window, @strong apt_retry_signal_action, @strong apt_update_view_stack_bin => move |_| {
+    apt_retry_signal_action.connect_activate(clone!(@weak window, @strong apt_retry_signal_action, @strong apt_update_view_stack_bin => move |_, _| {
         apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(window, &apt_retry_signal_action)));
     }));
 
     window_adw_view_stack.add_titled_with_icon(&apt_update_view_stack_bin, Some("apt_update_page"), &t!("apt_update_page_title"), "software-update-available-symbolic");
     window_adw_view_stack.add_titled(&gtk::Image::builder().icon_name("firefox").build(), Some("apt_update_page2"), &t!("apt_update_page_title2"));
+
+    //
+
+    refresh_button.connect_clicked(clone!(@weak apt_retry_signal_action => move |_| {
+        apt_retry_signal_action.activate(None);
+    }));
 }
