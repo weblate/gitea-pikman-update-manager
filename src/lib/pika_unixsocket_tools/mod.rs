@@ -1,5 +1,8 @@
+use std::fs;
+use std::path::Path;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::UnixStream;
+use tokio::net::{UnixListener, UnixStream};
+use tokio::task;
 
 pub async fn send_successful_to_socket(socket_path: &str) {
     // Connect to the Unix socket
@@ -47,6 +50,33 @@ pub async fn handle_client(mut stream: UnixStream, buffer_sender: async_channel:
         Err(e) => {
             // Print error message if reading fails
             eprintln!("Failed to read from stream: {}", e);
+        }
+    }
+}
+
+pub async fn start_socket_server(buffer_sender: async_channel::Sender<String>, socket_path: &str) {
+    // Remove the socket file if it already exists
+    if Path::new(socket_path).exists() {
+        fs::remove_file(socket_path).expect("Could not remove existing socket file");
+    }
+
+    // Bind the Unix listener to the socket path
+    let listener = UnixListener::bind(socket_path).expect("Could not bind");
+
+    println!("Server listening on {}", socket_path);
+
+    // Loop to accept incoming connections
+    loop {
+        // Accept an incoming connection
+        match listener.accept().await {
+            Ok((stream, _)) => {
+                // Handle the connection in a separate task
+                task::spawn(handle_client(stream, buffer_sender.clone()));
+            }
+            Err(e) => {
+                // Print error message if a connection fails
+                eprintln!("Connection failed: {}", e);
+            }
         }
     }
 }

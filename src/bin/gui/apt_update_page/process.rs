@@ -5,8 +5,11 @@ use gtk::glib::*;
 use gtk::*;
 use pretty_bytes::converter::convert;
 use serde_json::{Value};
-use std::{fs::*};
+use std::{fs::*, thread};
 use std::path::Path;
+use std::process::Command;
+use tokio::runtime::Runtime;
+use pika_unixsocket_tools::pika_unixsocket_tools::start_socket_server;
 
 struct AptChangesInfo {
     package_count: u64,
@@ -174,7 +177,115 @@ fn apt_confirm_window(excluded_updates_vec: &Vec<String>, window: adw::Applicati
         std::fs::write(json_file_path, serde_json::to_string_pretty(&excluded_updates_values_json).unwrap()).expect("Failed to write to json file");
     }
 
-    apt_confirm_dialog.present();
+    //apt_confirm_dialog.present();
+    apt_full_upgrade_from_socket(window);
+}
+
+fn apt_full_upgrade_from_socket(window: adw::ApplicationWindow) {
+    let (upgrade_percent_sender, upgrade_percent_receiver) = async_channel::unbounded::<String>();
+    let upgrade_percent_sender = upgrade_percent_sender.clone();
+    let (upgrade_status_sender, upgrade_status_receiver) = async_channel::unbounded::<String>();
+    let upgrade_status_sender = upgrade_status_sender.clone();
+    let upgrade_status_sender_clone0 = upgrade_status_sender.clone();
+
+    thread::spawn(move || {
+        Runtime::new()
+            .unwrap()
+            .block_on(start_socket_server(upgrade_percent_sender, "/tmp/pika_apt_upgrade_percent.sock"));
+    });
+
+    thread::spawn(move || {
+        Runtime::new()
+            .unwrap()
+            .block_on(start_socket_server(upgrade_status_sender, "/tmp/pika_apt_upgrade_status.sock"));
+    });
+
+    thread::spawn(move || {
+        let apt_upgrade_command = Command::new("pkexec")
+            .args(["/home/ward/RustroverProjects/pika-idk-manager/target/debug/apt_full_upgrade"])
+            .status()
+            .unwrap();
+        match apt_upgrade_command.code().unwrap() {
+            0 => {
+                upgrade_status_sender_clone0
+                    .send_blocking("FN_OVERRIDE_SUCCESSFUL".to_owned())
+                    .unwrap()
+            }
+            53 => {}
+            _ => {
+                upgrade_status_sender_clone0
+                    .send_blocking(t!("upgrade_status_error_perms").to_string())
+                    .unwrap();
+                upgrade_status_sender_clone0
+                    .send_blocking("FN_OVERRIDE_FAILED".to_owned())
+                    .unwrap()
+            }
+        }
+    });
+
+    let apt_upgrade_dialog_child_box = gtk::Box::builder()
+        .orientation(Orientation::Vertical)
+        .build();
+
+    let apt_upgrade_dialog_progress_bar = gtk::ProgressBar::builder()
+        .show_text(true)
+        .hexpand(true)
+        .build();
+
+    let apt_upgrade_dialog_spinner = gtk::Spinner::builder()
+        .hexpand(true)
+        .valign(Align::Start)
+        .halign(Align::Center)
+        .spinning(true)
+        .height_request(128)
+        .width_request(128)
+        .build();
+
+    apt_upgrade_dialog_child_box.append(&apt_upgrade_dialog_spinner);
+    apt_upgrade_dialog_child_box.append(&apt_upgrade_dialog_progress_bar);
+
+    let apt_upgrade_dialog = adw::MessageDialog::builder()
+        .transient_for(&window)
+        .extra_child(&apt_upgrade_dialog_child_box)
+        .heading(t!("apt_upgrade_dialog_heading"))
+        .hide_on_close(true)
+        .width_request(500)
+        .build();
+
+    let upgrade_percent_server_context = MainContext::default();
+    // The main loop executes the asynchronous block
+    upgrade_percent_server_context.spawn_local(clone!(@weak apt_upgrade_dialog_progress_bar, @weak apt_upgrade_dialog => async move {
+        while let Ok(state) = upgrade_percent_receiver.recv().await {
+            match state.as_ref() {
+                "FN_OVERRIDE_SUCCESSFUL" => {}
+                _ => {
+                    apt_upgrade_dialog_progress_bar.set_fraction(state.parse::<f64>().unwrap()/100.0)
+                }
+            }
+        }
+        }));
+
+    let upgrade_status_server_context = MainContext::default();
+    // The main loop executes the asynchronous block
+    upgrade_status_server_context.spawn_local(
+        clone!(@weak apt_upgrade_dialog, @weak apt_upgrade_dialog_child_box => async move {
+        while let Ok(state) = upgrade_status_receiver.recv().await {
+            match state.as_ref() {
+                "FN_OVERRIDE_SUCCESSFUL" => {
+                        apt_upgrade_dialog.close();
+                    }
+                "FN_OVERRIDE_FAILED" => {
+                    apt_upgrade_dialog_child_box.set_visible(false);
+                    apt_upgrade_dialog.set_title(Some(&t!("apt_upgrade_dialog_status_failed").to_string()));
+                    apt_upgrade_dialog.set_response_enabled("apt_upgrade_dialog_ok", true);
+                }
+                _ => apt_upgrade_dialog.set_body(&state)
+            }
+        }
+        }),
+    );
+
+    apt_upgrade_dialog.present();
 }
 
 fn create_color_badge(

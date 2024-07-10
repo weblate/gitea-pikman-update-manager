@@ -53,13 +53,13 @@ pub fn apt_update_page(
     thread::spawn(move || {
         Runtime::new()
             .unwrap()
-            .block_on(update_percent_socket_server(update_percent_sender));
+            .block_on(start_socket_server(update_percent_sender, "/tmp/pika_apt_update_percent.sock"));
     });
 
     thread::spawn(move || {
         Runtime::new()
             .unwrap()
-            .block_on(update_status_socket_server(update_status_sender));
+            .block_on(start_socket_server(update_status_sender, "/tmp/pika_apt_update_status.sock"));
     });
 
     thread::spawn(move || {
@@ -385,94 +385,5 @@ fn set_all_apt_row_marks_to(parent_listbox: &impl IsA<ListBox>, value: bool) {
         let downcast = child.downcast::<AptPackageRow>().unwrap();
         downcast.set_package_marked(value);
         child_counter = next_child
-    }
-}
-
-async fn update_percent_socket_server(buffer_sender: async_channel::Sender<String>) {
-    // Path to the Unix socket file
-    let socket_path = "/tmp/pika_apt_update_percent.sock";
-
-    // Remove the socket file if it already exists
-    if Path::new(socket_path).exists() {
-        fs::remove_file(socket_path).expect("Could not remove existing socket file");
-    }
-
-    // Bind the Unix listener to the socket path
-    let listener = UnixListener::bind(socket_path).expect("Could not bind");
-
-    println!("Server listening on {}", socket_path);
-
-    // Loop to accept incoming connections
-    loop {
-        // Accept an incoming connection
-        match listener.accept().await {
-            Ok((stream, _)) => {
-                // Handle the connection in a separate task
-                task::spawn(handle_client(stream, buffer_sender.clone()));
-            }
-            Err(e) => {
-                // Print error message if a connection fails
-                eprintln!("Connection failed: {}", e);
-            }
-        }
-    }
-}
-
-async fn update_status_socket_server(buffer_sender: async_channel::Sender<String>) {
-    // Path to the Unix socket file
-    let socket_path = "/tmp/pika_apt_update_status.sock";
-
-    // Remove the socket file if it already exists
-    if Path::new(socket_path).exists() {
-        fs::remove_file(socket_path).expect("Could not remove existing socket file");
-    }
-
-    // Bind the Unix listener to the socket path
-    let listener = UnixListener::bind(socket_path).expect("Could not bind");
-
-    println!("Server listening on {}", socket_path);
-
-    // Loop to accept incoming connections
-    loop {
-        // Accept an incoming connection
-        match listener.accept().await {
-            Ok((stream, _)) => {
-                // Handle the connection in a separate task
-                task::spawn(handle_client(stream, buffer_sender.clone()));
-            }
-            Err(e) => {
-                // Print error message if a connection fails
-                eprintln!("Connection failed: {}", e);
-            }
-        }
-    }
-}
-async fn get_upgradable_socket_server(buffer_sender: async_channel::Sender<String>) {
-    // Path to the Unix socket file
-    let socket_path = "/tmp/pika_apt_get_upgradable.sock";
-
-    // Remove the socket file if it already exists
-    if Path::new(socket_path).exists() {
-        fs::remove_file(socket_path).expect("Could not remove existing socket file");
-    }
-
-    // Bind the Unix listener to the socket path
-    let listener = UnixListener::bind(socket_path).expect("Could not bind");
-
-    println!("Server listening on {}", socket_path);
-
-    // Loop to accept incoming connections
-    loop {
-        // Accept an incoming connection
-        match listener.accept().await {
-            Ok((stream, _)) => {
-                // Handle the connection in a separate task
-                task::spawn(handle_client(stream, buffer_sender.clone()));
-            }
-            Err(e) => {
-                // Print error message if a connection fails
-                eprintln!("Connection failed: {}", e);
-            }
-        }
     }
 }

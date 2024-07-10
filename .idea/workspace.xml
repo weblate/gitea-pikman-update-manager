@@ -8,22 +8,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="df2ca9e1-e07d-43f4-bc68-0a6113fc1fa2" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/bin/apt/apt_full_upgrade/main.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/bin/apt/apt_update/main.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/lib/apt_update_progress_socket/mod.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/lib/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/lib/apt_install_progress_socket/mod.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/apt_package_row/imp.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/apt_package_row/imp.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/apt_package_row/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/apt_package_row/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/apt_update/main.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/apt_update_page/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/apt_update_page/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/apt_update_page/process.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/apt_update_page/process.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/build_ui/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/build_ui/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/config.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/config.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pika_unixsocket_tools/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/pika_unixsocket_tools/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/style.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/bin/apt/apt_full_upgrade/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/apt/apt_full_upgrade/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/bin/gui/apt_update_page/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/apt_update_page/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/bin/gui/apt_update_page/process.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/apt_update_page/process.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/pika_unixsocket_tools/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/pika_unixsocket_tools/mod.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -61,7 +52,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.rust.reset.selective.auto.import": "true",
     "git-widget-placeholder": "master",
-    "last_opened_file_path": "/home/ward/RustroverProjects/pika-idk-manager/src",
+    "last_opened_file_path": "/home/ward/RustroverProjects/pika-idk-manager/src/lib",
     "node.js.detected.package.eslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
@@ -73,6 +64,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/lib" />
       <recent name="$PROJECT_DIR$/src" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
@@ -146,7 +138,7 @@
       <workItem from="1720502207843" duration="3142000" />
       <workItem from="1720556059466" duration="12649000" />
       <workItem from="1720594302708" duration="52000" />
-      <workItem from="1720597532937" duration="2752000" />
+      <workItem from="1720597532937" duration="6243000" />
     </task>
     <servers />
   </component>
