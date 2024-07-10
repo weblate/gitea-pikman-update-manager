@@ -1,12 +1,12 @@
 mod process;
 
+use pika_unixsocket_tools::pika_unixsocket_tools::*;
 use crate::apt_package_row::AptPackageRow;
 use adw::gio::{Action, SimpleAction};
 use adw::prelude::*;
 use adw::ActionRow;
 use gtk::glib::*;
 use gtk::*;
-use pika_unixsocket_tools::*;
 use rust_apt::cache::*;
 use rust_apt::new_cache;
 use rust_apt::records::RecordField;
