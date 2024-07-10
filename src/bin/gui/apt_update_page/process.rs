@@ -123,6 +123,7 @@ fn apt_confirm_window(excluded_updates_vec: &Vec<String>, window: adw::Applicati
             } else if change.marked_delete() {
                 pkg.mark_delete(false);
             }
+            pkg.protect();
         }
     }
 

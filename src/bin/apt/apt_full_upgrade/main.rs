@@ -5,13 +5,14 @@ use rust_apt::new_cache;
 use rust_apt::progress::{AcquireProgress, InstallProgress};
 use std::fs::*;
 use std::process::exit;
+use rust_apt::cache::Upgrade;
 use tokio::runtime::Runtime;
 
 fn main() {
-    let cache = new_cache!().unwrap();
     let percent_socket_path = "/tmp/pika_apt_upgrade_percent.sock";
     let status_socket_path = "/tmp/pika_apt_upgrade_status.sock";
     let json_file_path = "/tmp/pika-apt-exclusions.json";
+    let mut excluded_updates_vec = Vec::new();
 
     let json: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string(json_file_path).expect("Unable to read file"),
@@ -20,11 +21,32 @@ fn main() {
 
     if let serde_json::Value::Array(exclusions) = &json["exclusions"] {
         for exclusion in exclusions {
-            println!("{}", exclusion["package"])
+            excluded_updates_vec.push(exclusion["package"].as_str().unwrap());
         }
     }
 
-    let pkg = cache.get("neovim").unwrap();
+    let apt_cache = new_cache!().unwrap();
+    let apt_upgrade_cache = new_cache!().unwrap();
+
+    apt_cache.upgrade(Upgrade::FullUpgrade).unwrap();
+
+    for change in apt_cache.get_changes(false) {
+        if !excluded_updates_vec
+            .iter()
+            .any(|e| change.name().contains(e))
+        {
+            let pkg = apt_upgrade_cache.get(change.name()).unwrap();
+            if change.marked_upgrade() || change.marked_install() || change.marked_downgrade() {
+                pkg.mark_install(true, false);
+            } else if change.marked_delete() {
+                pkg.mark_delete(false);
+            }
+            pkg.protect();
+        }
+    }
+
+    apt_upgrade_cache.resolve(true).unwrap();
+
     let mut acquire_progress = AcquireProgress::new(AptUpdateProgressSocket::new(
         percent_socket_path,
         status_socket_path,
@@ -34,13 +56,9 @@ fn main() {
         status_socket_path,
     ));
 
-    pkg.mark_install(true, true);
-    pkg.protect();
-    cache.resolve(true).unwrap();
+    apt_upgrade_cache.resolve(true).unwrap();
 
-    exit(1);
-
-    match cache.get_archives(&mut acquire_progress) {
+    match apt_upgrade_cache.get_archives(&mut acquire_progress) {
         Ok(_) => {
             Runtime::new()
                 .unwrap()
@@ -60,7 +78,7 @@ fn main() {
         }
     };
 
-    match cache.do_install(&mut install_progress) {
+    match apt_upgrade_cache.do_install(&mut install_progress) {
         Ok(_) => {
             Runtime::new()
                 .unwrap()
