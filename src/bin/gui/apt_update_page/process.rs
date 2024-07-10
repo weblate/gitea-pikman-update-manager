@@ -1,25 +1,42 @@
-use rust_apt::new_cache;
-use rust_apt::cache::Upgrade;
 use adw::prelude::*;
 use gtk::glib::*;
 use gtk::*;
+use pika_unixsocket_tools::pika_unixsocket_tools::start_socket_server;
 use pretty_bytes::converter::convert;
-use serde_json::{Value};
-use std::{fs::*, thread};
+use rust_apt::cache::Upgrade;
+use rust_apt::new_cache;
+use serde::Serialize;
+use serde_json::Value;
 use std::path::Path;
 use std::process::Command;
+use std::{fs::*, thread};
 use tokio::runtime::Runtime;
-use pika_unixsocket_tools::pika_unixsocket_tools::start_socket_server;
 
 struct AptChangesInfo {
-    package_count: u64,
+    package_count_upgrade: u64,
+    package_count_install: u64,
+    package_count_downgrade: u64,
+    package_count_remove: u64,
     total_download_size: u64,
-    total_installed_size: u64
+    total_installed_size: i64,
+}
+#[derive(Serialize)]
+struct Exclusions {
+    exclusions: Vec<Value>,
 }
 
 impl AptChangesInfo {
-    fn add_package(&mut self) {
-        self.package_count += 1;
+    fn add_upgrade(&mut self) {
+        self.package_count_upgrade += 1;
+    }
+    fn add_install(&mut self) {
+        self.package_count_install += 1;
+    }
+    fn add_downgrade(&mut self) {
+        self.package_count_downgrade += 1;
+    }
+    fn add_remove(&mut self) {
+        self.package_count_remove += 1;
     }
 
     fn increase_total_download_size_by(&mut self, value: u64) {
@@ -27,7 +44,11 @@ impl AptChangesInfo {
     }
 
     fn increase_total_installed_size_by(&mut self, value: u64) {
-        self.total_installed_size += value;
+        self.total_installed_size += value as i64;
+    }
+
+    fn decrease_total_installed_size_by(&mut self, value: u64) {
+        self.total_installed_size -= value as i64;
     }
 }
 
@@ -55,41 +76,93 @@ pub fn apt_process_update(excluded_updates_vec: &Vec<String>, window: adw::Appli
 
     excluded_updates_alert_dialog.set_default_response(Some("excluded_updates_alert_continue"));
 
-    let excluded_updates_alert_dialog_action = gio::SimpleAction::new("excluded_updates_alert_dialog_action", None);
+    let excluded_updates_alert_dialog_action =
+        gio::SimpleAction::new("excluded_updates_alert_dialog_action", None);
 
-    excluded_updates_alert_dialog_action.connect_activate(clone!(@weak window, @strong excluded_updates_vec => move |_, _| {
-        apt_confirm_window(&excluded_updates_vec, window)
-    }));
+    excluded_updates_alert_dialog_action.connect_activate(
+        clone!(@weak window, @strong excluded_updates_vec => move |_, _| {
+            apt_confirm_window(&excluded_updates_vec, window)
+        }),
+    );
 
     if excluded_updates_vec.is_empty() {
         excluded_updates_alert_dialog_action.activate(None);
     } else {
-        excluded_updates_alert_dialog
-            .choose(None::<&gio::Cancellable>, move |choice| {
-                if choice == "excluded_updates_alert_continue" {
-                    excluded_updates_alert_dialog_action.activate(None);
-                }
-            });
+        excluded_updates_alert_dialog.choose(None::<&gio::Cancellable>, move |choice| {
+            if choice == "excluded_updates_alert_continue" {
+                excluded_updates_alert_dialog_action.activate(None);
+            }
+        });
     }
 }
 
 fn apt_confirm_window(excluded_updates_vec: &Vec<String>, window: adw::ApplicationWindow) {
     // Emulate Apt Full Upgrade to get transaction info
     let mut apt_changes_struct = AptChangesInfo {
-        package_count: 0,
+        package_count_upgrade: 0,
+        package_count_install: 0,
+        package_count_downgrade: 0,
+        package_count_remove: 0,
         total_download_size: 0,
-        total_installed_size: 0
+        total_installed_size: 0,
     };
 
     let apt_cache = new_cache!().unwrap();
+    let apt_upgrade_cache = new_cache!().unwrap();
 
     apt_cache.upgrade(Upgrade::FullUpgrade).unwrap();
 
     for change in apt_cache.get_changes(false) {
-        if !excluded_updates_vec.iter().any(|e| change.name().contains(e)) {
-            apt_changes_struct.add_package();
+        if !excluded_updates_vec
+            .iter()
+            .any(|e| change.name().contains(e))
+        {
+            let pkg = apt_upgrade_cache.get(change.name()).unwrap();
+            if change.marked_upgrade() || change.marked_install() || change.marked_downgrade() {
+                pkg.mark_install(true, false);
+            } else if change.marked_delete() {
+                pkg.mark_delete(false);
+            }
+        }
+    }
+
+    apt_upgrade_cache.resolve(true).unwrap();
+
+    println!("{}", t!("gui_changes_emu_msg_0"));
+    for change in apt_upgrade_cache.get_changes(false) {
+        if change.is_installed() {
+            apt_changes_struct
+                .decrease_total_installed_size_by(change.installed().unwrap().installed_size());
+        }
+        if change.marked_upgrade() && change.is_installed() {
+            println!("{}: {}", t!("gui_changes_emu_msg_upgrading"), change.name());
+            apt_changes_struct.add_upgrade();
             apt_changes_struct.increase_total_download_size_by(change.candidate().unwrap().size());
-            apt_changes_struct.increase_total_installed_size_by(change.candidate().unwrap().installed_size());
+            apt_changes_struct
+                .increase_total_installed_size_by(change.candidate().unwrap().installed_size());
+        } else if change.marked_install() || change.marked_upgrade() && !change.is_installed() {
+            println!(
+                "{}: {}",
+                t!("gui_changes_emu_msg_installing"),
+                change.name()
+            );
+            apt_changes_struct.add_install();
+            apt_changes_struct.increase_total_download_size_by(change.candidate().unwrap().size());
+            apt_changes_struct
+                .increase_total_installed_size_by(change.candidate().unwrap().installed_size());
+        } else if change.marked_downgrade() {
+            println!(
+                "{}: {}",
+                t!("gui_changes_emu_msg_downgrading"),
+                change.name()
+            );
+            apt_changes_struct.add_downgrade();
+            apt_changes_struct.increase_total_download_size_by(change.candidate().unwrap().size());
+            apt_changes_struct
+                .increase_total_installed_size_by(change.candidate().unwrap().installed_size());
+        } else if change.marked_delete() {
+            println!("{}: {}", t!("gui_changes_emu_msg_removing"), change.name());
+            apt_changes_struct.add_remove();
         }
     }
 
@@ -101,39 +174,59 @@ fn apt_confirm_window(excluded_updates_vec: &Vec<String>, window: adw::Applicati
     let apt_update_dialog_badges_size_group0 = gtk::SizeGroup::new(SizeGroupMode::Both);
     let apt_update_dialog_badges_size_group1 = gtk::SizeGroup::new(SizeGroupMode::Both);
 
-    apt_confirm_dialog_child_box.append(
-        &create_color_badge(
-            &t!("package_count_badge_label"),
-            &apt_changes_struct.package_count.to_string(),
-            "background-accent-bg",
-            &apt_update_dialog_badges_size_group,
-            &apt_update_dialog_badges_size_group0,
-            &apt_update_dialog_badges_size_group1
-        )
-    );
+    apt_confirm_dialog_child_box.append(&create_color_badge(
+        &t!("package_count_upgrade_badge_label"),
+        &apt_changes_struct.package_count_upgrade.to_string(),
+        "background-accent-bg",
+        &apt_update_dialog_badges_size_group,
+        &apt_update_dialog_badges_size_group0,
+        &apt_update_dialog_badges_size_group1,
+    ));
 
-    apt_confirm_dialog_child_box.append(
-        &create_color_badge(
-            &t!("total_download_size_badge_label"),
-            &convert(apt_changes_struct.total_download_size as f64),
-            "background-accent-bg",
-            &apt_update_dialog_badges_size_group,
-            &apt_update_dialog_badges_size_group0,
-            &apt_update_dialog_badges_size_group1
-        )
-    );
+    apt_confirm_dialog_child_box.append(&create_color_badge(
+        &t!("package_count_install_badge_label"),
+        &apt_changes_struct.package_count_install.to_string(),
+        "background-accent-bg",
+        &apt_update_dialog_badges_size_group,
+        &apt_update_dialog_badges_size_group0,
+        &apt_update_dialog_badges_size_group1,
+    ));
 
+    apt_confirm_dialog_child_box.append(&create_color_badge(
+        &t!("package_count_downgrade_badge_label"),
+        &apt_changes_struct.package_count_downgrade.to_string(),
+        "background-accent-bg",
+        &apt_update_dialog_badges_size_group,
+        &apt_update_dialog_badges_size_group0,
+        &apt_update_dialog_badges_size_group1,
+    ));
 
-    apt_confirm_dialog_child_box.append(
-        &create_color_badge(
-            &t!("total_installed_size_badge_label"),
-            &convert(apt_changes_struct.total_installed_size as f64),
-            "background-accent-bg",
-            &apt_update_dialog_badges_size_group,
-            &apt_update_dialog_badges_size_group0,
-            &apt_update_dialog_badges_size_group1
-        )
-    );
+    apt_confirm_dialog_child_box.append(&create_color_badge(
+        &t!("package_count_remove_badge_label"),
+        &apt_changes_struct.package_count_remove.to_string(),
+        "background-accent-bg",
+        &apt_update_dialog_badges_size_group,
+        &apt_update_dialog_badges_size_group0,
+        &apt_update_dialog_badges_size_group1,
+    ));
+
+    apt_confirm_dialog_child_box.append(&create_color_badge(
+        &t!("total_download_size_badge_label"),
+        &convert(apt_changes_struct.total_download_size as f64),
+        "background-accent-bg",
+        &apt_update_dialog_badges_size_group,
+        &apt_update_dialog_badges_size_group0,
+        &apt_update_dialog_badges_size_group1,
+    ));
+
+    apt_confirm_dialog_child_box.append(&create_color_badge(
+        &t!("total_installed_size_badge_label"),
+        &convert(apt_changes_struct.total_installed_size as f64),
+        "background-accent-bg",
+        &apt_update_dialog_badges_size_group,
+        &apt_update_dialog_badges_size_group0,
+        &apt_update_dialog_badges_size_group1,
+    ));
 
     let apt_confirm_dialog = adw::MessageDialog::builder()
         .transient_for(&window)
@@ -159,26 +252,32 @@ fn apt_confirm_window(excluded_updates_vec: &Vec<String>, window: adw::Applicati
 
     apt_confirm_dialog.set_default_response(Some("apt_confirm_dialog_confirm"));
 
-
     if !excluded_updates_vec.is_empty() {
-        let excluded_updates_values: Vec<Value> = excluded_updates_vec.into_iter()
-            .map(|i| serde_json::from_str(format!("{{\"package\":\"{}\"}}", i).as_str()))
-            .collect::<Result<Vec<Value>,_>>()
-            .unwrap();
-
-        let excluded_updates_values_json = Value::Array(excluded_updates_values);
+        let exclusions_array = Exclusions {
+            exclusions: excluded_updates_vec
+                .into_iter()
+                .map(|i| serde_json::from_str(format!("{{\"package\":\"{}\"}}", i).as_str()))
+                .collect::<Result<Vec<Value>, _>>()
+                .unwrap(),
+        };
 
         let json_file_path = "/tmp/pika-apt-exclusions.json";
 
         if Path::new(json_file_path).exists() {
             std::fs::remove_file(json_file_path).expect("Failed to remove old json file");
         }
-
-        std::fs::write(json_file_path, serde_json::to_string_pretty(&excluded_updates_values_json).unwrap()).expect("Failed to write to json file");
+        std::fs::write(
+            json_file_path,
+            serde_json::to_string_pretty(&exclusions_array).unwrap(),
+        )
+        .expect("Failed to write to json file");
     }
 
-    //apt_confirm_dialog.present();
-    apt_full_upgrade_from_socket(window);
+    apt_confirm_dialog.choose(None::<&gio::Cancellable>, move |choice| {
+        if choice == "apt_confirm_dialog_confirm" {
+            apt_full_upgrade_from_socket(window);
+        }
+    });
 }
 
 fn apt_full_upgrade_from_socket(window: adw::ApplicationWindow) {
@@ -189,15 +288,17 @@ fn apt_full_upgrade_from_socket(window: adw::ApplicationWindow) {
     let upgrade_status_sender_clone0 = upgrade_status_sender.clone();
 
     thread::spawn(move || {
-        Runtime::new()
-            .unwrap()
-            .block_on(start_socket_server(upgrade_percent_sender, "/tmp/pika_apt_upgrade_percent.sock"));
+        Runtime::new().unwrap().block_on(start_socket_server(
+            upgrade_percent_sender,
+            "/tmp/pika_apt_upgrade_percent.sock",
+        ));
     });
 
     thread::spawn(move || {
-        Runtime::new()
-            .unwrap()
-            .block_on(start_socket_server(upgrade_status_sender, "/tmp/pika_apt_upgrade_status.sock"));
+        Runtime::new().unwrap().block_on(start_socket_server(
+            upgrade_status_sender,
+            "/tmp/pika_apt_upgrade_status.sock",
+        ));
     });
 
     thread::spawn(move || {
@@ -206,11 +307,9 @@ fn apt_full_upgrade_from_socket(window: adw::ApplicationWindow) {
             .status()
             .unwrap();
         match apt_upgrade_command.code().unwrap() {
-            0 => {
-                upgrade_status_sender_clone0
-                    .send_blocking("FN_OVERRIDE_SUCCESSFUL".to_owned())
-                    .unwrap()
-            }
+            0 => upgrade_status_sender_clone0
+                .send_blocking("FN_OVERRIDE_SUCCESSFUL".to_owned())
+                .unwrap(),
             53 => {}
             _ => {
                 upgrade_status_sender_clone0
@@ -275,10 +374,10 @@ fn apt_full_upgrade_from_socket(window: adw::ApplicationWindow) {
                         apt_upgrade_dialog.close();
                     }
                 "FN_OVERRIDE_FAILED" => {
-                    apt_upgrade_dialog_child_box.set_visible(false);
-                    apt_upgrade_dialog.set_title(Some(&t!("apt_upgrade_dialog_status_failed").to_string()));
-                    apt_upgrade_dialog.set_response_enabled("apt_upgrade_dialog_ok", true);
-                }
+                        apt_upgrade_dialog_child_box.set_visible(false);
+                        apt_upgrade_dialog.set_title(Some(&t!("apt_upgrade_dialog_status_failed").to_string()));
+                        apt_upgrade_dialog.set_response_enabled("apt_upgrade_dialog_ok", true);
+                    }
                 _ => apt_upgrade_dialog.set_body(&state)
             }
         }

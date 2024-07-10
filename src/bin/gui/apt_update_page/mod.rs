@@ -1,12 +1,12 @@
 mod process;
 
-use pika_unixsocket_tools::pika_unixsocket_tools::*;
 use crate::apt_package_row::AptPackageRow;
 use adw::gio::{Action, SimpleAction};
 use adw::prelude::*;
 use adw::ActionRow;
 use gtk::glib::*;
 use gtk::*;
+use pika_unixsocket_tools::pika_unixsocket_tools::*;
 use rust_apt::cache::*;
 use rust_apt::new_cache;
 use rust_apt::records::RecordField;
@@ -51,15 +51,17 @@ pub fn apt_update_page(
     let excluded_updates_vec: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
 
     thread::spawn(move || {
-        Runtime::new()
-            .unwrap()
-            .block_on(start_socket_server(update_percent_sender, "/tmp/pika_apt_update_percent.sock"));
+        Runtime::new().unwrap().block_on(start_socket_server(
+            update_percent_sender,
+            "/tmp/pika_apt_update_percent.sock",
+        ));
     });
 
     thread::spawn(move || {
-        Runtime::new()
-            .unwrap()
-            .block_on(start_socket_server(update_status_sender, "/tmp/pika_apt_update_status.sock"));
+        Runtime::new().unwrap().block_on(start_socket_server(
+            update_status_sender,
+            "/tmp/pika_apt_update_status.sock",
+        ));
     });
 
     thread::spawn(move || {
@@ -106,7 +108,6 @@ pub fn apt_update_page(
     let rows_size_group = gtk::SizeGroup::new(SizeGroupMode::Both);
 
     let packages_viewport = gtk::ScrolledWindow::builder()
-        .hscrollbar_policy(PolicyType::Never)
         .vexpand(true)
         .hexpand(true)
         .margin_bottom(15)
@@ -203,9 +204,11 @@ pub fn apt_update_page(
         .build();
     update_button.add_css_class("destructive-action");
 
-    update_button.connect_clicked(clone!(@weak window, @strong excluded_updates_vec => move |_| {
-        process::apt_process_update(&excluded_updates_vec.borrow(), window);
-    }));
+    update_button.connect_clicked(
+        clone!(@weak window, @strong excluded_updates_vec => move |_| {
+            process::apt_process_update(&excluded_updates_vec.borrow(), window);
+        }),
+    );
 
     bottom_bar.append(&select_button);
     bottom_bar.append(&update_button);
@@ -220,16 +223,21 @@ pub fn apt_update_page(
                     thread::spawn(move || {
                         // Create upgradable list cache
                         let upgradable_cache = new_cache!().unwrap();
-                        // Create pack sort from upgradable_cache
-                        let upgradable_sort = PackageSort::default().upgradable().names();
+                        //
+                        upgradable_cache.upgrade(Upgrade::FullUpgrade).unwrap();
 
-                        let mut upgradeable_iter = upgradable_cache.packages(&upgradable_sort).peekable();
+                        upgradable_cache.resolve(true).unwrap();
+
+                        let mut upgradeable_iter = upgradable_cache.get_changes(false).peekable();
                         while let Some(pkg) = upgradeable_iter.next() {
                             let candidate_version_pkg = pkg.candidate().unwrap();
                             let package_struct = AptPackageSocket {
                                 name: pkg.name().to_string(),
                                 arch: pkg.arch().to_string(),
-                                installed_version: pkg.installed().unwrap().version().to_string(),
+                                installed_version: match pkg.installed() {
+                                    Some(t) => t.version().to_string(),
+                                    _ => {t!("installed_version_to_be_installed").to_string()}
+                                },
                                 candidate_version: candidate_version_pkg.version().to_string(),
                                 description: match candidate_version_pkg.description() {
                                     Some(s) => s,

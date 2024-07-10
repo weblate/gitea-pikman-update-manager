@@ -2,7 +2,7 @@ use crate::pika_unixsocket_tools::*;
 use rust_apt::progress::{DynAcquireProgress, DynInstallProgress};
 use rust_apt::raw::{AcqTextStatus, ItemDesc, PkgAcquire};
 use std::process::exit;
-use tokio::io::{AsyncWriteExt};
+use tokio::io::AsyncWriteExt;
 use tokio::net::UnixStream;
 use tokio::runtime::Runtime;
 
@@ -36,32 +36,20 @@ impl<'a> DynInstallProgress for AptInstallProgressSocket<'a> {
         pkgname: String,
         steps_done: u64,
         total_steps: u64,
-        action: String
+        action: String,
     ) {
-        let progress_percent: f32 =
-            (steps_done as f32 * 100.0) / total_steps as f32;
+        let progress_percent: f32 = (steps_done as f32 * 100.0) / total_steps as f32;
         Runtime::new().unwrap().block_on(send_progress_percent(
             progress_percent,
             self.percent_socket_path,
         ));
-        Runtime::new().unwrap().block_on(send_progress_status(
-            &action,
-            self.status_socket_path,
-        ));
+        Runtime::new()
+            .unwrap()
+            .block_on(send_progress_status(&action, self.status_socket_path));
     }
 
-    fn error(
-        &mut self,
-        pkgname: String,
-        steps_done: u64,
-        total_steps: u64,
-        error: String
-    ) {
-        let message = format!(
-            "dpkg failure on {}: {}",
-            pkgname,
-            error
-        );
+    fn error(&mut self, pkgname: String, steps_done: u64, total_steps: u64, error: String) {
+        let message = format!("dpkg failure on {}: {}", pkgname, error);
         eprintln!("{}", &message);
         Runtime::new()
             .unwrap()

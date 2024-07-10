@@ -1,8 +1,8 @@
 use crate::pika_unixsocket_tools::*;
-use rust_apt::progress::{DynAcquireProgress};
+use rust_apt::progress::DynAcquireProgress;
 use rust_apt::raw::{AcqTextStatus, ItemDesc, PkgAcquire};
 use std::process::exit;
-use tokio::io::{AsyncWriteExt};
+use tokio::io::AsyncWriteExt;
 use tokio::net::UnixStream;
 use tokio::runtime::Runtime;
 
