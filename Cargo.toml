@@ -13,8 +13,8 @@ name = "apt_update"
 path = "src/apt_update/main.rs"
 
 [dependencies]
-adw = { version = "0.5.3", package = "libadwaita", features = ["v1_4"] }
-gtk = { version = "0.7.3", package = "gtk4", features = ["v4_12"] }
+adw = { version = "0.6.0", package = "libadwaita", features = ["v1_4"] }
+gtk = { version = "0.8.2", package = "gtk4", features = ["v4_12"] }
 async-channel = "2.1.1"
 rust-i18n = "3.0.1"
 rust-apt = { git = "https://gitlab.com/volian/rust-apt" }

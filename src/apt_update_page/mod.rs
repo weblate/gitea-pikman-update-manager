@@ -203,8 +203,8 @@ pub fn apt_update_page(
         .build();
     update_button.add_css_class("destructive-action");
 
-    update_button.connect_clicked(clone!(@strong excluded_updates_vec => move |_| {
-        process::apt_process_update(&excluded_updates_vec.borrow());
+    update_button.connect_clicked(clone!(@weak window, @strong excluded_updates_vec => move |_| {
+        process::apt_process_update(&excluded_updates_vec.borrow(), window);
     }));
 
     bottom_bar.append(&select_button);
