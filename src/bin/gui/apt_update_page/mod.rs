@@ -146,7 +146,6 @@ pub fn apt_update_page(
         .transient_for(&window)
         .extra_child(&apt_update_dialog_child_box)
         .heading(t!("apt_update_dialog_heading"))
-        .hide_on_close(true)
         .width_request(500)
         .build();
 
@@ -242,7 +241,8 @@ pub fn apt_update_page(
 
                         let mut upgradeable_iter = upgradable_cache.get_changes(false).peekable();
                         while let Some(pkg) = upgradeable_iter.next() {
-                            let candidate_version_pkg = pkg.candidate().unwrap();
+                                if !pkg.marked_delete() {
+                                    let candidate_version_pkg = pkg.candidate().unwrap();
                             let package_struct = AptPackageSocket {
                                 name: pkg.name().to_string(),
                                 arch: pkg.arch().to_string(),
@@ -265,6 +265,7 @@ pub fn apt_update_page(
                                 is_last: upgradeable_iter.peek().is_none()
                             };
                             get_upgradable_sender.send_blocking(package_struct).unwrap()
+                                }
                         }
                     });
                     apt_update_dialog.close();

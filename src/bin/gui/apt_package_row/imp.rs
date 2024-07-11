@@ -423,7 +423,6 @@ fn description_stack_page(package_description: &str) -> gtk::Box {
         .margin_start(15)
         .margin_end(15)
         .editable(false)
-        .buffer(&description_text_buffer)
         .build();
     description_content_box.append(&description_text_view);
     description_content_box

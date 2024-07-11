@@ -13,6 +13,8 @@ use serde_json::Value;
 use std::path::Path;
 use std::process::Command;
 use std::{fs::*, thread};
+use std::cell::RefCell;
+use std::rc::Rc;
 use tokio::runtime::Runtime;
 
 struct AptChangesInfo {
@@ -108,6 +110,7 @@ fn apt_confirm_window(
     window: adw::ApplicationWindow,
     retry_signal_action: &SimpleAction,
 ) {
+    let to_be_removed_packages_vec: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
     // Emulate Apt Full Upgrade to get transaction info
     let mut apt_changes_struct = AptChangesInfo {
         package_count_upgrade: 0,
@@ -133,6 +136,7 @@ fn apt_confirm_window(
                 pkg.mark_install(true, false);
             } else if change.marked_delete() {
                 pkg.mark_delete(false);
+                to_be_removed_packages_vec.borrow_mut().push(pkg.name().to_owned());
             }
             pkg.protect();
         }
@@ -263,6 +267,7 @@ fn apt_confirm_window(
     );
 
     apt_confirm_dialog.set_default_response(Some("apt_confirm_dialog_confirm"));
+    apt_confirm_dialog.set_close_response("apt_confirm_dialog_cancel");
 
     if !excluded_updates_vec.is_empty() {
         let exclusions_array = Exclusions {
@@ -285,13 +290,67 @@ fn apt_confirm_window(
         .expect("Failed to write to json file");
     }
 
-    let retry_signal_action0 = retry_signal_action.clone();
+    let apt_confirm_start_signal_action = gio::SimpleAction::new("apt_confirm_start", None);
 
-    apt_confirm_dialog.choose(None::<&gio::Cancellable>, move |choice| {
+    apt_confirm_start_signal_action.connect_activate(clone!(@weak window, @strong retry_signal_action, @strong apt_confirm_dialog => move |_, _| {
+        let retry_signal_action0 = retry_signal_action.clone();
+        apt_confirm_dialog.clone().choose(None::<&gio::Cancellable>, move |choice| {
         if choice == "apt_confirm_dialog_confirm" {
             apt_full_upgrade_from_socket(window, &retry_signal_action0);
         }
     });
+    }));
+
+    let to_be_removed_packages_borrow = to_be_removed_packages_vec.borrow();
+    if to_be_removed_packages_borrow.is_empty() {
+        apt_confirm_start_signal_action.activate(None);
+    } else {
+        let apt_remove_confirm_text_buffer = gtk::TextBuffer::builder()
+            .text(to_be_removed_packages_borrow.iter().map(|x| x.to_string() + "\n").collect::<String>() + "\n")
+            .build();
+
+        let description_text_view = gtk::TextView::builder()
+            .buffer(&apt_remove_confirm_text_buffer)
+            .hexpand(true)
+            .vexpand(true)
+            .margin_top(15)
+            .margin_bottom(15)
+            .margin_start(15)
+            .margin_end(15)
+            .editable(false)
+            .build();
+
+        let apt_remove_confirm_dialog = adw::MessageDialog::builder()
+            .transient_for(&window)
+            .heading(t!("apt_remove_confirm_dialog_heading"))
+            .body(t!("apt_remove_confirm_dialog_body"))
+            .extra_child(&description_text_view)
+            .build();
+
+        apt_remove_confirm_dialog.add_response(
+            "apt_remove_confirm_dialog_cancel",
+            &t!("apt_remove_confirm_dialog_cancel_label").to_string(),
+        );
+
+        apt_remove_confirm_dialog.add_response(
+            "apt_remove_confirm_dialog_confirm",
+            &t!("apt_remove_confirm_dialog_confirm_label").to_string(),
+        );
+
+        apt_remove_confirm_dialog.set_response_appearance(
+            "apt_remove_confirm_dialog_confirm",
+            adw::ResponseAppearance::Destructive,
+        );
+
+        apt_remove_confirm_dialog.set_default_response(Some("apt_remove_confirm_dialog_confirm"));
+        apt_remove_confirm_dialog.set_close_response("apt_remove_confirm_dialog_cancel");
+
+        apt_remove_confirm_dialog.choose(None::<&gio::Cancellable>, move |choice| {
+        if choice == "apt_remove_confirm_dialog_confirm" {
+            apt_confirm_start_signal_action.activate(None);
+        }
+        });
+    }
 }
 
 fn apt_full_upgrade_from_socket(
@@ -373,7 +432,6 @@ fn apt_full_upgrade_from_socket(
         .transient_for(&window)
         .extra_child(&apt_upgrade_dialog_child_box)
         .heading(t!("apt_upgrade_dialog_heading"))
-        .hide_on_close(true)
         .width_request(500)
         .build();
 
