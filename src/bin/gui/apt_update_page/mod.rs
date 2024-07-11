@@ -61,7 +61,7 @@ pub fn apt_update_page(
         Runtime::new().unwrap().block_on(start_socket_server(
             update_status_sender,
             "/tmp/pika_apt_update_status.sock",
-            "/var/log/pika-apt-update.log"
+            "/tmp/pika-apt-update.log"
         ));
     });
 
@@ -206,8 +206,8 @@ pub fn apt_update_page(
     update_button.add_css_class("destructive-action");
 
     update_button.connect_clicked(
-        clone!(@weak window, @strong excluded_updates_vec => move |_| {
-            process::apt_process_update(&excluded_updates_vec.borrow(), window);
+        clone!(@weak window, @weak retry_signal_action, @strong excluded_updates_vec => move |_| {
+            process::apt_process_update(&excluded_updates_vec.borrow(), window, &retry_signal_action);
         }),
     );
 
@@ -274,6 +274,7 @@ pub fn apt_update_page(
                 "FN_OVERRIDE_SUCCESSFUL" => {}
                 "FN_OVERRIDE_FAILED" => {
                     apt_update_dialog_child_box.set_visible(false);
+                    apt_update_dialog.set_extra_child(Some(&gtk::Image::builder().pixel_size(128).icon_name("dialog-error-symbolic").halign(Align::Center).build()));
                     apt_update_dialog.set_title(Some(&t!("apt_update_dialog_status_failed").to_string()));
                     apt_update_dialog.set_response_enabled("apt_update_dialog_retry", true);
                 }

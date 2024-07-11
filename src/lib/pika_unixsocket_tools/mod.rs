@@ -1,10 +1,11 @@
 use std::fs;
 use std::path::Path;
-use rust_i18n::t;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{UnixListener, UnixStream};
 use tokio::task;
 use chrono;
+use std::fs::OpenOptions;
+use std::io::Write;
 
 pub async fn send_successful_to_socket(socket_path: &str) {
     // Connect to the Unix socket
@@ -41,15 +42,11 @@ pub async fn handle_client(mut stream: UnixStream, buffer_sender: async_channel:
     // Buffer to store incoming data
     let mut buffer = [0; 1024];
 
-    let mut enable_log = true;
-
-    // Remove existing log file if exists
-    if Path::new(&log_file_path).exists() {
-        match std::fs::remove_file(&log_file_path) {
+    if !Path::new(&log_file_path).exists() {
+        match std::fs::File::create(&log_file_path) {
             Ok(_) => {}
             Err(_) => {
-                enable_log = false;
-                eprintln!("Warning: {} file couldn't be deleted, logging disabled", log_file_path);
+                eprintln!("Warning: {} file couldn't be created", log_file_path);
             }
         };
     }
@@ -58,12 +55,20 @@ pub async fn handle_client(mut stream: UnixStream, buffer_sender: async_channel:
     match stream.read(&mut buffer).await {
         Ok(size) => {
             let message = String::from_utf8_lossy(&buffer[..size]).to_string();
-            // Write to log file
-
             // Send to async buffer sender
             buffer_sender
-                .send_blocking(message)
-                .expect("Buffer channel closed")
+                .send_blocking(message.clone())
+                .expect("Buffer channel closed");
+            // Write to log file
+            let mut log_file = OpenOptions::new()
+                .write(true)
+                .append(true)
+                .open(&log_file_path)
+                .unwrap();
+
+            if let Err(e) = writeln!(log_file, "[{}] {}", chrono::offset::Local::now().format("%Y/%m/%d_%H:%M"), message) {
+                eprintln!("Couldn't write to file: {}", e);
+            }
         }
         Err(e) => {
             // Print error message if reading fails

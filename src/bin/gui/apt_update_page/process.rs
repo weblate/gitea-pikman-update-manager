@@ -10,6 +10,7 @@ use serde_json::Value;
 use std::path::Path;
 use std::process::Command;
 use std::{fs::*, thread};
+use adw::gio::SimpleAction;
 use tokio::runtime::Runtime;
 
 struct AptChangesInfo {
@@ -52,7 +53,7 @@ impl AptChangesInfo {
     }
 }
 
-pub fn apt_process_update(excluded_updates_vec: &Vec<String>, window: adw::ApplicationWindow) {
+pub fn apt_process_update(excluded_updates_vec: &Vec<String>, window: adw::ApplicationWindow, retry_signal_action: &SimpleAction,) {
     let excluded_updates_alert_dialog = adw::MessageDialog::builder()
         .transient_for(&window)
         .heading(t!("excluded_updates_alert_dialog_heading"))
@@ -80,8 +81,8 @@ pub fn apt_process_update(excluded_updates_vec: &Vec<String>, window: adw::Appli
         gio::SimpleAction::new("excluded_updates_alert_dialog_action", None);
 
     excluded_updates_alert_dialog_action.connect_activate(
-        clone!(@weak window, @strong excluded_updates_vec => move |_, _| {
-            apt_confirm_window(&excluded_updates_vec, window)
+        clone!(@weak window, @weak retry_signal_action, @strong excluded_updates_vec => move |_, _| {
+            apt_confirm_window(&excluded_updates_vec, window, &retry_signal_action)
         }),
     );
 
@@ -96,7 +97,7 @@ pub fn apt_process_update(excluded_updates_vec: &Vec<String>, window: adw::Appli
     }
 }
 
-fn apt_confirm_window(excluded_updates_vec: &Vec<String>, window: adw::ApplicationWindow) {
+fn apt_confirm_window(excluded_updates_vec: &Vec<String>, window: adw::ApplicationWindow, retry_signal_action: &SimpleAction,) {
     // Emulate Apt Full Upgrade to get transaction info
     let mut apt_changes_struct = AptChangesInfo {
         package_count_upgrade: 0,
@@ -274,19 +275,24 @@ fn apt_confirm_window(excluded_updates_vec: &Vec<String>, window: adw::Applicati
         .expect("Failed to write to json file");
     }
 
+    let retry_signal_action0 = retry_signal_action.clone();
+
     apt_confirm_dialog.choose(None::<&gio::Cancellable>, move |choice| {
         if choice == "apt_confirm_dialog_confirm" {
-            apt_full_upgrade_from_socket(window);
+            apt_full_upgrade_from_socket(window, &retry_signal_action0);
         }
     });
 }
 
-fn apt_full_upgrade_from_socket(window: adw::ApplicationWindow) {
+fn apt_full_upgrade_from_socket(window: adw::ApplicationWindow, retry_signal_action: &SimpleAction) {
     let (upgrade_percent_sender, upgrade_percent_receiver) = async_channel::unbounded::<String>();
     let upgrade_percent_sender = upgrade_percent_sender.clone();
     let (upgrade_status_sender, upgrade_status_receiver) = async_channel::unbounded::<String>();
     let upgrade_status_sender = upgrade_status_sender.clone();
     let upgrade_status_sender_clone0 = upgrade_status_sender.clone();
+
+    let log_file_path = format!("/tmp/pika-apt-upgrade_{}.log", chrono::offset::Local::now().format("%Y-%m-%d_%H:%M"));
+    let log_file_path_clone0 = log_file_path.clone();
 
     thread::spawn(move || {
         Runtime::new().unwrap().block_on(start_socket_server_no_log(
@@ -299,7 +305,7 @@ fn apt_full_upgrade_from_socket(window: adw::ApplicationWindow) {
         Runtime::new().unwrap().block_on(start_socket_server(
             upgrade_status_sender,
             "/tmp/pika_apt_upgrade_status.sock",
-            "/var/log/pika-apt-upgrade.log"
+            &log_file_path
         ));
     });
 
@@ -353,6 +359,35 @@ fn apt_full_upgrade_from_socket(window: adw::ApplicationWindow) {
         .width_request(500)
         .build();
 
+    apt_upgrade_dialog.add_response(
+        "apt_upgrade_dialog_ok",
+        &t!("apt_upgrade_dialog_ok_label").to_string(),
+    );
+
+    let apt_upgrade_dialog_child_box_done = gtk::Box::builder()
+        .orientation(Orientation::Vertical)
+        .build();
+
+    let apt_upgrade_log_image = gtk::Image::builder()
+        .pixel_size(128)
+        .halign(Align::Center)
+        .build();
+
+    let apt_upgrade_log_button = gtk::Button::builder()
+        .label(t!("apt_upgrade_dialog_open_log_file_label"))
+        .halign(Align::Center)
+        .margin_start(15)
+        .margin_end(15)
+        .margin_top(15)
+        .margin_bottom(15)
+        .build();
+
+    apt_upgrade_dialog_child_box_done.append(&apt_upgrade_log_image);
+    apt_upgrade_dialog_child_box_done.append(&apt_upgrade_log_button);
+
+    apt_upgrade_dialog.set_response_enabled("apt_upgrade_dialog_ok", false);
+    apt_upgrade_dialog.set_close_response("apt_upgrade_dialog_ok");
+
     let upgrade_percent_server_context = MainContext::default();
     // The main loop executes the asynchronous block
     upgrade_percent_server_context.spawn_local(clone!(@weak apt_upgrade_dialog_progress_bar, @weak apt_upgrade_dialog => async move {
@@ -369,16 +404,23 @@ fn apt_full_upgrade_from_socket(window: adw::ApplicationWindow) {
     let upgrade_status_server_context = MainContext::default();
     // The main loop executes the asynchronous block
     upgrade_status_server_context.spawn_local(
-        clone!(@weak apt_upgrade_dialog, @weak apt_upgrade_dialog_child_box => async move {
+        clone!(@weak apt_upgrade_dialog, @weak apt_upgrade_dialog_child_box, @strong apt_upgrade_dialog_child_box_done, @strong apt_upgrade_log_image => async move {
         while let Ok(state) = upgrade_status_receiver.recv().await {
             match state.as_ref() {
                 "FN_OVERRIDE_SUCCESSFUL" => {
-                        apt_upgrade_dialog.close();
+                        apt_upgrade_dialog_child_box.set_visible(false);
+                        apt_upgrade_log_image.set_icon_name(Some("face-cool-symbolic"));
+                        apt_upgrade_dialog.set_extra_child(Some(&apt_upgrade_dialog_child_box_done));
+                        apt_upgrade_dialog.set_title(Some(&t!("apt_upgrade_dialog_status_successful").to_string()));
+                        apt_upgrade_dialog.set_response_enabled("apt_upgrade_dialog_ok", true);
                     }
                 "FN_OVERRIDE_FAILED" => {
                         apt_upgrade_dialog_child_box.set_visible(false);
+                        apt_upgrade_log_image.set_icon_name(Some("dialog-error-symbolic"));
+                        apt_upgrade_dialog.set_extra_child(Some(&apt_upgrade_dialog_child_box_done));
                         apt_upgrade_dialog.set_title(Some(&t!("apt_upgrade_dialog_status_failed").to_string()));
                         apt_upgrade_dialog.set_response_enabled("apt_upgrade_dialog_ok", true);
+                        apt_upgrade_dialog.set_response_enabled("apt_upgrade_dialog_open_log_file", true);
                     }
                 _ => apt_upgrade_dialog.set_body(&state)
             }
@@ -386,7 +428,20 @@ fn apt_full_upgrade_from_socket(window: adw::ApplicationWindow) {
         }),
     );
 
-    apt_upgrade_dialog.present();
+    let retry_signal_action0 = retry_signal_action.clone();
+
+    apt_upgrade_log_button.connect_clicked( move |_| {
+        let _ = std::process::Command::new("xdg-open").arg(log_file_path_clone0.to_owned()).spawn();
+    });
+
+    apt_upgrade_dialog.choose(None::<&gio::Cancellable>, move |choice| {
+        match choice.as_str() {
+            "apt_upgrade_dialog_ok" => {
+                retry_signal_action0.activate(None);
+            }
+            _ => {}
+        }
+    });
 }
 
 fn create_color_badge(
