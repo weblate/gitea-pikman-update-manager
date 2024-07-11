@@ -275,7 +275,6 @@ fn apt_confirm_window(
         std::fs::remove_file(json_file_path).expect("Failed to remove old json file");
     }
 
-
     if !excluded_updates_vec.is_empty() {
         let exclusions_array = Exclusions {
             exclusions: excluded_updates_vec
