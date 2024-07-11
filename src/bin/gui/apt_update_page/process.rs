@@ -10,11 +10,11 @@ use rust_apt::cache::Upgrade;
 use rust_apt::new_cache;
 use serde::Serialize;
 use serde_json::Value;
+use std::cell::RefCell;
 use std::path::Path;
 use std::process::Command;
-use std::{thread};
-use std::cell::RefCell;
 use std::rc::Rc;
+use std::thread;
 use tokio::runtime::Runtime;
 
 struct AptChangesInfo {
@@ -88,11 +88,15 @@ pub fn apt_process_update(
     let excluded_updates_alert_dialog_action =
         SimpleAction::new("excluded_updates_alert_dialog_action", None);
 
-    excluded_updates_alert_dialog_action.connect_activate(
-        clone!(#[weak] window, #[weak] retry_signal_action, #[strong] excluded_updates_vec, move |_, _| {
-            apt_confirm_window(&excluded_updates_vec, window, &retry_signal_action)
-        }),
-    );
+    excluded_updates_alert_dialog_action.connect_activate(clone!(
+        #[weak]
+        window,
+        #[weak]
+        retry_signal_action,
+        #[strong]
+        excluded_updates_vec,
+        move |_, _| { apt_confirm_window(&excluded_updates_vec, window, &retry_signal_action) }
+    ));
 
     if excluded_updates_vec.is_empty() {
         excluded_updates_alert_dialog_action.activate(None);
@@ -136,7 +140,9 @@ fn apt_confirm_window(
                 pkg.mark_install(true, false);
             } else if change.marked_delete() {
                 pkg.mark_delete(false);
-                to_be_removed_packages_vec.borrow_mut().push(pkg.name().to_owned());
+                to_be_removed_packages_vec
+                    .borrow_mut()
+                    .push(pkg.name().to_owned());
             }
             pkg.protect();
         }
@@ -182,9 +188,7 @@ fn apt_confirm_window(
         }
     }
 
-    let apt_confirm_dialog_child_box = Box::builder()
-        .orientation(Orientation::Vertical)
-        .build();
+    let apt_confirm_dialog_child_box = Box::builder().orientation(Orientation::Vertical).build();
 
     let apt_update_dialog_badges_size_group = SizeGroup::new(SizeGroupMode::Both);
     let apt_update_dialog_badges_size_group0 = SizeGroup::new(SizeGroupMode::Both);
@@ -293,21 +297,37 @@ fn apt_confirm_window(
 
     let apt_confirm_start_signal_action = SimpleAction::new("apt_confirm_start", None);
 
-    apt_confirm_start_signal_action.connect_activate(clone!(#[weak] window, #[strong] retry_signal_action, #[strong] apt_confirm_dialog, move |_, _| {
-        let retry_signal_action0 = retry_signal_action.clone();
-        apt_confirm_dialog.clone().choose(None::<&gio::Cancellable>, move |choice| {
-        if choice == "apt_confirm_dialog_confirm" {
-            apt_full_upgrade_from_socket(window, &retry_signal_action0);
+    apt_confirm_start_signal_action.connect_activate(clone!(
+        #[weak]
+        window,
+        #[strong]
+        retry_signal_action,
+        #[strong]
+        apt_confirm_dialog,
+        move |_, _| {
+            let retry_signal_action0 = retry_signal_action.clone();
+            apt_confirm_dialog
+                .clone()
+                .choose(None::<&gio::Cancellable>, move |choice| {
+                    if choice == "apt_confirm_dialog_confirm" {
+                        apt_full_upgrade_from_socket(window, &retry_signal_action0);
+                    }
+                });
         }
-    });
-    }));
+    ));
 
     let to_be_removed_packages_borrow = to_be_removed_packages_vec.borrow();
     if to_be_removed_packages_borrow.is_empty() {
         apt_confirm_start_signal_action.activate(None);
     } else {
         let apt_remove_confirm_text_buffer = TextBuffer::builder()
-            .text(to_be_removed_packages_borrow.iter().map(|x| x.to_string() + "\n").collect::<String>() + "\n")
+            .text(
+                to_be_removed_packages_borrow
+                    .iter()
+                    .map(|x| x.to_string() + "\n")
+                    .collect::<String>()
+                    + "\n",
+            )
             .build();
 
         let apt_remove_confirm_text_view = TextView::builder()
@@ -347,9 +367,9 @@ fn apt_confirm_window(
         apt_remove_confirm_dialog.set_close_response("apt_remove_confirm_dialog_cancel");
 
         apt_remove_confirm_dialog.choose(None::<&gio::Cancellable>, move |choice| {
-        if choice == "apt_remove_confirm_dialog_confirm" {
-            apt_confirm_start_signal_action.activate(None);
-        }
+            if choice == "apt_remove_confirm_dialog_confirm" {
+                apt_confirm_start_signal_action.activate(None);
+            }
         });
     }
 }
@@ -388,7 +408,7 @@ fn apt_full_upgrade_from_socket(
     thread::spawn(move || {
         let apt_upgrade_command = Command::new("pkexec")
             .args([
-                "/home/ward/RustroverProjects/pikman-update-manager/target/debug/apt_full_upgrade",
+                "/home/ward/RustroverProjects/pkg-pikman-update-manager/target/debug/apt_full_upgrade",
             ])
             .status()
             .unwrap();
@@ -408,14 +428,10 @@ fn apt_full_upgrade_from_socket(
         }
     });
 
-    let apt_upgrade_dialog_child_box = Box::builder()
-        .orientation(Orientation::Vertical)
-        .build();
+    let apt_upgrade_dialog_child_box = Box::builder().orientation(Orientation::Vertical).build();
 
-    let apt_upgrade_dialog_progress_bar = ProgressBar::builder()
-        .show_text(true)
-        .hexpand(true)
-        .build();
+    let apt_upgrade_dialog_progress_bar =
+        ProgressBar::builder().show_text(true).hexpand(true).build();
 
     let apt_upgrade_dialog_spinner = Spinner::builder()
         .hexpand(true)
@@ -441,9 +457,8 @@ fn apt_full_upgrade_from_socket(
         &t!("apt_upgrade_dialog_ok_label").to_string(),
     );
 
-    let apt_upgrade_dialog_child_box_done = Box::builder()
-        .orientation(Orientation::Vertical)
-        .build();
+    let apt_upgrade_dialog_child_box_done =
+        Box::builder().orientation(Orientation::Vertical).build();
 
     let apt_upgrade_log_image = Image::builder()
         .pixel_size(128)
@@ -467,46 +482,62 @@ fn apt_full_upgrade_from_socket(
 
     let upgrade_percent_server_context = MainContext::default();
     // The main loop executes the asynchronous block
-    upgrade_percent_server_context.spawn_local(clone!(#[weak] apt_upgrade_dialog_progress_bar, async move {
-        while let Ok(state) = upgrade_percent_receiver.recv().await {
-            match state.as_ref() {
-                "FN_OVERRIDE_SUCCESSFUL" => {}
-                _ => {
-                    match state.parse::<f64>() {
-                        Ok(p) => apt_upgrade_dialog_progress_bar.set_fraction(p/100.0),
+    upgrade_percent_server_context.spawn_local(clone!(
+        #[weak]
+        apt_upgrade_dialog_progress_bar,
+        async move {
+            while let Ok(state) = upgrade_percent_receiver.recv().await {
+                match state.as_ref() {
+                    "FN_OVERRIDE_SUCCESSFUL" => {}
+                    _ => match state.parse::<f64>() {
+                        Ok(p) => apt_upgrade_dialog_progress_bar.set_fraction(p / 100.0),
                         Err(_) => {}
-                    }
+                    },
                 }
             }
         }
-        }));
+    ));
 
     let upgrade_status_server_context = MainContext::default();
     // The main loop executes the asynchronous block
-    upgrade_status_server_context.spawn_local(
-        clone!(#[weak] apt_upgrade_dialog, #[weak] apt_upgrade_dialog_child_box, #[strong] apt_upgrade_dialog_child_box_done, #[strong] apt_upgrade_log_image, async move {
-        while let Ok(state) = upgrade_status_receiver.recv().await {
-            match state.as_ref() {
-                "FN_OVERRIDE_SUCCESSFUL" => {
+    upgrade_status_server_context.spawn_local(clone!(
+        #[weak]
+        apt_upgrade_dialog,
+        #[weak]
+        apt_upgrade_dialog_child_box,
+        #[strong]
+        apt_upgrade_dialog_child_box_done,
+        #[strong]
+        apt_upgrade_log_image,
+        async move {
+            while let Ok(state) = upgrade_status_receiver.recv().await {
+                match state.as_ref() {
+                    "FN_OVERRIDE_SUCCESSFUL" => {
                         apt_upgrade_dialog_child_box.set_visible(false);
                         apt_upgrade_log_image.set_icon_name(Some("face-cool-symbolic"));
-                        apt_upgrade_dialog.set_extra_child(Some(&apt_upgrade_dialog_child_box_done));
-                        apt_upgrade_dialog.set_title(Some(&t!("apt_upgrade_dialog_status_successful").to_string()));
+                        apt_upgrade_dialog
+                            .set_extra_child(Some(&apt_upgrade_dialog_child_box_done));
+                        apt_upgrade_dialog.set_title(Some(
+                            &t!("apt_upgrade_dialog_status_successful").to_string(),
+                        ));
                         apt_upgrade_dialog.set_response_enabled("apt_upgrade_dialog_ok", true);
                     }
-                "FN_OVERRIDE_FAILED" => {
+                    "FN_OVERRIDE_FAILED" => {
                         apt_upgrade_dialog_child_box.set_visible(false);
                         apt_upgrade_log_image.set_icon_name(Some("dialog-error-symbolic"));
-                        apt_upgrade_dialog.set_extra_child(Some(&apt_upgrade_dialog_child_box_done));
-                        apt_upgrade_dialog.set_title(Some(&t!("apt_upgrade_dialog_status_failed").to_string()));
+                        apt_upgrade_dialog
+                            .set_extra_child(Some(&apt_upgrade_dialog_child_box_done));
+                        apt_upgrade_dialog
+                            .set_title(Some(&t!("apt_upgrade_dialog_status_failed").to_string()));
                         apt_upgrade_dialog.set_response_enabled("apt_upgrade_dialog_ok", true);
-                        apt_upgrade_dialog.set_response_enabled("apt_upgrade_dialog_open_log_file", true);
+                        apt_upgrade_dialog
+                            .set_response_enabled("apt_upgrade_dialog_open_log_file", true);
                     }
-                _ => apt_upgrade_dialog.set_body(&state)
+                    _ => apt_upgrade_dialog.set_body(&state),
+                }
             }
         }
-        }),
-    );
+    ));
 
     let retry_signal_action0 = retry_signal_action.clone();
 

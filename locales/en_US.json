@@ -52,5 +52,6 @@
   "apt_upgrade_dialog_status_failed": "APT Upgrade Transaction Failed!",
   "banner_text_no_internet": "Warning: No Internet Connection!",
   "refresh_button_tooltip_text": "Refresh Opened Page",
-  "apt_update_page_title": "Native Updates (APT)"
+  "apt_update_page_title": "Native Updates (APT)",
+  "packages_no_viewport_page_title": "All Native APT Packages are Up to date!"
 } 

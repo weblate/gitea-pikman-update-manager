@@ -1,7 +1,7 @@
 use pika_unixsocket_tools::apt_update_progress_socket::AptUpdateProgressSocket;
 use pika_unixsocket_tools::pika_unixsocket_tools::*;
 use rust_apt::new_cache;
-use rust_apt::progress::{AcquireProgress};
+use rust_apt::progress::AcquireProgress;
 use tokio::runtime::Runtime;
 
 fn main() {

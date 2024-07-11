@@ -14,8 +14,9 @@ fn main() {
 
     if std::path::Path::new(json_file_path).exists() {
         let data = std::fs::read_to_string(json_file_path).expect("Unable to read file");
-        let json: serde_json::Value = serde_json::from_str(&data).expect("JSON was not well-formatted");
-    
+        let json: serde_json::Value =
+            serde_json::from_str(&data).expect("JSON was not well-formatted");
+
         if let serde_json::Value::Array(exclusions) = &json["exclusions"] {
             for exclusion in exclusions {
                 match exclusion["package"].as_str() {

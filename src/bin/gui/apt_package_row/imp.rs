@@ -78,24 +78,46 @@ impl ObjectImpl for AptPackageRow {
 
         let expandable_box = Box::new(Orientation::Vertical, 0);
 
-        obj.connect_package_name_notify(clone!(#[weak] prefix_box, #[weak] expandable_box, #[strong] obj, move |_| {
-            remove_all_children_from_box(&prefix_box);
-            remove_all_children_from_box(&expandable_box);
-            //
-            let package_name = obj.package_name();
-            let package_arch = obj.package_arch();
-            let package_installed_version= obj.package_installed_version();
-            let package_candidate_version= obj.package_candidate_version();
-            let package_description = obj.package_description();
-            let package_source_uri = obj.package_source_uri();
-            let package_maintainer = obj.package_maintainer();
-            let package_size = obj.package_size();
-            let package_installed_size=  obj.package_installed_size();
-            //
-            create_prefix_content(&prefix_box, &package_name, &package_arch, &package_installed_version, &package_candidate_version);
-            //
-            create_expandable_content(&obj, &expandable_box, package_description, package_source_uri, package_maintainer, package_size, package_installed_size);
-        }));
+        obj.connect_package_name_notify(clone!(
+            #[weak]
+            prefix_box,
+            #[weak]
+            expandable_box,
+            #[strong]
+            obj,
+            move |_| {
+                remove_all_children_from_box(&prefix_box);
+                remove_all_children_from_box(&expandable_box);
+                //
+                let package_name = obj.package_name();
+                let package_arch = obj.package_arch();
+                let package_installed_version = obj.package_installed_version();
+                let package_candidate_version = obj.package_candidate_version();
+                let package_description = obj.package_description();
+                let package_source_uri = obj.package_source_uri();
+                let package_maintainer = obj.package_maintainer();
+                let package_size = obj.package_size();
+                let package_installed_size = obj.package_installed_size();
+                //
+                create_prefix_content(
+                    &prefix_box,
+                    &package_name,
+                    &package_arch,
+                    &package_installed_version,
+                    &package_candidate_version,
+                );
+                //
+                create_expandable_content(
+                    &obj,
+                    &expandable_box,
+                    package_description,
+                    package_source_uri,
+                    package_maintainer,
+                    package_size,
+                    package_installed_size,
+                );
+            }
+        ));
 
         obj.add_prefix(&prefix_box);
         obj.add_row(&expandable_box);
@@ -108,13 +130,19 @@ impl ObjectImpl for AptPackageRow {
             .vexpand(false)
             .build();
 
-        suffix_toggle.connect_toggled(clone!( #[weak] obj, #[weak] suffix_toggle, move |_| {
-            if suffix_toggle.is_active() {
-                obj.emit_by_name::<()>("checkbutton-toggled", &[]);
-            } else {
-                obj.emit_by_name::<()>("checkbutton-untoggled", &[]);
+        suffix_toggle.connect_toggled(clone!(
+            #[weak]
+            obj,
+            #[weak]
+            suffix_toggle,
+            move |_| {
+                if suffix_toggle.is_active() {
+                    obj.emit_by_name::<()>("checkbutton-toggled", &[]);
+                } else {
+                    obj.emit_by_name::<()>("checkbutton-untoggled", &[]);
+                }
             }
-        }));
+        ));
 
         obj.add_suffix(&suffix_toggle);
 
@@ -183,10 +211,7 @@ fn create_version_badge(installed_version: &str, candidate_version: &str) -> Lis
     installed_version_box.append(&installed_version_base_version_label.clone());
     installed_version_box.append(&installed_diff_label);
 
-    let label_separator = Separator::builder()
-        .margin_start(5)
-        .margin_end(5)
-        .build();
+    let label_separator = Separator::builder().margin_start(5).margin_end(5).build();
 
     let candidate_version_box = Box::builder()
         .halign(Align::Start)
@@ -343,37 +368,65 @@ fn create_expandable_content(
     //
     let expandable_bin = Bin::builder().hexpand(true).vexpand(true).build();
     //
-    description_page_button.connect_clicked(
-        clone!(#[strong] expandable_bin, #[strong] description_page_button, move |_|{
+    description_page_button.connect_clicked(clone!(
+        #[strong]
+        expandable_bin,
+        #[strong]
+        description_page_button,
+        move |_| {
             if description_page_button.is_active() {
                 expandable_bin.set_child(Some(&description_stack_page(&package_description)));
             }
-        }),
-    );
-
-    extra_info_page_button.connect_clicked(clone!(#[strong] expandable_bin, #[strong] extra_info_page_button, move |_|{
-        if extra_info_page_button.is_active() {
-           expandable_bin.set_child(Some(&extra_info_stack_page(&package_maintainer, package_size, package_installed_size)));
         }
-    }));
+    ));
 
-    uris_page_button.connect_clicked(
-        clone!(#[strong] expandable_bin, #[strong] uris_page_button, move |_|{
-            if uris_page_button.is_active() {
-               expandable_bin.set_child(Some(&uris_stack_page(&package_source_uri)));
+    extra_info_page_button.connect_clicked(clone!(
+        #[strong]
+        expandable_bin,
+        #[strong]
+        extra_info_page_button,
+        move |_| {
+            if extra_info_page_button.is_active() {
+                expandable_bin.set_child(Some(&extra_info_stack_page(
+                    &package_maintainer,
+                    package_size,
+                    package_installed_size,
+                )));
             }
-        }),
-    );
-
-    apt_package_row.connect_expanded_notify(clone!(#[strong] expandable_bin, #[strong] expandable_box, #[strong] apt_package_row, #[strong] description_page_button, move |_| {
-        if apt_package_row.property("expanded") {
-            description_page_button.set_active(true);
-            description_page_button.emit_by_name::<()>("clicked", &[]);
-            expandable_box.append(&expandable_bin)
-        } else {
-            expandable_box.remove(&expandable_bin)
         }
-    }));
+    ));
+
+    uris_page_button.connect_clicked(clone!(
+        #[strong]
+        expandable_bin,
+        #[strong]
+        uris_page_button,
+        move |_| {
+            if uris_page_button.is_active() {
+                expandable_bin.set_child(Some(&uris_stack_page(&package_source_uri)));
+            }
+        }
+    ));
+
+    apt_package_row.connect_expanded_notify(clone!(
+        #[strong]
+        expandable_bin,
+        #[strong]
+        expandable_box,
+        #[strong]
+        apt_package_row,
+        #[strong]
+        description_page_button,
+        move |_| {
+            if apt_package_row.property("expanded") {
+                description_page_button.set_active(true);
+                description_page_button.emit_by_name::<()>("clicked", &[]);
+                expandable_box.append(&expandable_bin)
+            } else {
+                expandable_box.remove(&expandable_bin)
+            }
+        }
+    ));
     //expandable_bin.add_named(&extra_info_stack_page(package_maintainer, package_size, package_installed_size), Some("extra_info_page"));
     //
 }

@@ -3,7 +3,7 @@ use crate::config::{APP_GITHUB, APP_ICON, APP_ID, VERSION};
 use adw::prelude::*;
 use adw::*;
 use gtk::glib::{clone, MainContext};
-use gtk::{License};
+use gtk::License;
 use std::cell::RefCell;
 use std::process::Command;
 use std::rc::Rc;
@@ -36,28 +36,28 @@ pub fn build_ui(app: &Application) {
 
     let internet_loop_context = MainContext::default();
     // The main loop executes the asynchronous block
-    internet_loop_context.spawn_local(clone!(#[weak] window_banner, async move {
-        while let Ok(state) = internet_loop_receiver.recv().await {
-            let banner_text = t!("banner_text_no_internet").to_string();
-            if state == true {
-                    *internet_connected_status.borrow_mut()=true;
+    internet_loop_context.spawn_local(clone!(
+        #[weak]
+        window_banner,
+        async move {
+            while let Ok(state) = internet_loop_receiver.recv().await {
+                let banner_text = t!("banner_text_no_internet").to_string();
+                if state == true {
+                    *internet_connected_status.borrow_mut() = true;
                     if window_banner.title() == banner_text {
                         window_banner.set_revealed(false)
                     }
                 } else {
-                    *internet_connected_status.borrow_mut()=false;
+                    *internet_connected_status.borrow_mut() = false;
                     window_banner.set_title(&banner_text);
                     window_banner.set_revealed(true)
                 }
+            }
         }
-    }));
+    ));
 
     let window_headerbar = HeaderBar::builder()
-        .title_widget(
-            &WindowTitle::builder()
-                .title(t!("application_name"))
-                .build(),
-        )
+        .title_widget(&WindowTitle::builder().title(t!("application_name")).build())
         .build();
 
     let window_adw_view_stack = ViewStack::builder()
@@ -121,8 +121,7 @@ pub fn build_ui(app: &Application) {
 
     window_headerbar.pack_end(&refresh_button);
     window_headerbar.pack_end(&credits_button);
-    credits_button
-        .connect_clicked(move |_| credits_window.present());
+    credits_button.connect_clicked(move |_| credits_window.present());
 
     // show the window
 
@@ -138,9 +137,20 @@ pub fn build_ui(app: &Application) {
         ))
         .build();
 
-    apt_retry_signal_action.connect_activate(clone!(#[weak] window, #[strong] apt_retry_signal_action, #[strong] apt_update_view_stack_bin, move |_, _| {
-        apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(window, &apt_retry_signal_action)));
-    }));
+    apt_retry_signal_action.connect_activate(clone!(
+        #[weak]
+        window,
+        #[strong]
+        apt_retry_signal_action,
+        #[strong]
+        apt_update_view_stack_bin,
+        move |_, _| {
+            apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(
+                window,
+                &apt_retry_signal_action,
+            )));
+        }
+    ));
 
     window_adw_view_stack.add_titled_with_icon(
         &apt_update_view_stack_bin,
@@ -150,12 +160,16 @@ pub fn build_ui(app: &Application) {
     );
     //
 
-    refresh_button.connect_clicked(
-        clone!(#[weak] apt_retry_signal_action, #[weak] window_adw_view_stack, move |_| {
+    refresh_button.connect_clicked(clone!(
+        #[weak]
+        apt_retry_signal_action,
+        #[weak]
+        window_adw_view_stack,
+        move |_| {
             match window_adw_view_stack.visible_child_name().unwrap().as_str() {
                 "apt_update_page" => apt_retry_signal_action.activate(None),
                 _ => {}
             }
-        }),
-    );
+        }
+    ));
 }

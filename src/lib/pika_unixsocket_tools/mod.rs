@@ -166,10 +166,7 @@ pub async fn start_socket_server_no_log(
         match listener.accept().await {
             Ok((stream, _)) => {
                 // Handle the connection in a separate task
-                task::spawn(handle_client_no_log(
-                    stream,
-                    buffer_sender.clone(),
-                ));
+                task::spawn(handle_client_no_log(stream, buffer_sender.clone()));
             }
             Err(e) => {
                 // Print error message if a connection fails

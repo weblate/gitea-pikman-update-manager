@@ -1,7 +1,7 @@
 mod process;
 
 use crate::apt_package_row::AptPackageRow;
-use adw::gio::{SimpleAction};
+use adw::gio::SimpleAction;
 use adw::prelude::*;
 use gtk::glib::*;
 use gtk::*;
@@ -12,9 +12,10 @@ use rust_apt::records::RecordField;
 use std::cell::RefCell;
 use std::process::Command;
 use std::rc::Rc;
-use std::{thread};
+use std::thread;
 use tokio::runtime::Runtime;
 
+#[derive(Clone)]
 pub struct AptPackageSocket {
     pub name: String,
     pub arch: String,
@@ -58,7 +59,9 @@ pub fn apt_update_page(
 
     thread::spawn(move || {
         let apt_update_command = Command::new("pkexec")
-            .args(["/home/ward/RustroverProjects/pikman-update-manager/target/debug/apt_update"])
+            .args([
+                "/home/ward/RustroverProjects/pkg-pikman-update-manager/target/debug/apt_update",
+            ])
             .status()
             .unwrap();
         match apt_update_command.code().unwrap() {
@@ -99,7 +102,7 @@ pub fn apt_update_page(
         .sensitive(false)
         .build();
     packages_boxedlist.add_css_class("boxed-list");
-    
+
     let packages_viewport = ScrolledWindow::builder()
         .vexpand(true)
         .hexpand(true)
@@ -111,14 +114,21 @@ pub fn apt_update_page(
         .child(&packages_boxedlist)
         .build();
 
-    let apt_update_dialog_child_box = Box::builder()
-        .orientation(Orientation::Vertical)
+    let packages_no_viewport_page = adw::StatusPage::builder()
+        .icon_name("emblem-default-symbolic")
+        .title(t!("packages_no_viewport_page_title"))
+        .hexpand(true)
+        .vexpand(true)
         .build();
 
-    let apt_update_dialog_progress_bar = ProgressBar::builder()
-        .show_text(true)
-        .hexpand(true)
+    let viewport_bin = adw::Bin::builder()
+        .child(&packages_no_viewport_page)
         .build();
+
+    let apt_update_dialog_child_box = Box::builder().orientation(Orientation::Vertical).build();
+
+    let apt_update_dialog_progress_bar =
+        ProgressBar::builder().show_text(true).hexpand(true).build();
 
     let apt_update_dialog_spinner = Spinner::builder()
         .hexpand(true)
@@ -173,17 +183,24 @@ pub fn apt_update_page(
         .label(t!("select_button_deselect_all"))
         .build();
 
-    select_button.connect_clicked(clone!(#[weak] select_button, #[weak] packages_boxedlist, move |_| {
-        let select_button_label = select_button.label().unwrap();
-        let value_to_mark = if select_button_label == t!("select_button_select_all").to_string() {
-            true
-        } else if select_button_label == t!("select_button_deselect_all").to_string()  {
-            false
-        } else {
-            panic!("Unexpected label on selection button")
-        };
-        set_all_apt_row_marks_to(&packages_boxedlist, value_to_mark)
-    }));
+    select_button.connect_clicked(clone!(
+        #[weak]
+        select_button,
+        #[weak]
+        packages_boxedlist,
+        move |_| {
+            let select_button_label = select_button.label().unwrap();
+            let value_to_mark = if select_button_label == t!("select_button_select_all").to_string()
+            {
+                true
+            } else if select_button_label == t!("select_button_deselect_all").to_string() {
+                false
+            } else {
+                panic!("Unexpected label on selection button")
+            };
+            set_all_apt_row_marks_to(&packages_boxedlist, value_to_mark)
+        }
+    ));
 
     let update_button = Button::builder()
         .halign(Align::End)
@@ -196,153 +213,228 @@ pub fn apt_update_page(
         .build();
     update_button.add_css_class("destructive-action");
 
-    update_button.connect_clicked(
-        clone!(#[weak] window, #[weak] retry_signal_action, #[strong] excluded_updates_vec, move |_| {
-            process::apt_process_update(&excluded_updates_vec.borrow(), window, &retry_signal_action);
-        }),
-    );
+    update_button.connect_clicked(clone!(
+        #[weak]
+        window,
+        #[weak]
+        retry_signal_action,
+        #[strong]
+        excluded_updates_vec,
+        move |_| {
+            process::apt_process_update(
+                &excluded_updates_vec.borrow(),
+                window,
+                &retry_signal_action,
+            );
+        }
+    ));
 
     bottom_bar.append(&select_button);
     bottom_bar.append(&update_button);
 
     let update_percent_server_context = MainContext::default();
     // The main loop executes the asynchronous block
-    update_percent_server_context.spawn_local(clone!(#[weak] apt_update_dialog_progress_bar, async move {
-        while let Ok(state) = update_percent_receiver.recv().await {
+    update_percent_server_context.spawn_local(clone!(
+        #[weak]
+        apt_update_dialog_progress_bar,
+        async move {
+            while let Ok(state) = update_percent_receiver.recv().await {
                 match state.parse::<f64>() {
-                    Ok(p) => apt_update_dialog_progress_bar.set_fraction(p/100.0),
+                    Ok(p) => apt_update_dialog_progress_bar.set_fraction(p / 100.0),
                     Err(_) => {}
                 }
+            }
         }
-        }));
+    ));
 
     let update_status_server_context = MainContext::default();
     // The main loop executes the asynchronous block
-    update_status_server_context.spawn_local(
-        clone!(#[weak] apt_update_dialog, #[weak] apt_update_dialog_child_box, async move {
-        while let Ok(state) = update_status_receiver.recv().await {
-            match state.as_ref() {
-                "FN_OVERRIDE_SUCCESSFUL" => {
-                                            let get_upgradable_sender = get_upgradable_sender.clone();
-                    thread::spawn(move || {
-                        // Create upgradable list cache
-                        let upgradable_cache = new_cache!().unwrap();
-                        //
-                        upgradable_cache.upgrade(Upgrade::FullUpgrade).unwrap();
+    update_status_server_context.spawn_local(clone!(
+        #[weak]
+        apt_update_dialog,
+        #[weak]
+        apt_update_dialog_child_box,
+        async move {
+            while let Ok(state) = update_status_receiver.recv().await {
+                match state.as_ref() {
+                    "FN_OVERRIDE_SUCCESSFUL" => {
+                        let get_upgradable_sender = get_upgradable_sender.clone();
+                        thread::spawn(move || {
+                            // Create upgradable list cache
+                            let upgradable_cache = new_cache!().unwrap();
+                            //
+                            upgradable_cache.upgrade(Upgrade::FullUpgrade).unwrap();
 
-                        upgradable_cache.resolve(true).unwrap();
+                            upgradable_cache.resolve(true).unwrap();
 
-                        let mut upgradeable_iter = upgradable_cache.get_changes(false).peekable();
-                        while let Some(pkg) = upgradeable_iter.next() {
+                            let mut upgradeable_iter =
+                                upgradable_cache.get_changes(false).peekable();
+                            while let Some(pkg) = upgradeable_iter.next() {
                                 if !pkg.marked_delete() {
                                     let candidate_version_pkg = pkg.candidate().unwrap();
-                            let package_struct = AptPackageSocket {
-                                name: pkg.name().to_string(),
-                                arch: pkg.arch().to_string(),
-                                installed_version: match pkg.installed() {
-                                    Some(t) => t.version().to_string(),
-                                    _ => {t!("installed_version_to_be_installed").to_string()}
-                                },
-                                candidate_version: candidate_version_pkg.version().to_string(),
-                                description: match candidate_version_pkg.description() {
-                                    Some(s) => s,
-                                    _ => t!("apt_pkg_property_unknown").to_string()
-                                },
-                                source_uri: candidate_version_pkg.uris().collect::<Vec<String>>().join("\n"),
-                                maintainer: match candidate_version_pkg.get_record(RecordField::Maintainer) {
-                                    Some(s) => s,
-                                    _ => t!("apt_pkg_property_unknown").to_string()
-                                },
-                                size: candidate_version_pkg.size(),
-                                installed_size: candidate_version_pkg.installed_size(),
-                                is_last: upgradeable_iter.peek().is_none()
-                            };
-                            get_upgradable_sender.send_blocking(package_struct).unwrap()
+                                    let package_struct = AptPackageSocket {
+                                        name: pkg.name().to_string(),
+                                        arch: pkg.arch().to_string(),
+                                        installed_version: match pkg.installed() {
+                                            Some(t) => t.version().to_string(),
+                                            _ => {
+                                                t!("installed_version_to_be_installed").to_string()
+                                            }
+                                        },
+                                        candidate_version: candidate_version_pkg
+                                            .version()
+                                            .to_string(),
+                                        description: match candidate_version_pkg.description() {
+                                            Some(s) => s,
+                                            _ => t!("apt_pkg_property_unknown").to_string(),
+                                        },
+                                        source_uri: candidate_version_pkg
+                                            .uris()
+                                            .collect::<Vec<String>>()
+                                            .join("\n"),
+                                        maintainer: match candidate_version_pkg
+                                            .get_record(RecordField::Maintainer)
+                                        {
+                                            Some(s) => s,
+                                            _ => t!("apt_pkg_property_unknown").to_string(),
+                                        },
+                                        size: candidate_version_pkg.size(),
+                                        installed_size: candidate_version_pkg.installed_size(),
+                                        is_last: upgradeable_iter.peek().is_none(),
+                                    };
+                                    get_upgradable_sender.send_blocking(package_struct).unwrap()
                                 }
-                        }
-                    });
-                    apt_update_dialog.close();
+                            }
+                        });
+                        apt_update_dialog.close();
                     }
-                "FN_OVERRIDE_FAILED" => {
-                    apt_update_dialog_child_box.set_visible(false);
-                    apt_update_dialog.set_extra_child(Some(&Image::builder().pixel_size(128).icon_name("dialog-error-symbolic").halign(Align::Center).build()));
-                    apt_update_dialog.set_title(Some(&t!("apt_update_dialog_status_failed").to_string()));
-                    apt_update_dialog.set_response_enabled("apt_update_dialog_retry", true);
+                    "FN_OVERRIDE_FAILED" => {
+                        apt_update_dialog_child_box.set_visible(false);
+                        apt_update_dialog.set_extra_child(Some(
+                            &Image::builder()
+                                .pixel_size(128)
+                                .icon_name("dialog-error-symbolic")
+                                .halign(Align::Center)
+                                .build(),
+                        ));
+                        apt_update_dialog
+                            .set_title(Some(&t!("apt_update_dialog_status_failed").to_string()));
+                        apt_update_dialog.set_response_enabled("apt_update_dialog_retry", true);
+                    }
+                    _ => apt_update_dialog.set_body(&state),
                 }
-                _ => apt_update_dialog.set_body(&state)
             }
         }
-        }),
-    );
+    ));
 
     let get_upgradable_server_context = MainContext::default();
     // The main loop executes the asynchronous block
-    get_upgradable_server_context.spawn_local(
-        clone!(#[weak] select_button, #[weak] update_button, #[weak] packages_boxedlist, #[strong] excluded_updates_vec, async move {
-        while let Ok(state) = get_upgradable_receiver.recv().await {
-                let apt_row = AptPackageRow::new(AptPackageSocket {
-                    name: state.name,
-                    arch: state.arch,
-                    installed_version: state.installed_version,
-                    candidate_version: state.candidate_version,
-                    description: state.description,
-                    source_uri: state.source_uri,
-                    maintainer: state.maintainer,
-                    size: state.size,
-                    installed_size: state.installed_size,
-                    is_last: state.is_last
-                });
+    get_upgradable_server_context.spawn_local(clone!(
+        #[strong]
+        select_button,
+        #[strong]
+        update_button,
+        #[strong]
+        packages_boxedlist,
+        #[strong]
+        packages_viewport,
+        #[strong]
+        viewport_bin,
+        #[strong]
+        excluded_updates_vec,
+        async move {
+            while let Ok(state) = get_upgradable_receiver.recv().await {
+                viewport_bin.set_child(Some(&packages_viewport));
+                let apt_row = AptPackageRow::new(state.clone());
                 apt_row.connect_closure(
                     "checkbutton-toggled",
                     false,
-                    closure_local!(#[strong] select_button, #[strong] update_button, #[strong] packages_boxedlist, #[strong] excluded_updates_vec, move |apt_row: AptPackageRow| {
-                        if is_widget_select_all_ready(&packages_boxedlist) {
-                            select_button.set_label(&t!("select_button_select_all").to_string());
-                        } else {
-                            select_button.set_label(&t!("select_button_deselect_all").to_string());
+                    closure_local!(
+                        #[strong]
+                        select_button,
+                        #[strong]
+                        update_button,
+                        #[strong]
+                        packages_boxedlist,
+                        #[strong]
+                        excluded_updates_vec,
+                        move |apt_row: AptPackageRow| {
+                            if is_widget_select_all_ready(&packages_boxedlist) {
+                                select_button
+                                    .set_label(&t!("select_button_select_all").to_string());
+                            } else {
+                                select_button
+                                    .set_label(&t!("select_button_deselect_all").to_string());
+                            }
+                            update_button
+                                .set_sensitive(!is_all_children_unmarked(&packages_boxedlist));
+                            excluded_updates_vec
+                                .borrow_mut()
+                                .retain(|x| x != &apt_row.package_name());
                         }
-                        update_button.set_sensitive(!is_all_children_unmarked(&packages_boxedlist));
-                        excluded_updates_vec.borrow_mut().retain(|x| x != &apt_row.package_name());
-                    }),
+                    ),
                 );
                 apt_row.connect_closure(
                     "checkbutton-untoggled",
                     false,
-                    closure_local!(#[strong] select_button, #[strong] update_button, #[strong] packages_boxedlist, #[strong] excluded_updates_vec, move |apt_row: AptPackageRow| {
-                        select_button.set_label(&t!("select_button_select_all").to_string());
-                        update_button.set_sensitive(!is_all_children_unmarked(&packages_boxedlist));
-                        excluded_updates_vec.borrow_mut().push(apt_row.package_name())
-                    }),
+                    closure_local!(
+                        #[strong]
+                        select_button,
+                        #[strong]
+                        update_button,
+                        #[strong]
+                        packages_boxedlist,
+                        #[strong]
+                        excluded_updates_vec,
+                        move |apt_row: AptPackageRow| {
+                            select_button.set_label(&t!("select_button_select_all").to_string());
+                            update_button
+                                .set_sensitive(!is_all_children_unmarked(&packages_boxedlist));
+                            excluded_updates_vec
+                                .borrow_mut()
+                                .push(apt_row.package_name())
+                        }
+                    ),
                 );
                 packages_boxedlist.append(&apt_row);
                 if state.is_last {
                     packages_boxedlist.set_sensitive(true);
                 }
             }
-        }),
-    );
-
-    searchbar.connect_search_changed(clone!(#[weak] searchbar, #[weak] packages_boxedlist, move |_| {
-        let mut counter = packages_boxedlist.first_child();
-        while let Some(row) = counter {
-            if row.widget_name() == "AptPackageRow" {
-                if !searchbar.text().is_empty() {
-                    if row.property::<String>("package-name").to_lowercase().contains(&searchbar.text().to_string().to_lowercase()) {
-                        row.set_property("visible", true);
-                        searchbar.grab_focus();
-                    } else {
-                        row.set_property("visible", false);
-                    }
-                } else {
-                    row.set_property("visible", true);
-                }
-            }
-            counter = row.next_sibling();
         }
-    }));
+    ));
+
+    searchbar.connect_search_changed(clone!(
+        #[weak]
+        searchbar,
+        #[weak]
+        packages_boxedlist,
+        move |_| {
+            let mut counter = packages_boxedlist.first_child();
+            while let Some(row) = counter {
+                if row.widget_name() == "AptPackageRow" {
+                    if !searchbar.text().is_empty() {
+                        if row
+                            .property::<String>("package-name")
+                            .to_lowercase()
+                            .contains(&searchbar.text().to_string().to_lowercase())
+                        {
+                            row.set_property("visible", true);
+                            searchbar.grab_focus();
+                        } else {
+                            row.set_property("visible", false);
+                        }
+                    } else {
+                        row.set_property("visible", true);
+                    }
+                }
+                counter = row.next_sibling();
+            }
+        }
+    ));
 
     main_box.append(&searchbar);
-    main_box.append(&packages_viewport);
+    main_box.append(&viewport_bin);
     main_box.append(&bottom_bar);
 
     apt_update_dialog.present();

@@ -1,5 +1,5 @@
 use crate::pika_unixsocket_tools::*;
-use rust_apt::progress::{DynInstallProgress};
+use rust_apt::progress::DynInstallProgress;
 use std::process::exit;
 use tokio::io::AsyncWriteExt;
 use tokio::net::UnixStream;
