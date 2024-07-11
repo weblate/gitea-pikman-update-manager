@@ -471,7 +471,10 @@ fn apt_full_upgrade_from_socket(
             match state.as_ref() {
                 "FN_OVERRIDE_SUCCESSFUL" => {}
                 _ => {
-                    apt_upgrade_dialog_progress_bar.set_fraction(state.parse::<f64>().unwrap()/100.0)
+                    match state.parse::<f64>() {
+                        Ok(p) => apt_upgrade_dialog_progress_bar.set_fraction(p/100.0),
+                        Err(_) => {}
+                    }
                 }
             }
         }

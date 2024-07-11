@@ -209,7 +209,10 @@ pub fn apt_update_page(
     // The main loop executes the asynchronous block
     update_percent_server_context.spawn_local(clone!(#[weak] apt_update_dialog_progress_bar, async move {
         while let Ok(state) = update_percent_receiver.recv().await {
-            apt_update_dialog_progress_bar.set_fraction(state.parse::<f64>().unwrap()/100.0)
+                match state.parse::<f64>() {
+                    Ok(p) => apt_update_dialog_progress_bar.set_fraction(p/100.0),
+                    Err(_) => {}
+                }
         }
         }));
 

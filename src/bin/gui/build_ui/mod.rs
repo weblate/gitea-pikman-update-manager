@@ -11,8 +11,8 @@ use std::thread;
 
 pub fn build_ui(app: &Application) {
     // setup glib
-    glib::set_prgname(Some(t!("app_name").to_string()));
-    glib::set_application_name(&t!("app_name").to_string());
+    glib::set_prgname(Some(t!("application_name").to_string()));
+    glib::set_application_name(&t!("application_name").to_string());
 
     let internet_connected = Rc::new(RefCell::new(false));
     let (internet_loop_sender, internet_loop_receiver) = async_channel::unbounded();
