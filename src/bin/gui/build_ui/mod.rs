@@ -46,11 +46,9 @@ pub fn build_ui(app: &Application) {
                     }
                 } else {
                     *internet_connected_status.borrow_mut()=false;
-                    if window_banner.title() != t!("banner_text_url_error").to_string() {
                     window_banner.set_title(&banner_text);
                     window_banner.set_revealed(true)
                 }
-            }
         }
     }));
 
@@ -86,7 +84,7 @@ pub fn build_ui(app: &Application) {
     // create the main Application window
     let window = ApplicationWindow::builder()
         // The text on the titlebar
-        .title(t!("app_name"))
+        .title(t!("application_name"))
         // link it to the application "app"
         .application(app)
         // Add the box called "window_box" to it
