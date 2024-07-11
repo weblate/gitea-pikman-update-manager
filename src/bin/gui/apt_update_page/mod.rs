@@ -1,28 +1,19 @@
 mod process;
 
 use crate::apt_package_row::AptPackageRow;
-use adw::gio::{Action, SimpleAction};
+use adw::gio::{SimpleAction};
 use adw::prelude::*;
-use adw::ActionRow;
 use gtk::glib::*;
 use gtk::*;
 use pika_unixsocket_tools::pika_unixsocket_tools::*;
 use rust_apt::cache::*;
 use rust_apt::new_cache;
 use rust_apt::records::RecordField;
-use rust_apt::*;
 use std::cell::RefCell;
-use std::ops::Deref;
-use std::path::Path;
 use std::process::Command;
 use std::rc::Rc;
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
-use std::{fs, thread};
-use tokio::io::AsyncReadExt;
-use tokio::net::{UnixListener, UnixStream};
+use std::{thread};
 use tokio::runtime::Runtime;
-use tokio::task;
 
 pub struct AptPackageSocket {
     pub name: String,
@@ -86,13 +77,13 @@ pub fn apt_update_page(
         }
     });
 
-    let main_box = gtk::Box::builder()
+    let main_box = Box::builder()
         .hexpand(true)
         .vexpand(true)
         .orientation(Orientation::Vertical)
         .build();
 
-    let searchbar = gtk::SearchEntry::builder()
+    let searchbar = SearchEntry::builder()
         .search_delay(500)
         .margin_top(15)
         .margin_bottom(15)
@@ -101,16 +92,15 @@ pub fn apt_update_page(
         .build();
     searchbar.add_css_class("rounded-all-25");
 
-    let packages_boxedlist = gtk::ListBox::builder()
+    let packages_boxedlist = ListBox::builder()
         .selection_mode(SelectionMode::None)
         .margin_end(15)
         .margin_start(15)
         .sensitive(false)
         .build();
     packages_boxedlist.add_css_class("boxed-list");
-    let rows_size_group = gtk::SizeGroup::new(SizeGroupMode::Both);
-
-    let packages_viewport = gtk::ScrolledWindow::builder()
+    
+    let packages_viewport = ScrolledWindow::builder()
         .vexpand(true)
         .hexpand(true)
         .margin_bottom(15)
@@ -121,16 +111,16 @@ pub fn apt_update_page(
         .child(&packages_boxedlist)
         .build();
 
-    let apt_update_dialog_child_box = gtk::Box::builder()
+    let apt_update_dialog_child_box = Box::builder()
         .orientation(Orientation::Vertical)
         .build();
 
-    let apt_update_dialog_progress_bar = gtk::ProgressBar::builder()
+    let apt_update_dialog_progress_bar = ProgressBar::builder()
         .show_text(true)
         .hexpand(true)
         .build();
 
-    let apt_update_dialog_spinner = gtk::Spinner::builder()
+    let apt_update_dialog_spinner = Spinner::builder()
         .hexpand(true)
         .valign(Align::Start)
         .halign(Align::Center)
@@ -171,9 +161,9 @@ pub fn apt_update_page(
             }
         });
 
-    let bottom_bar = gtk::Box::builder().valign(Align::End).build();
+    let bottom_bar = Box::builder().valign(Align::End).build();
 
-    let select_button = gtk::Button::builder()
+    let select_button = Button::builder()
         .halign(Align::End)
         .valign(Align::Center)
         .hexpand(true)
@@ -183,7 +173,7 @@ pub fn apt_update_page(
         .label(t!("select_button_deselect_all"))
         .build();
 
-    select_button.connect_clicked(clone!(@weak select_button, @weak packages_boxedlist => move |_| {
+    select_button.connect_clicked(clone!(#[weak] select_button, #[weak] packages_boxedlist, move |_| {
         let select_button_label = select_button.label().unwrap();
         let value_to_mark = if select_button_label == t!("select_button_select_all").to_string() {
             true
@@ -195,7 +185,7 @@ pub fn apt_update_page(
         set_all_apt_row_marks_to(&packages_boxedlist, value_to_mark)
     }));
 
-    let update_button = gtk::Button::builder()
+    let update_button = Button::builder()
         .halign(Align::End)
         .valign(Align::Center)
         .hexpand(false)
@@ -207,7 +197,7 @@ pub fn apt_update_page(
     update_button.add_css_class("destructive-action");
 
     update_button.connect_clicked(
-        clone!(@weak window, @weak retry_signal_action, @strong excluded_updates_vec => move |_| {
+        clone!(#[weak] window, #[weak] retry_signal_action, #[strong] excluded_updates_vec, move |_| {
             process::apt_process_update(&excluded_updates_vec.borrow(), window, &retry_signal_action);
         }),
     );
@@ -217,7 +207,7 @@ pub fn apt_update_page(
 
     let update_percent_server_context = MainContext::default();
     // The main loop executes the asynchronous block
-    update_percent_server_context.spawn_local(clone!(@weak apt_update_dialog_progress_bar, @weak apt_update_dialog, @strong get_upgradable_sender => async move {
+    update_percent_server_context.spawn_local(clone!(#[weak] apt_update_dialog_progress_bar, async move {
         while let Ok(state) = update_percent_receiver.recv().await {
             apt_update_dialog_progress_bar.set_fraction(state.parse::<f64>().unwrap()/100.0)
         }
@@ -226,7 +216,7 @@ pub fn apt_update_page(
     let update_status_server_context = MainContext::default();
     // The main loop executes the asynchronous block
     update_status_server_context.spawn_local(
-        clone!(@weak apt_update_dialog, @weak apt_update_dialog_child_box => async move {
+        clone!(#[weak] apt_update_dialog, #[weak] apt_update_dialog_child_box, async move {
         while let Ok(state) = update_status_receiver.recv().await {
             match state.as_ref() {
                 "FN_OVERRIDE_SUCCESSFUL" => {
@@ -272,7 +262,7 @@ pub fn apt_update_page(
                     }
                 "FN_OVERRIDE_FAILED" => {
                     apt_update_dialog_child_box.set_visible(false);
-                    apt_update_dialog.set_extra_child(Some(&gtk::Image::builder().pixel_size(128).icon_name("dialog-error-symbolic").halign(Align::Center).build()));
+                    apt_update_dialog.set_extra_child(Some(&Image::builder().pixel_size(128).icon_name("dialog-error-symbolic").halign(Align::Center).build()));
                     apt_update_dialog.set_title(Some(&t!("apt_update_dialog_status_failed").to_string()));
                     apt_update_dialog.set_response_enabled("apt_update_dialog_retry", true);
                 }
@@ -285,7 +275,7 @@ pub fn apt_update_page(
     let get_upgradable_server_context = MainContext::default();
     // The main loop executes the asynchronous block
     get_upgradable_server_context.spawn_local(
-        clone!(@weak select_button,  @weak update_button, @weak packages_boxedlist, @strong excluded_updates_vec => async move {
+        clone!(#[weak] select_button, #[weak] update_button, #[weak] packages_boxedlist, #[strong] excluded_updates_vec, async move {
         while let Ok(state) = get_upgradable_receiver.recv().await {
                 let apt_row = AptPackageRow::new(AptPackageSocket {
                     name: state.name,
@@ -302,7 +292,7 @@ pub fn apt_update_page(
                 apt_row.connect_closure(
                     "checkbutton-toggled",
                     false,
-                    closure_local!(@strong apt_row, @strong select_button, @strong update_button, @strong packages_boxedlist, @strong excluded_updates_vec => move |apt_row: AptPackageRow| {
+                    closure_local!(#[strong] select_button, #[strong] update_button, #[strong] packages_boxedlist, #[strong] excluded_updates_vec, move |apt_row: AptPackageRow| {
                         if is_widget_select_all_ready(&packages_boxedlist) {
                             select_button.set_label(&t!("select_button_select_all").to_string());
                         } else {
@@ -315,7 +305,7 @@ pub fn apt_update_page(
                 apt_row.connect_closure(
                     "checkbutton-untoggled",
                     false,
-                    closure_local!(@strong apt_row, @strong select_button, @strong update_button, @strong packages_boxedlist, @strong excluded_updates_vec => move |apt_row: AptPackageRow| {
+                    closure_local!(#[strong] select_button, #[strong] update_button, #[strong] packages_boxedlist, #[strong] excluded_updates_vec, move |apt_row: AptPackageRow| {
                         select_button.set_label(&t!("select_button_select_all").to_string());
                         update_button.set_sensitive(!is_all_children_unmarked(&packages_boxedlist));
                         excluded_updates_vec.borrow_mut().push(apt_row.package_name())
@@ -329,7 +319,7 @@ pub fn apt_update_page(
         }),
     );
 
-    searchbar.connect_search_changed(clone!(@weak searchbar, @weak packages_boxedlist => move |_| {
+    searchbar.connect_search_changed(clone!(#[weak] searchbar, #[weak] packages_boxedlist, move |_| {
         let mut counter = packages_boxedlist.first_child();
         while let Some(row) = counter {
             if row.widget_name() == "AptPackageRow" {

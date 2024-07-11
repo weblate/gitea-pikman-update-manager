@@ -8,8 +8,6 @@ use tokio::runtime::Runtime;
 
 pub struct AptUpdateProgressSocket<'a> {
     pulse_interval: usize,
-    max: usize,
-    progress: f32,
     percent_socket_path: &'a str,
     status_socket_path: &'a str,
 }
@@ -17,10 +15,8 @@ pub struct AptUpdateProgressSocket<'a> {
 impl<'a> AptUpdateProgressSocket<'a> {
     /// Returns a new default progress instance.
     pub fn new(percent_socket_path: &'a str, status_socket_path: &'a str) -> Self {
-        let mut progress = Self {
+        let progress = Self {
             pulse_interval: 0,
-            max: 0,
-            progress: 0.0,
             percent_socket_path: percent_socket_path,
             status_socket_path: status_socket_path,
         };
@@ -89,7 +85,7 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
     /// Stop does not pass information into the method.
     ///
     /// prints out the bytes downloaded and the overall average line speed.
-    fn stop(&mut self, status: &AcqTextStatus) {}
+    fn stop(&mut self, _status: &AcqTextStatus) {}
 
     /// Called when an Item fails to download.
     ///
@@ -118,7 +114,7 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
     /// Draws the current progress.
     /// Each line has an overall percent meter and a per active item status
     /// meter along with an overall bandwidth and ETA indicator.
-    fn pulse(&mut self, status: &AcqTextStatus, owner: &PkgAcquire) {
+    fn pulse(&mut self, status: &AcqTextStatus, _owner: &PkgAcquire) {
         let progress_percent: f32 =
             (status.current_bytes() as f32 * 100.0) / status.total_bytes() as f32;
         Runtime::new().unwrap().block_on(send_progress_percent(

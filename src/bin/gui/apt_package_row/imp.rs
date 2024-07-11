@@ -1,14 +1,11 @@
-use std::{cell::RefCell, default, sync::OnceLock};
+use std::{cell::RefCell, sync::OnceLock};
 
-use crate::apt_update_page::AptPackageSocket;
 use adw::*;
 use adw::{prelude::*, subclass::prelude::*};
 use glib::{clone, subclass::Signal, Properties};
-use gtk::Orientation::Horizontal;
 use gtk::*;
 use pretty_bytes::converter::convert;
 use std::env;
-use std::os::unix::raw::nlink_t;
 
 // ANCHOR: custom_button
 // Object holding the state
@@ -43,7 +40,7 @@ pub struct AptPackageRow {
 impl ObjectSubclass for AptPackageRow {
     const NAME: &'static str = "AptPackageRow";
     type Type = super::AptPackageRow;
-    type ParentType = adw::ExpanderRow;
+    type ParentType = ExpanderRow;
 }
 
 // ANCHOR: object_impl
@@ -77,11 +74,11 @@ impl ObjectImpl for AptPackageRow {
         // `SYNC_CREATE` ensures that the label will be immediately set
         let obj = self.obj();
 
-        let prefix_box = gtk::Box::new(Orientation::Vertical, 0);
+        let prefix_box = Box::new(Orientation::Vertical, 0);
 
-        let expandable_box = gtk::Box::new(Orientation::Vertical, 0);
+        let expandable_box = Box::new(Orientation::Vertical, 0);
 
-        obj.connect_package_name_notify(clone!(@weak prefix_box, @weak expandable_box, @strong obj => move |obj| {
+        obj.connect_package_name_notify(clone!(#[weak] prefix_box, #[weak] expandable_box, #[strong] obj, move |_| {
             remove_all_children_from_box(&prefix_box);
             remove_all_children_from_box(&expandable_box);
             //
@@ -97,13 +94,13 @@ impl ObjectImpl for AptPackageRow {
             //
             create_prefix_content(&prefix_box, &package_name, &package_arch, &package_installed_version, &package_candidate_version);
             //
-            create_expandable_content(obj, &expandable_box, package_description, package_source_uri, package_maintainer, package_size, package_installed_size);
+            create_expandable_content(&obj, &expandable_box, package_description, package_source_uri, package_maintainer, package_size, package_installed_size);
         }));
 
         obj.add_prefix(&prefix_box);
         obj.add_row(&expandable_box);
 
-        let suffix_toggle = gtk::CheckButton::builder()
+        let suffix_toggle = CheckButton::builder()
             .tooltip_text(t!("mark_for_update"))
             .halign(Align::Center)
             .valign(Align::Center)
@@ -111,7 +108,7 @@ impl ObjectImpl for AptPackageRow {
             .vexpand(false)
             .build();
 
-        suffix_toggle.connect_toggled(clone!( @weak obj, @weak suffix_toggle => move |_| {
+        suffix_toggle.connect_toggled(clone!( #[weak] obj, #[weak] suffix_toggle, move |_| {
             if suffix_toggle.is_active() {
                 obj.emit_by_name::<()>("checkbutton-toggled", &[]);
             } else {
@@ -141,11 +138,11 @@ impl ListBoxRowImpl for AptPackageRow {}
 impl PreferencesRowImpl for AptPackageRow {}
 impl ExpanderRowImpl for AptPackageRow {}
 
-fn create_version_badge(installed_version: &str, candidate_version: &str) -> gtk::ListBox {
+fn create_version_badge(installed_version: &str, candidate_version: &str) -> ListBox {
     let (base_version, installed_diff, candidate_diff) =
         get_diff_by_prefix(installed_version, candidate_version);
 
-    let badge_box = gtk::Box::builder()
+    let badge_box = Box::builder()
         .halign(Align::Start)
         .hexpand(false)
         .orientation(Orientation::Horizontal)
@@ -155,14 +152,14 @@ fn create_version_badge(installed_version: &str, candidate_version: &str) -> gtk
         .margin_top(5)
         .build();
 
-    let installed_version_box = gtk::Box::builder()
+    let installed_version_box = Box::builder()
         .halign(Align::Start)
         .hexpand(false)
         .orientation(Orientation::Horizontal)
         .tooltip_text(t!("installed_version_badge_text"))
         .build();
 
-    let installed_version_base_version_label = gtk::Label::builder()
+    let installed_version_base_version_label = Label::builder()
         .label(format!(
             "{}: {}",
             t!("installed_version_badge_text"),
@@ -174,7 +171,7 @@ fn create_version_badge(installed_version: &str, candidate_version: &str) -> gtk
         .vexpand(true)
         .build();
 
-    let installed_diff_label = gtk::Label::builder()
+    let installed_diff_label = Label::builder()
         .label(installed_diff)
         .valign(Align::Center)
         .halign(Align::Start)
@@ -186,19 +183,19 @@ fn create_version_badge(installed_version: &str, candidate_version: &str) -> gtk
     installed_version_box.append(&installed_version_base_version_label.clone());
     installed_version_box.append(&installed_diff_label);
 
-    let label_separator = gtk::Separator::builder()
+    let label_separator = Separator::builder()
         .margin_start(5)
         .margin_end(5)
         .build();
 
-    let candidate_version_box = gtk::Box::builder()
+    let candidate_version_box = Box::builder()
         .halign(Align::Start)
         .hexpand(false)
         .orientation(Orientation::Horizontal)
         .tooltip_text(t!("candidate_version_badge_text"))
         .build();
 
-    let candidate_version_base_version_label = gtk::Label::builder()
+    let candidate_version_base_version_label = Label::builder()
         .label(format!(
             "{}: {}",
             t!("candidate_version_badge_text"),
@@ -210,7 +207,7 @@ fn create_version_badge(installed_version: &str, candidate_version: &str) -> gtk
         .vexpand(true)
         .build();
 
-    let candidate_diff_label = gtk::Label::builder()
+    let candidate_diff_label = Label::builder()
         .label(candidate_diff)
         .valign(Align::Center)
         .halign(Align::Start)
@@ -226,7 +223,7 @@ fn create_version_badge(installed_version: &str, candidate_version: &str) -> gtk
     badge_box.append(&label_separator);
     badge_box.append(&candidate_version_box);
 
-    let boxedlist = gtk::ListBox::builder()
+    let boxedlist = ListBox::builder()
         .selection_mode(SelectionMode::None)
         .halign(Align::Start)
         .valign(Align::End)
@@ -240,8 +237,8 @@ fn create_version_badge(installed_version: &str, candidate_version: &str) -> gtk
     boxedlist
 }
 
-fn create_arch_badge(arch: &str) -> gtk::ListBox {
-    let arch_label = gtk::Label::builder()
+fn create_arch_badge(arch: &str) -> ListBox {
+    let arch_label = Label::builder()
         .halign(Align::Start)
         .hexpand(false)
         .label(format!("{}: {}", t!("arch_label_label"), arch))
@@ -251,7 +248,7 @@ fn create_arch_badge(arch: &str) -> gtk::ListBox {
         .margin_top(5)
         .build();
 
-    let boxedlist = gtk::ListBox::builder()
+    let boxedlist = ListBox::builder()
         .selection_mode(SelectionMode::None)
         .halign(Align::Start)
         .valign(Align::End)
@@ -278,7 +275,7 @@ fn create_prefix_content(
     package_installed_version: &str,
     package_candidate_version: &str,
 ) {
-    let package_label = gtk::Label::builder()
+    let package_label = Label::builder()
         .halign(Align::Start)
         .margin_start(5)
         .margin_end(5)
@@ -287,7 +284,7 @@ fn create_prefix_content(
         .label(package_name)
         .build();
     package_label.add_css_class("size-20-bold-text");
-    let version_box = gtk::Box::new(Orientation::Horizontal, 0);
+    let version_box = Box::new(Orientation::Horizontal, 0);
     version_box.append(&create_version_badge(
         package_installed_version,
         package_candidate_version,
@@ -306,7 +303,7 @@ fn create_expandable_content(
     package_size: u64,
     package_installed_size: u64,
 ) {
-    let expandable_page_selection_box = gtk::Box::builder()
+    let expandable_page_selection_box = Box::builder()
         .orientation(Orientation::Horizontal)
         .hexpand(false)
         .vexpand(false)
@@ -319,19 +316,19 @@ fn create_expandable_content(
         .build();
     expandable_page_selection_box.add_css_class("linked");
     //
-    let description_page_button = gtk::ToggleButton::builder()
+    let description_page_button = ToggleButton::builder()
         .label(t!("description_button_label"))
         .active(true)
         .build();
-    let extra_info_page_button = gtk::ToggleButton::builder()
+    let extra_info_page_button = ToggleButton::builder()
         .label(t!("extra_info_page_button_label"))
         .group(&description_page_button)
         .build();
-    let uris_page_button = gtk::ToggleButton::builder()
+    let uris_page_button = ToggleButton::builder()
         .label(t!("uris_page_button_label"))
         .group(&description_page_button)
         .build();
-    let changelog_page_button = gtk::ToggleButton::builder()
+    let changelog_page_button = ToggleButton::builder()
         .label(t!("changelog_page_button_label"))
         // till we find a way to implement
         .sensitive(false)
@@ -344,31 +341,31 @@ fn create_expandable_content(
     //
     expandable_box.append(&expandable_page_selection_box);
     //
-    let expandable_bin = adw::Bin::builder().hexpand(true).vexpand(true).build();
+    let expandable_bin = Bin::builder().hexpand(true).vexpand(true).build();
     //
     description_page_button.connect_clicked(
-        clone!(@strong expandable_bin, @strong description_page_button => move |_|{
+        clone!(#[strong] expandable_bin, #[strong] description_page_button, move |_|{
             if description_page_button.is_active() {
                 expandable_bin.set_child(Some(&description_stack_page(&package_description)));
             }
         }),
     );
 
-    extra_info_page_button.connect_clicked(clone!(@strong expandable_bin, @strong extra_info_page_button => move |_|{
+    extra_info_page_button.connect_clicked(clone!(#[strong] expandable_bin, #[strong] extra_info_page_button, move |_|{
         if extra_info_page_button.is_active() {
            expandable_bin.set_child(Some(&extra_info_stack_page(&package_maintainer, package_size, package_installed_size)));
         }
     }));
 
     uris_page_button.connect_clicked(
-        clone!(@strong expandable_bin, @strong uris_page_button => move |_|{
+        clone!(#[strong] expandable_bin, #[strong] uris_page_button, move |_|{
             if uris_page_button.is_active() {
                expandable_bin.set_child(Some(&uris_stack_page(&package_source_uri)));
             }
         }),
     );
 
-    apt_package_row.connect_expanded_notify(clone!(@strong expandable_bin, @strong expandable_box, @strong apt_package_row, @strong description_page_button => move |apt_package_row| {
+    apt_package_row.connect_expanded_notify(clone!(#[strong] expandable_bin, #[strong] expandable_box, #[strong] apt_package_row, #[strong] description_page_button, move |_| {
         if apt_package_row.property("expanded") {
             description_page_button.set_active(true);
             description_page_button.emit_by_name::<()>("clicked", &[]);
@@ -382,15 +379,15 @@ fn create_expandable_content(
 }
 
 fn uris_stack_page(package_source_uri: &str) -> gtk::Box {
-    let uris_content_box = gtk::Box::builder()
+    let uris_content_box = Box::builder()
         .hexpand(true)
         .vexpand(true)
         .orientation(Orientation::Vertical)
         .build();
-    let uris_text_buffer = gtk::TextBuffer::builder()
+    let uris_text_buffer = TextBuffer::builder()
         .text(package_source_uri.to_owned() + "\n")
         .build();
-    let uris_text_view = gtk::TextView::builder()
+    let uris_text_view = TextView::builder()
         .buffer(&uris_text_buffer)
         .hexpand(true)
         .vexpand(true)
@@ -406,15 +403,15 @@ fn uris_stack_page(package_source_uri: &str) -> gtk::Box {
 }
 
 fn description_stack_page(package_description: &str) -> gtk::Box {
-    let description_content_box = gtk::Box::builder()
+    let description_content_box = Box::builder()
         .hexpand(true)
         .vexpand(true)
         .orientation(Orientation::Vertical)
         .build();
-    let description_text_buffer = gtk::TextBuffer::builder()
+    let description_text_buffer = TextBuffer::builder()
         .text(package_description.to_owned() + "\n")
         .build();
-    let description_text_view = gtk::TextView::builder()
+    let description_text_view = TextView::builder()
         .buffer(&description_text_buffer)
         .hexpand(true)
         .vexpand(true)
@@ -433,14 +430,14 @@ fn extra_info_stack_page(
     package_size: u64,
     package_installed_size: u64,
 ) -> gtk::Box {
-    let extra_info_badges_content_box = gtk::Box::builder()
+    let extra_info_badges_content_box = Box::builder()
         .hexpand(true)
         .vexpand(true)
         .orientation(Orientation::Vertical)
         .build();
-    let extra_info_badges_size_group = gtk::SizeGroup::new(SizeGroupMode::Both);
-    let extra_info_badges_size_group0 = gtk::SizeGroup::new(SizeGroupMode::Both);
-    let extra_info_badges_size_group1 = gtk::SizeGroup::new(SizeGroupMode::Both);
+    let extra_info_badges_size_group = SizeGroup::new(SizeGroupMode::Both);
+    let extra_info_badges_size_group0 = SizeGroup::new(SizeGroupMode::Both);
+    let extra_info_badges_size_group1 = SizeGroup::new(SizeGroupMode::Both);
     let package_size = package_size as f64;
     let package_installed_size = package_installed_size as f64;
     extra_info_badges_content_box.append(&create_color_badge(
@@ -473,13 +470,13 @@ fn create_color_badge(
     label0_text: &str,
     label1_text: &str,
     css_style: &str,
-    group_size: &gtk::SizeGroup,
-    group_size0: &gtk::SizeGroup,
-    group_size1: &gtk::SizeGroup,
-) -> gtk::ListBox {
-    let badge_box = gtk::Box::builder().build();
+    group_size: &SizeGroup,
+    group_size0: &SizeGroup,
+    group_size1: &SizeGroup,
+) -> ListBox {
+    let badge_box = Box::builder().build();
 
-    let label0 = gtk::Label::builder()
+    let label0 = Label::builder()
         .label(label0_text)
         .margin_start(5)
         .margin_end(5)
@@ -492,9 +489,9 @@ fn create_color_badge(
         .build();
     group_size0.add_widget(&label0);
 
-    let label_seprator = gtk::Separator::builder().build();
+    let label_separator = Separator::builder().build();
 
-    let label1 = gtk::Label::builder()
+    let label1 = Label::builder()
         .label(label1_text)
         .margin_start(3)
         .margin_end(0)
@@ -510,10 +507,10 @@ fn create_color_badge(
     label1.add_css_class(css_style);
 
     badge_box.append(&label0);
-    badge_box.append(&label_seprator);
+    badge_box.append(&label_separator);
     badge_box.append(&label1);
 
-    let boxedlist = gtk::ListBox::builder()
+    let boxedlist = ListBox::builder()
         .selection_mode(SelectionMode::None)
         .halign(Align::Start)
         .valign(Align::Start)

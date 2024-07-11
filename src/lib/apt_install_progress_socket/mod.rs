@@ -1,16 +1,11 @@
 use crate::pika_unixsocket_tools::*;
-use rust_apt::progress::{DynAcquireProgress, DynInstallProgress};
-use rust_apt::raw::{AcqTextStatus, ItemDesc, PkgAcquire};
+use rust_apt::progress::{DynInstallProgress};
 use std::process::exit;
 use tokio::io::AsyncWriteExt;
 use tokio::net::UnixStream;
 use tokio::runtime::Runtime;
 
 pub struct AptInstallProgressSocket<'a> {
-    pkgname: String,
-    steps_done: u64,
-    total_steps: u64,
-    action: String,
     percent_socket_path: &'a str,
     status_socket_path: &'a str,
 }
@@ -18,11 +13,7 @@ pub struct AptInstallProgressSocket<'a> {
 impl<'a> AptInstallProgressSocket<'a> {
     /// Returns a new default progress instance.
     pub fn new(percent_socket_path: &'a str, status_socket_path: &'a str) -> Self {
-        let mut progress = Self {
-            pkgname: String::new(),
-            steps_done: 0,
-            total_steps: 0,
-            action: String::new(),
+        let progress = Self {
             percent_socket_path: percent_socket_path,
             status_socket_path: status_socket_path,
         };
@@ -33,7 +24,7 @@ impl<'a> AptInstallProgressSocket<'a> {
 impl<'a> DynInstallProgress for AptInstallProgressSocket<'a> {
     fn status_changed(
         &mut self,
-        pkgname: String,
+        _pkgname: String,
         steps_done: u64,
         total_steps: u64,
         action: String,
@@ -48,7 +39,7 @@ impl<'a> DynInstallProgress for AptInstallProgressSocket<'a> {
             .block_on(send_progress_status(&action, self.status_socket_path));
     }
 
-    fn error(&mut self, pkgname: String, steps_done: u64, total_steps: u64, error: String) {
+    fn error(&mut self, pkgname: String, _steps_done: u64, _total_steps: u64, error: String) {
         let message = format!("dpkg failure on {}: {}", pkgname, error);
         eprintln!("{}", &message);
         Runtime::new()

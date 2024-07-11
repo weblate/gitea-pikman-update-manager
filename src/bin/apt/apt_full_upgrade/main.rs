@@ -4,8 +4,6 @@ use pika_unixsocket_tools::pika_unixsocket_tools::*;
 use rust_apt::cache::Upgrade;
 use rust_apt::new_cache;
 use rust_apt::progress::{AcquireProgress, InstallProgress};
-use std::fs::*;
-use std::process::exit;
 use tokio::runtime::Runtime;
 
 fn main() {

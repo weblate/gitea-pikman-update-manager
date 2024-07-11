@@ -12,7 +12,7 @@ use serde::Serialize;
 use serde_json::Value;
 use std::path::Path;
 use std::process::Command;
-use std::{fs::*, thread};
+use std::{thread};
 use std::cell::RefCell;
 use std::rc::Rc;
 use tokio::runtime::Runtime;
@@ -86,10 +86,10 @@ pub fn apt_process_update(
     excluded_updates_alert_dialog.set_default_response(Some("excluded_updates_alert_continue"));
 
     let excluded_updates_alert_dialog_action =
-        gio::SimpleAction::new("excluded_updates_alert_dialog_action", None);
+        SimpleAction::new("excluded_updates_alert_dialog_action", None);
 
     excluded_updates_alert_dialog_action.connect_activate(
-        clone!(@weak window, @weak retry_signal_action, @strong excluded_updates_vec => move |_, _| {
+        clone!(#[weak] window, #[weak] retry_signal_action, #[strong] excluded_updates_vec, move |_, _| {
             apt_confirm_window(&excluded_updates_vec, window, &retry_signal_action)
         }),
     );
@@ -182,13 +182,13 @@ fn apt_confirm_window(
         }
     }
 
-    let apt_confirm_dialog_child_box = gtk::Box::builder()
+    let apt_confirm_dialog_child_box = Box::builder()
         .orientation(Orientation::Vertical)
         .build();
 
-    let apt_update_dialog_badges_size_group = gtk::SizeGroup::new(SizeGroupMode::Both);
-    let apt_update_dialog_badges_size_group0 = gtk::SizeGroup::new(SizeGroupMode::Both);
-    let apt_update_dialog_badges_size_group1 = gtk::SizeGroup::new(SizeGroupMode::Both);
+    let apt_update_dialog_badges_size_group = SizeGroup::new(SizeGroupMode::Both);
+    let apt_update_dialog_badges_size_group0 = SizeGroup::new(SizeGroupMode::Both);
+    let apt_update_dialog_badges_size_group1 = SizeGroup::new(SizeGroupMode::Both);
 
     apt_confirm_dialog_child_box.append(&create_color_badge(
         &t!("package_count_upgrade_badge_label"),
@@ -290,9 +290,9 @@ fn apt_confirm_window(
         .expect("Failed to write to json file");
     }
 
-    let apt_confirm_start_signal_action = gio::SimpleAction::new("apt_confirm_start", None);
+    let apt_confirm_start_signal_action = SimpleAction::new("apt_confirm_start", None);
 
-    apt_confirm_start_signal_action.connect_activate(clone!(@weak window, @strong retry_signal_action, @strong apt_confirm_dialog => move |_, _| {
+    apt_confirm_start_signal_action.connect_activate(clone!(#[weak] window, #[strong] retry_signal_action, #[strong] apt_confirm_dialog, move |_, _| {
         let retry_signal_action0 = retry_signal_action.clone();
         apt_confirm_dialog.clone().choose(None::<&gio::Cancellable>, move |choice| {
         if choice == "apt_confirm_dialog_confirm" {
@@ -305,11 +305,11 @@ fn apt_confirm_window(
     if to_be_removed_packages_borrow.is_empty() {
         apt_confirm_start_signal_action.activate(None);
     } else {
-        let apt_remove_confirm_text_buffer = gtk::TextBuffer::builder()
+        let apt_remove_confirm_text_buffer = TextBuffer::builder()
             .text(to_be_removed_packages_borrow.iter().map(|x| x.to_string() + "\n").collect::<String>() + "\n")
             .build();
 
-        let description_text_view = gtk::TextView::builder()
+        let apt_remove_confirm_text_view = TextView::builder()
             .buffer(&apt_remove_confirm_text_buffer)
             .hexpand(true)
             .vexpand(true)
@@ -324,7 +324,7 @@ fn apt_confirm_window(
             .transient_for(&window)
             .heading(t!("apt_remove_confirm_dialog_heading"))
             .body(t!("apt_remove_confirm_dialog_body"))
-            .extra_child(&description_text_view)
+            .extra_child(&apt_remove_confirm_text_view)
             .build();
 
         apt_remove_confirm_dialog.add_response(
@@ -407,16 +407,16 @@ fn apt_full_upgrade_from_socket(
         }
     });
 
-    let apt_upgrade_dialog_child_box = gtk::Box::builder()
+    let apt_upgrade_dialog_child_box = Box::builder()
         .orientation(Orientation::Vertical)
         .build();
 
-    let apt_upgrade_dialog_progress_bar = gtk::ProgressBar::builder()
+    let apt_upgrade_dialog_progress_bar = ProgressBar::builder()
         .show_text(true)
         .hexpand(true)
         .build();
 
-    let apt_upgrade_dialog_spinner = gtk::Spinner::builder()
+    let apt_upgrade_dialog_spinner = Spinner::builder()
         .hexpand(true)
         .valign(Align::Start)
         .halign(Align::Center)
@@ -440,16 +440,16 @@ fn apt_full_upgrade_from_socket(
         &t!("apt_upgrade_dialog_ok_label").to_string(),
     );
 
-    let apt_upgrade_dialog_child_box_done = gtk::Box::builder()
+    let apt_upgrade_dialog_child_box_done = Box::builder()
         .orientation(Orientation::Vertical)
         .build();
 
-    let apt_upgrade_log_image = gtk::Image::builder()
+    let apt_upgrade_log_image = Image::builder()
         .pixel_size(128)
         .halign(Align::Center)
         .build();
 
-    let apt_upgrade_log_button = gtk::Button::builder()
+    let apt_upgrade_log_button = Button::builder()
         .label(t!("apt_upgrade_dialog_open_log_file_label"))
         .halign(Align::Center)
         .margin_start(15)
@@ -466,7 +466,7 @@ fn apt_full_upgrade_from_socket(
 
     let upgrade_percent_server_context = MainContext::default();
     // The main loop executes the asynchronous block
-    upgrade_percent_server_context.spawn_local(clone!(@weak apt_upgrade_dialog_progress_bar, @weak apt_upgrade_dialog => async move {
+    upgrade_percent_server_context.spawn_local(clone!(#[weak] apt_upgrade_dialog_progress_bar, async move {
         while let Ok(state) = upgrade_percent_receiver.recv().await {
             match state.as_ref() {
                 "FN_OVERRIDE_SUCCESSFUL" => {}
@@ -480,7 +480,7 @@ fn apt_full_upgrade_from_socket(
     let upgrade_status_server_context = MainContext::default();
     // The main loop executes the asynchronous block
     upgrade_status_server_context.spawn_local(
-        clone!(@weak apt_upgrade_dialog, @weak apt_upgrade_dialog_child_box, @strong apt_upgrade_dialog_child_box_done, @strong apt_upgrade_log_image => async move {
+        clone!(#[weak] apt_upgrade_dialog, #[weak] apt_upgrade_dialog_child_box, #[strong] apt_upgrade_dialog_child_box_done, #[strong] apt_upgrade_log_image, async move {
         while let Ok(state) = upgrade_status_receiver.recv().await {
             match state.as_ref() {
                 "FN_OVERRIDE_SUCCESSFUL" => {
@@ -507,7 +507,7 @@ fn apt_full_upgrade_from_socket(
     let retry_signal_action0 = retry_signal_action.clone();
 
     apt_upgrade_log_button.connect_clicked(move |_| {
-        let _ = std::process::Command::new("xdg-open")
+        let _ = Command::new("xdg-open")
             .arg(log_file_path_clone0.to_owned())
             .spawn();
     });
@@ -526,13 +526,13 @@ fn create_color_badge(
     label0_text: &str,
     label1_text: &str,
     css_style: &str,
-    group_size: &gtk::SizeGroup,
-    group_size0: &gtk::SizeGroup,
-    group_size1: &gtk::SizeGroup,
-) -> gtk::ListBox {
-    let badge_box = gtk::Box::builder().build();
+    group_size: &SizeGroup,
+    group_size0: &SizeGroup,
+    group_size1: &SizeGroup,
+) -> ListBox {
+    let badge_box = Box::builder().build();
 
-    let label0 = gtk::Label::builder()
+    let label0 = Label::builder()
         .label(label0_text)
         .margin_start(5)
         .margin_end(5)
@@ -545,9 +545,9 @@ fn create_color_badge(
         .build();
     group_size0.add_widget(&label0);
 
-    let label_seprator = gtk::Separator::builder().build();
+    let label_separator = Separator::builder().build();
 
-    let label1 = gtk::Label::builder()
+    let label1 = Label::builder()
         .label(label1_text)
         .margin_start(3)
         .margin_end(0)
@@ -563,10 +563,10 @@ fn create_color_badge(
     label1.add_css_class(css_style);
 
     badge_box.append(&label0);
-    badge_box.append(&label_seprator);
+    badge_box.append(&label_separator);
     badge_box.append(&label1);
 
-    let boxedlist = gtk::ListBox::builder()
+    let boxedlist = ListBox::builder()
         .selection_mode(SelectionMode::None)
         .halign(Align::Center)
         .margin_start(10)

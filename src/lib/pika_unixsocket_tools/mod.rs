@@ -47,7 +47,7 @@ pub async fn handle_client(
     let mut buffer = [0; 1024];
 
     if !Path::new(&log_file_path).exists() {
-        match std::fs::File::create(&log_file_path) {
+        match fs::File::create(&log_file_path) {
             Ok(_) => {}
             Err(_) => {
                 eprintln!("Warning: {} file couldn't be created", log_file_path);
@@ -166,7 +166,7 @@ pub async fn start_socket_server_no_log(
         match listener.accept().await {
             Ok((stream, _)) => {
                 // Handle the connection in a separate task
-                task::spawn(crate::pika_unixsocket_tools::handle_client_no_log(
+                task::spawn(handle_client_no_log(
                     stream,
                     buffer_sender.clone(),
                 ));
