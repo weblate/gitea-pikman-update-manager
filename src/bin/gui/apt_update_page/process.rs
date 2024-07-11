@@ -269,6 +269,13 @@ fn apt_confirm_window(
     apt_confirm_dialog.set_default_response(Some("apt_confirm_dialog_confirm"));
     apt_confirm_dialog.set_close_response("apt_confirm_dialog_cancel");
 
+    let json_file_path = "/tmp/pika-apt-exclusions.json";
+
+    if Path::new(json_file_path).exists() {
+        std::fs::remove_file(json_file_path).expect("Failed to remove old json file");
+    }
+
+
     if !excluded_updates_vec.is_empty() {
         let exclusions_array = Exclusions {
             exclusions: excluded_updates_vec
@@ -278,11 +285,6 @@ fn apt_confirm_window(
                 .unwrap(),
         };
 
-        let json_file_path = "/tmp/pika-apt-exclusions.json";
-
-        if Path::new(json_file_path).exists() {
-            std::fs::remove_file(json_file_path).expect("Failed to remove old json file");
-        }
         std::fs::write(
             json_file_path,
             serde_json::to_string_pretty(&exclusions_array).unwrap(),
