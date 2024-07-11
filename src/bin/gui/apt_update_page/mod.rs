@@ -51,7 +51,7 @@ pub fn apt_update_page(
     let excluded_updates_vec: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
 
     thread::spawn(move || {
-        Runtime::new().unwrap().block_on(start_socket_server(
+        Runtime::new().unwrap().block_on(start_socket_server_no_log(
             update_percent_sender,
             "/tmp/pika_apt_update_percent.sock",
         ));
@@ -61,12 +61,13 @@ pub fn apt_update_page(
         Runtime::new().unwrap().block_on(start_socket_server(
             update_status_sender,
             "/tmp/pika_apt_update_status.sock",
+            "/var/log/pika-apt-update.log"
         ));
     });
 
     thread::spawn(move || {
         let apt_update_command = Command::new("pkexec")
-            .args(["/home/ward/RustroverProjects/pika-idk-manager/target/debug/apt_update"])
+            .args(["/home/ward/RustroverProjects/pikman-update-manager/target/debug/apt_update"])
             .status()
             .unwrap();
         match apt_update_command.code().unwrap() {

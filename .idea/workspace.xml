@@ -8,7 +8,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="df2ca9e1-e07d-43f4-bc68-0a6113fc1fa2" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/src/bin/apt/apt_full_upgrade/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/apt/apt_full_upgrade/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/locales/en_US.json" beforeDir="false" afterPath="$PROJECT_DIR$/locales/en_US.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/bin/gui/apt_update_page/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/apt_update_page/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/bin/gui/apt_update_page/process.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/apt_update_page/process.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/pika_unixsocket_tools/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/pika_unixsocket_tools/mod.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -43,16 +49,18 @@
   &quot;keyToString&quot;: {
     &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
     &quot;Cargo.Run apt_update.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Run pikman-update-manager.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test pikman-update-manager.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.rust.reset.selective.auto.import&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/ward/RustroverProjects/pika-idk-manager/src/lib&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/ward/RustroverProjects/pikman-update-manager/src/lib&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
     &quot;org.rust.cargo.project.model.PROJECT_DISCOVERY&quot;: &quot;true&quot;,
     &quot;org.rust.cargo.project.model.impl.CargoExternalSystemProjectAware.subscribe.first.balloon&quot;: &quot;&quot;,
-    &quot;org.rust.disableDetachedFileInspection/home/ward/RustroverProjects/pika-idk-manager/src/apt_update_progress_socket/lib.rs&quot;: &quot;true&quot;,
+    &quot;org.rust.disableDetachedFileInspection/home/ward/RustroverProjects/pikman-update-manager/src/apt_update_progress_socket/lib.rs&quot;: &quot;true&quot;,
     &quot;org.rust.first.attach.projects&quot;: &quot;true&quot;
   }
 }</component>
@@ -69,9 +77,9 @@
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Run apt_update">
-    <configuration name="Run apt_update" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-      <option name="command" value="run --package pika-idk-manager --bin pika-idk-manager" />
+  <component name="RunManager" selected="Cargo.Run pikman-update-manager">
+    <configuration name="Build all" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <envs />
       <option name="emulateTerminal" value="true" />
@@ -87,7 +95,24 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test pika-idk-manager" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+    <configuration name="Run pikman-update-manager" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="run --package pikman-update-manager --bin pikman-update-manager" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <envs />
+      <option name="emulateTerminal" value="true" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test pikman-update-manager" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="test --workspace" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <envs />
@@ -104,6 +129,11 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <list>
+      <item itemvalue="Cargo.Run pikman-update-manager" />
+      <item itemvalue="Cargo.Test pikman-update-manager" />
+      <item itemvalue="Cargo.Build all" />
+    </list>
   </component>
   <component name="RustProjectSettings">
     <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
@@ -133,7 +163,7 @@
       <workItem from="1720556059466" duration="12649000" />
       <workItem from="1720594302708" duration="52000" />
       <workItem from="1720597532937" duration="7050000" />
-      <workItem from="1720648284536" duration="7092000" />
+      <workItem from="1720648284536" duration="9271000" />
     </task>
     <servers />
   </component>

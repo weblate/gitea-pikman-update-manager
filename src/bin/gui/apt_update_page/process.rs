@@ -1,7 +1,7 @@
 use adw::prelude::*;
 use gtk::glib::*;
 use gtk::*;
-use pika_unixsocket_tools::pika_unixsocket_tools::start_socket_server;
+use pika_unixsocket_tools::pika_unixsocket_tools::{start_socket_server, start_socket_server_no_log};
 use pretty_bytes::converter::convert;
 use rust_apt::cache::Upgrade;
 use rust_apt::new_cache;
@@ -289,7 +289,7 @@ fn apt_full_upgrade_from_socket(window: adw::ApplicationWindow) {
     let upgrade_status_sender_clone0 = upgrade_status_sender.clone();
 
     thread::spawn(move || {
-        Runtime::new().unwrap().block_on(start_socket_server(
+        Runtime::new().unwrap().block_on(start_socket_server_no_log(
             upgrade_percent_sender,
             "/tmp/pika_apt_upgrade_percent.sock",
         ));
@@ -299,12 +299,13 @@ fn apt_full_upgrade_from_socket(window: adw::ApplicationWindow) {
         Runtime::new().unwrap().block_on(start_socket_server(
             upgrade_status_sender,
             "/tmp/pika_apt_upgrade_status.sock",
+            "/var/log/pika-apt-upgrade.log"
         ));
     });
 
     thread::spawn(move || {
         let apt_upgrade_command = Command::new("pkexec")
-            .args(["/home/ward/RustroverProjects/pika-idk-manager/target/debug/apt_full_upgrade"])
+            .args(["/home/ward/RustroverProjects/pikman-update-manager/target/debug/apt_full_upgrade"])
             .status()
             .unwrap();
         match apt_upgrade_command.code().unwrap() {
