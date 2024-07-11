@@ -61,7 +61,7 @@ pub fn apt_update_page(
         Runtime::new().unwrap().block_on(start_socket_server(
             update_status_sender,
             "/tmp/pika_apt_update_status.sock",
-            "/tmp/pika-apt-update.log"
+            "/tmp/pika-apt-update.log",
         ));
     });
 
@@ -71,7 +71,9 @@ pub fn apt_update_page(
             .status()
             .unwrap();
         match apt_update_command.code().unwrap() {
-            0 => {}
+            0 => update_status_sender_clone0
+                .send_blocking("FN_OVERRIDE_SUCCESSFUL".to_owned())
+                .unwrap(),
             53 => {}
             _ => {
                 update_status_sender_clone0
@@ -218,9 +220,18 @@ pub fn apt_update_page(
     // The main loop executes the asynchronous block
     update_percent_server_context.spawn_local(clone!(@weak apt_update_dialog_progress_bar, @weak apt_update_dialog, @strong get_upgradable_sender => async move {
         while let Ok(state) = update_percent_receiver.recv().await {
+            apt_update_dialog_progress_bar.set_fraction(state.parse::<f64>().unwrap()/100.0)
+        }
+        }));
+
+    let update_status_server_context = MainContext::default();
+    // The main loop executes the asynchronous block
+    update_status_server_context.spawn_local(
+        clone!(@weak apt_update_dialog, @weak apt_update_dialog_child_box => async move {
+        while let Ok(state) = update_status_receiver.recv().await {
             match state.as_ref() {
                 "FN_OVERRIDE_SUCCESSFUL" => {
-                    let get_upgradable_sender = get_upgradable_sender.clone();
+                                            let get_upgradable_sender = get_upgradable_sender.clone();
                     thread::spawn(move || {
                         // Create upgradable list cache
                         let upgradable_cache = new_cache!().unwrap();
@@ -257,21 +268,7 @@ pub fn apt_update_page(
                         }
                     });
                     apt_update_dialog.close();
-                }
-                _ => {
-                    apt_update_dialog_progress_bar.set_fraction(state.parse::<f64>().unwrap()/100.0)
-                }
-            }
-        }
-        }));
-
-    let update_status_server_context = MainContext::default();
-    // The main loop executes the asynchronous block
-    update_status_server_context.spawn_local(
-        clone!(@weak apt_update_dialog, @weak apt_update_dialog_child_box => async move {
-        while let Ok(state) = update_status_receiver.recv().await {
-            match state.as_ref() {
-                "FN_OVERRIDE_SUCCESSFUL" => {}
+                    }
                 "FN_OVERRIDE_FAILED" => {
                     apt_update_dialog_child_box.set_visible(false);
                     apt_update_dialog.set_extra_child(Some(&gtk::Image::builder().pixel_size(128).icon_name("dialog-error-symbolic").halign(Align::Center).build()));

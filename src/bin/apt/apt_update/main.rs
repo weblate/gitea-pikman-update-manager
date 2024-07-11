@@ -13,14 +13,7 @@ fn main() {
         percent_socket_path,
         status_socket_path,
     ))) {
-        Ok(_) => {
-            Runtime::new()
-                .unwrap()
-                .block_on(send_successful_to_socket(percent_socket_path));
-            Runtime::new()
-                .unwrap()
-                .block_on(send_successful_to_socket(status_socket_path));
-        }
+        Ok(_) => {}
         Err(e) => {
             Runtime::new()
                 .unwrap()

@@ -1,11 +1,11 @@
 use pika_unixsocket_tools::apt_install_progress_socket::AptInstallProgressSocket;
 use pika_unixsocket_tools::apt_update_progress_socket::AptUpdateProgressSocket;
 use pika_unixsocket_tools::pika_unixsocket_tools::*;
+use rust_apt::cache::Upgrade;
 use rust_apt::new_cache;
 use rust_apt::progress::{AcquireProgress, InstallProgress};
 use std::fs::*;
 use std::process::exit;
-use rust_apt::cache::Upgrade;
 use tokio::runtime::Runtime;
 
 fn main() {
@@ -59,34 +59,14 @@ fn main() {
     apt_upgrade_cache.resolve(true).unwrap();
 
     match apt_upgrade_cache.get_archives(&mut acquire_progress) {
-        Ok(_) => {
-            Runtime::new()
-                .unwrap()
-                .block_on(send_successful_to_socket(percent_socket_path));
-            Runtime::new()
-                .unwrap()
-                .block_on(send_successful_to_socket(status_socket_path));
-        }
+        Ok(_) => {}
         Err(e) => {
-            Runtime::new()
-                .unwrap()
-                .block_on(send_failed_to_socket(percent_socket_path));
-            Runtime::new()
-                .unwrap()
-                .block_on(send_failed_to_socket(status_socket_path));
             panic!("{}", e.to_string())
         }
     };
 
     match apt_upgrade_cache.do_install(&mut install_progress) {
-        Ok(_) => {
-            Runtime::new()
-                .unwrap()
-                .block_on(send_successful_to_socket(percent_socket_path));
-            Runtime::new()
-                .unwrap()
-                .block_on(send_successful_to_socket(status_socket_path));
-        }
+        Ok(_) => {}
         Err(e) => {
             Runtime::new()
                 .unwrap()

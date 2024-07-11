@@ -1,7 +1,10 @@
+use adw::gio::SimpleAction;
 use adw::prelude::*;
 use gtk::glib::*;
 use gtk::*;
-use pika_unixsocket_tools::pika_unixsocket_tools::{start_socket_server, start_socket_server_no_log};
+use pika_unixsocket_tools::pika_unixsocket_tools::{
+    start_socket_server, start_socket_server_no_log,
+};
 use pretty_bytes::converter::convert;
 use rust_apt::cache::Upgrade;
 use rust_apt::new_cache;
@@ -10,7 +13,6 @@ use serde_json::Value;
 use std::path::Path;
 use std::process::Command;
 use std::{fs::*, thread};
-use adw::gio::SimpleAction;
 use tokio::runtime::Runtime;
 
 struct AptChangesInfo {
@@ -53,7 +55,11 @@ impl AptChangesInfo {
     }
 }
 
-pub fn apt_process_update(excluded_updates_vec: &Vec<String>, window: adw::ApplicationWindow, retry_signal_action: &SimpleAction,) {
+pub fn apt_process_update(
+    excluded_updates_vec: &Vec<String>,
+    window: adw::ApplicationWindow,
+    retry_signal_action: &SimpleAction,
+) {
     let excluded_updates_alert_dialog = adw::MessageDialog::builder()
         .transient_for(&window)
         .heading(t!("excluded_updates_alert_dialog_heading"))
@@ -97,7 +103,11 @@ pub fn apt_process_update(excluded_updates_vec: &Vec<String>, window: adw::Appli
     }
 }
 
-fn apt_confirm_window(excluded_updates_vec: &Vec<String>, window: adw::ApplicationWindow, retry_signal_action: &SimpleAction,) {
+fn apt_confirm_window(
+    excluded_updates_vec: &Vec<String>,
+    window: adw::ApplicationWindow,
+    retry_signal_action: &SimpleAction,
+) {
     // Emulate Apt Full Upgrade to get transaction info
     let mut apt_changes_struct = AptChangesInfo {
         package_count_upgrade: 0,
@@ -284,14 +294,20 @@ fn apt_confirm_window(excluded_updates_vec: &Vec<String>, window: adw::Applicati
     });
 }
 
-fn apt_full_upgrade_from_socket(window: adw::ApplicationWindow, retry_signal_action: &SimpleAction) {
+fn apt_full_upgrade_from_socket(
+    window: adw::ApplicationWindow,
+    retry_signal_action: &SimpleAction,
+) {
     let (upgrade_percent_sender, upgrade_percent_receiver) = async_channel::unbounded::<String>();
     let upgrade_percent_sender = upgrade_percent_sender.clone();
     let (upgrade_status_sender, upgrade_status_receiver) = async_channel::unbounded::<String>();
     let upgrade_status_sender = upgrade_status_sender.clone();
     let upgrade_status_sender_clone0 = upgrade_status_sender.clone();
 
-    let log_file_path = format!("/tmp/pika-apt-upgrade_{}.log", chrono::offset::Local::now().format("%Y-%m-%d_%H:%M"));
+    let log_file_path = format!(
+        "/tmp/pika-apt-upgrade_{}.log",
+        chrono::offset::Local::now().format("%Y-%m-%d_%H:%M")
+    );
     let log_file_path_clone0 = log_file_path.clone();
 
     thread::spawn(move || {
@@ -305,13 +321,15 @@ fn apt_full_upgrade_from_socket(window: adw::ApplicationWindow, retry_signal_act
         Runtime::new().unwrap().block_on(start_socket_server(
             upgrade_status_sender,
             "/tmp/pika_apt_upgrade_status.sock",
-            &log_file_path
+            &log_file_path,
         ));
     });
 
     thread::spawn(move || {
         let apt_upgrade_command = Command::new("pkexec")
-            .args(["/home/ward/RustroverProjects/pikman-update-manager/target/debug/apt_full_upgrade"])
+            .args([
+                "/home/ward/RustroverProjects/pikman-update-manager/target/debug/apt_full_upgrade",
+            ])
             .status()
             .unwrap();
         match apt_upgrade_command.code().unwrap() {
@@ -430,8 +448,10 @@ fn apt_full_upgrade_from_socket(window: adw::ApplicationWindow, retry_signal_act
 
     let retry_signal_action0 = retry_signal_action.clone();
 
-    apt_upgrade_log_button.connect_clicked( move |_| {
-        let _ = std::process::Command::new("xdg-open").arg(log_file_path_clone0.to_owned()).spawn();
+    apt_upgrade_log_button.connect_clicked(move |_| {
+        let _ = std::process::Command::new("xdg-open")
+            .arg(log_file_path_clone0.to_owned())
+            .spawn();
     });
 
     apt_upgrade_dialog.choose(None::<&gio::Cancellable>, move |choice| {

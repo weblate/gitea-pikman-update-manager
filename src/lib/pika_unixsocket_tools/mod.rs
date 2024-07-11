@@ -1,11 +1,11 @@
+use chrono;
 use std::fs;
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::Path;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{UnixListener, UnixStream};
 use tokio::task;
-use chrono;
-use std::fs::OpenOptions;
-use std::io::Write;
 
 pub async fn send_successful_to_socket(socket_path: &str) {
     // Connect to the Unix socket
@@ -38,7 +38,11 @@ pub async fn send_failed_to_socket(socket_path: &str) {
 }
 
 // Function to handle a single client connection
-pub async fn handle_client(mut stream: UnixStream, buffer_sender: async_channel::Sender<String>, log_file_path: String) {
+pub async fn handle_client(
+    mut stream: UnixStream,
+    buffer_sender: async_channel::Sender<String>,
+    log_file_path: String,
+) {
     // Buffer to store incoming data
     let mut buffer = [0; 1024];
 
@@ -66,7 +70,12 @@ pub async fn handle_client(mut stream: UnixStream, buffer_sender: async_channel:
                 .open(&log_file_path)
                 .unwrap();
 
-            if let Err(e) = writeln!(log_file, "[{}] {}", chrono::offset::Local::now().format("%Y/%m/%d_%H:%M"), message) {
+            if let Err(e) = writeln!(
+                log_file,
+                "[{}] {}",
+                chrono::offset::Local::now().format("%Y/%m/%d_%H:%M"),
+                message
+            ) {
                 eprintln!("Couldn't write to file: {}", e);
             }
         }
@@ -77,7 +86,11 @@ pub async fn handle_client(mut stream: UnixStream, buffer_sender: async_channel:
     }
 }
 
-pub async fn start_socket_server(buffer_sender: async_channel::Sender<String>, socket_path: &str, log_file_path: &str) {
+pub async fn start_socket_server(
+    buffer_sender: async_channel::Sender<String>,
+    socket_path: &str,
+    log_file_path: &str,
+) {
     // Remove the socket file if it already exists
     if Path::new(socket_path).exists() {
         fs::remove_file(socket_path).expect("Could not remove existing socket file");
@@ -94,7 +107,11 @@ pub async fn start_socket_server(buffer_sender: async_channel::Sender<String>, s
         match listener.accept().await {
             Ok((stream, _)) => {
                 // Handle the connection in a separate task
-                task::spawn(handle_client(stream, buffer_sender.clone(), log_file_path.to_owned()));
+                task::spawn(handle_client(
+                    stream,
+                    buffer_sender.clone(),
+                    log_file_path.to_owned(),
+                ));
             }
             Err(e) => {
                 // Print error message if a connection fails
@@ -104,7 +121,10 @@ pub async fn start_socket_server(buffer_sender: async_channel::Sender<String>, s
     }
 }
 
-pub async fn handle_client_no_log(mut stream: UnixStream, buffer_sender: async_channel::Sender<String>) {
+pub async fn handle_client_no_log(
+    mut stream: UnixStream,
+    buffer_sender: async_channel::Sender<String>,
+) {
     // Buffer to store incoming data
     let mut buffer = [0; 1024];
 
@@ -126,7 +146,10 @@ pub async fn handle_client_no_log(mut stream: UnixStream, buffer_sender: async_c
     }
 }
 
-pub async fn start_socket_server_no_log(buffer_sender: async_channel::Sender<String>, socket_path: &str) {
+pub async fn start_socket_server_no_log(
+    buffer_sender: async_channel::Sender<String>,
+    socket_path: &str,
+) {
     // Remove the socket file if it already exists
     if Path::new(socket_path).exists() {
         fs::remove_file(socket_path).expect("Could not remove existing socket file");
@@ -143,7 +166,10 @@ pub async fn start_socket_server_no_log(buffer_sender: async_channel::Sender<Str
         match listener.accept().await {
             Ok((stream, _)) => {
                 // Handle the connection in a separate task
-                task::spawn(crate::pika_unixsocket_tools::handle_client_no_log(stream, buffer_sender.clone()));
+                task::spawn(crate::pika_unixsocket_tools::handle_client_no_log(
+                    stream,
+                    buffer_sender.clone(),
+                ));
             }
             Err(e) => {
                 // Print error message if a connection fails
