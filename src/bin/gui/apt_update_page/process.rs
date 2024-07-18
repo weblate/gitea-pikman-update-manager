@@ -95,7 +95,7 @@ pub fn apt_process_update(
         retry_signal_action,
         #[strong]
         excluded_updates_vec,
-        move |_, _| { apt_confirm_window(&excluded_updates_vec, window, &retry_signal_action) }
+        move |_, _| apt_confirm_window(&excluded_updates_vec, window, &retry_signal_action)
     ));
 
     if excluded_updates_vec.is_empty() {

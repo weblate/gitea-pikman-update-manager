@@ -39,9 +39,11 @@ pub fn flatpak_update_page(
     let appstream_sync_status_sender = appstream_sync_status_sender.clone();
     let appstream_sync_status_sender_clone0 = appstream_sync_status_sender.clone();
 
-    let system_refs_for_upgrade_vec: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
+    let system_refs_for_upgrade_vec: Rc<RefCell<Vec<FlatpakRefRow>>> =
+        Rc::new(RefCell::new(Vec::new()));
 
-    let user_refs_for_upgrade_vec: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
+    let user_refs_for_upgrade_vec: Rc<RefCell<Vec<FlatpakRefRow>>> =
+        Rc::new(RefCell::new(Vec::new()));
 
     let cancellable_no = libflatpak::gio::Cancellable::NONE;
 
@@ -277,8 +279,12 @@ pub fn flatpak_update_page(
         #[strong]
         user_refs_for_upgrade_vec,
         move |_| {
-            dbg!(&system_refs_for_upgrade_vec);
-            dbg!(&user_refs_for_upgrade_vec);
+            process::flatpak_process_update(
+                &system_refs_for_upgrade_vec.borrow(),
+                &user_refs_for_upgrade_vec.borrow(),
+                window,
+                &retry_signal_action,
+            )
         }
     ));
 
@@ -418,11 +424,11 @@ pub fn flatpak_update_page(
                                     is_last: flatpak_system_updates_iter.peek().is_none(),
                                 };
 
+                                let flatpak_row = FlatpakRefRow::new(&flatref_struct);
+
                                 system_refs_for_upgrade_vec
                                     .borrow_mut()
-                                    .push(flatpak_ref.format_ref().unwrap().into());
-
-                                let flatpak_row = FlatpakRefRow::new(&flatref_struct);
+                                    .push(flatpak_row.clone());
 
                                 flatpak_row.connect_closure(
                                     "checkbutton-toggled",
@@ -451,7 +457,7 @@ pub fn flatpak_update_page(
                                             ));
                                             system_refs_for_upgrade_vec
                                                 .borrow_mut()
-                                                .push(flatpak_row.flatref_ref_format());
+                                                .push(flatpak_row);
                                         }
                                     ),
                                 );
@@ -474,9 +480,10 @@ pub fn flatpak_update_page(
                                             update_button.set_sensitive(!is_all_children_unmarked(
                                                 &packages_boxedlist,
                                             ));
-                                            system_refs_for_upgrade_vec
-                                                .borrow_mut()
-                                                .retain(|x| x != &flatpak_row.flatref_ref_format());
+                                            system_refs_for_upgrade_vec.borrow_mut().retain(|x| {
+                                                x.flatref_ref_format()
+                                                    != flatpak_row.flatref_ref_format()
+                                            });
                                         }
                                     ),
                                 );
@@ -495,7 +502,7 @@ pub fn flatpak_update_page(
                             while let Some(flatpak_ref) = flatpak_user_updates_iter.next() {
                                 let mut remote_flatpak_ref: Option<libflatpak::RemoteRef> = None;
                                 while let Ok(remotes) = libflatpak::Installation::list_remotes(
-                                    &flatpak_system_installation,
+                                    &flatpak_user_installation,
                                     cancellable_no,
                                 ) {
                                     for remote in remotes {
@@ -503,7 +510,7 @@ pub fn flatpak_update_page(
                                             continue;
                                         };
                                         match libflatpak::Installation::fetch_remote_ref_sync(
-                                            &flatpak_system_installation,
+                                            &flatpak_user_installation,
                                             &match remote.name() {
                                                 Some(t) => t,
                                                 None => continue,
@@ -565,11 +572,11 @@ pub fn flatpak_update_page(
                                     is_last: flatpak_user_updates_iter.peek().is_none(),
                                 };
 
+                                let flatpak_row = FlatpakRefRow::new(&flatref_struct);
+
                                 user_refs_for_upgrade_vec
                                     .borrow_mut()
-                                    .push(flatpak_ref.format_ref().unwrap().into());
-
-                                let flatpak_row = FlatpakRefRow::new(&flatref_struct);
+                                    .push(flatpak_row.clone());
 
                                 flatpak_row.connect_closure(
                                     "checkbutton-toggled",
@@ -598,7 +605,7 @@ pub fn flatpak_update_page(
                                             ));
                                             user_refs_for_upgrade_vec
                                                 .borrow_mut()
-                                                .push(flatpak_row.flatref_ref_format());
+                                                .push(flatpak_row);
                                         }
                                     ),
                                 );
@@ -621,9 +628,10 @@ pub fn flatpak_update_page(
                                             update_button.set_sensitive(!is_all_children_unmarked(
                                                 &packages_boxedlist,
                                             ));
-                                            user_refs_for_upgrade_vec
-                                                .borrow_mut()
-                                                .retain(|x| x != &flatpak_row.flatref_ref_format());
+                                            user_refs_for_upgrade_vec.borrow_mut().retain(|x| {
+                                                x.flatref_ref_format()
+                                                    != flatpak_row.flatref_ref_format()
+                                            });
                                         }
                                     ),
                                 );
