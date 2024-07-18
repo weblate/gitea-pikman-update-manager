@@ -53,5 +53,14 @@
   "banner_text_no_internet": "Warning: No Internet Connection!",
   "refresh_button_tooltip_text": "Refresh Opened Page",
   "apt_update_page_title": "Native Updates (APT)",
-  "packages_no_viewport_page_title": "All Native APT Packages are Up to date!"
+  "apt_packages_no_viewport_page_title": "All Native APT Packages are Up to date!",
+  "summary_button_label": "Summary",
+  "flatpak_extra_info_ref_name": "Ref Codename",
+  "flatpak_extra_info_download_size": "Download Size",
+  "flatpak_extra_info_installed_size": "Size on Disk",
+  "remote_label_label": "Remote",
+  "flatpak_update_dialog_heading": "Flatpak Appstream Sync",
+  "flatpak_update_dialog_retry_label": "Retry",
+  "flatpak_update_dialog_status_failed": "Flatpak Appstream Sync: Failed",
+  "flatpak_packages_no_viewport_page_title": "All Flatpak Packages are Up to date!" 
 } 

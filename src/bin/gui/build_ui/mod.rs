@@ -1,5 +1,6 @@
 use crate::apt_update_page;
 use crate::config::{APP_GITHUB, APP_ICON, APP_ID, VERSION};
+use crate::flatpak_update_page;
 use adw::prelude::*;
 use adw::*;
 use gtk::glib::{clone, MainContext};
@@ -130,8 +131,30 @@ pub fn build_ui(app: &Application) {
     // Apt Update Page
     let apt_retry_signal_action = gio::SimpleAction::new("retry", None);
 
+    //let apt_update_view_stack_bin = Bin::builder()
+    //    .child(&apt_update_page::apt_update_page(
+    //        window.clone(),
+    //        &apt_retry_signal_action,
+    //    ))
+    //    .build();
+
+    //    apt_retry_signal_action.connect_activate(clone!(
+    //        #[weak]
+    //        window,
+    //        #[strong]
+    //        apt_retry_signal_action,
+    //        #[strong]
+    //        apt_update_view_stack_bin,
+    //        move |_, _| {
+    //           apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(
+    //                window,
+    //                &apt_retry_signal_action,
+    //            )));
+    //        }
+    //    ));
+
     let apt_update_view_stack_bin = Bin::builder()
-        .child(&apt_update_page::apt_update_page(
+        .child(&flatpak_update_page::flatpak_update_page(
             window.clone(),
             &apt_retry_signal_action,
         ))
@@ -145,7 +168,7 @@ pub fn build_ui(app: &Application) {
         #[strong]
         apt_update_view_stack_bin,
         move |_, _| {
-            apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(
+            apt_update_view_stack_bin.set_child(Some(&flatpak_update_page::flatpak_update_page(
                 window,
                 &apt_retry_signal_action,
             )));

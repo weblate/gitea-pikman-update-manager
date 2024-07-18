@@ -2,7 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/pkg-pikman-update-manager.iml" filepath="$PROJECT_DIR$/.idea/pkg-pikman-update-manager.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/bin-gui.iml" filepath="$PROJECT_DIR$/.idea/bin-gui.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/bin-apt.iml" filepath="$PROJECT_DIR$/.idea/bin-apt.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/lib.iml" filepath="$PROJECT_DIR$/.idea/lib.iml" />
     </modules>
   </component>
 </project>

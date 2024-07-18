@@ -10,43 +10,45 @@ use std::env;
 // ANCHOR: custom_button
 // Object holding the state
 #[derive(Properties, Default)]
-#[properties(wrapper_type = super::AptPackageRow)]
-pub struct AptPackageRow {
+#[properties(wrapper_type = super::FlatpakRefRow)]
+pub struct FlatpakRefRow {
     #[property(get, set)]
-    package_name: RefCell<String>,
+    flatref_name: RefCell<String>,
     #[property(get, set)]
-    package_arch: RefCell<String>,
+    flatref_arch: RefCell<String>,
     #[property(get, set)]
-    package_installed_version: RefCell<String>,
+    flatref_ref_name: RefCell<String>,
     #[property(get, set)]
-    package_candidate_version: RefCell<String>,
+    flatref_summary: RefCell<String>,
     #[property(get, set)]
-    package_description: RefCell<String>,
+    flatref_remote_name: RefCell<String>,
     #[property(get, set)]
-    package_source_uri: RefCell<String>,
+    flatref_installed_size_installed: RefCell<u64>,
     #[property(get, set)]
-    package_maintainer: RefCell<String>,
+    flatref_installed_size_remote: RefCell<u64>,
     #[property(get, set)]
-    package_size: RefCell<u64>,
+    flatref_download_size: RefCell<u64>,
     #[property(get, set)]
-    package_installed_size: RefCell<u64>,
+    flatref_ref_format: RefCell<String>,
     #[property(get, set)]
-    package_marked: RefCell<bool>,
+    flatref_is_system: RefCell<bool>,
+    #[property(get, set)]
+    flatref_marked: RefCell<bool>,
 }
 // ANCHOR_END: custom_button
 
 // The central trait for subclassing a GObject
 #[glib::object_subclass]
-impl ObjectSubclass for AptPackageRow {
-    const NAME: &'static str = "AptPackageRow";
-    type Type = super::AptPackageRow;
+impl ObjectSubclass for FlatpakRefRow {
+    const NAME: &'static str = "FlatpakRefRow";
+    type Type = super::FlatpakRefRow;
     type ParentType = ExpanderRow;
 }
 
 // ANCHOR: object_impl
 // Trait shared by all GObjects
 #[glib::derived_properties]
-impl ObjectImpl for AptPackageRow {
+impl ObjectImpl for FlatpakRefRow {
     fn signals() -> &'static [Signal] {
         static SIGNALS: OnceLock<Vec<Signal>> = OnceLock::new();
         SIGNALS.get_or_init(|| {
@@ -78,7 +80,7 @@ impl ObjectImpl for AptPackageRow {
 
         let expandable_box = Box::new(Orientation::Vertical, 0);
 
-        obj.connect_package_name_notify(clone!(
+        obj.connect_flatref_name_notify(clone!(
             #[weak]
             prefix_box,
             #[weak]
@@ -89,32 +91,33 @@ impl ObjectImpl for AptPackageRow {
                 remove_all_children_from_box(&prefix_box);
                 remove_all_children_from_box(&expandable_box);
                 //
-                let package_name = obj.package_name();
-                let package_arch = obj.package_arch();
-                let package_installed_version = obj.package_installed_version();
-                let package_candidate_version = obj.package_candidate_version();
-                let package_description = obj.package_description();
-                let package_source_uri = obj.package_source_uri();
-                let package_maintainer = obj.package_maintainer();
-                let package_size = obj.package_size();
-                let package_installed_size = obj.package_installed_size();
+                let flatref_name = obj.flatref_name();
+                let flatref_arch = obj.flatref_arch();
+                let flatref_ref_name = obj.flatref_ref_name();
+                let flatref_summary = obj.flatref_summary();
+                let flatref_remote_name = obj.flatref_remote_name();
+                let flatref_installed_size_installed = obj.flatref_installed_size_installed();
+                let flatref_installed_size_remote = obj.flatref_installed_size_remote();
+                let flatref_download_size = obj.flatref_download_size();
+                let flatref_ref_format = obj.flatref_download_size();
+                let flatref_is_system = obj.flatref_is_system();
+                let flatref_marked = obj.flatref_marked();
                 //
                 create_prefix_content(
                     &prefix_box,
-                    &package_name,
-                    &package_arch,
-                    &package_installed_version,
-                    &package_candidate_version,
+                    &flatref_name,
+                    &flatref_arch,
+                    flatref_is_system,
+                    &flatref_remote_name,
                 );
                 //
                 create_expandable_content(
                     &obj,
                     &expandable_box,
-                    package_description,
-                    package_source_uri,
-                    package_maintainer,
-                    package_size,
-                    package_installed_size,
+                    flatref_ref_name,
+                    flatref_summary,
+                    flatref_download_size,
+                    flatref_installed_size_remote,
                 );
             }
         ));
@@ -147,106 +150,35 @@ impl ObjectImpl for AptPackageRow {
         obj.add_suffix(&suffix_toggle);
 
         let obj = self.obj();
-        obj.bind_property("package-marked", &suffix_toggle, "active")
+        obj.bind_property("flatref_marked", &suffix_toggle, "active")
             .sync_create()
             .bidirectional()
             .build();
 
         // turn on by default
-        obj.set_property("package-marked", true)
+        obj.set_property("flatref_marked", true)
     }
 }
 // Trait shared by all widgets
-impl WidgetImpl for AptPackageRow {}
+impl WidgetImpl for FlatpakRefRow {}
 
 // Trait shared by all buttons
 // Trait shared by all buttons
 
-impl ListBoxRowImpl for AptPackageRow {}
-impl PreferencesRowImpl for AptPackageRow {}
-impl ExpanderRowImpl for AptPackageRow {}
+impl ListBoxRowImpl for FlatpakRefRow {}
+impl PreferencesRowImpl for FlatpakRefRow {}
+impl ExpanderRowImpl for FlatpakRefRow {}
 
-fn create_version_badge(installed_version: &str, candidate_version: &str) -> ListBox {
-    let (base_version, installed_diff, candidate_diff) =
-        get_diff_by_prefix(installed_version, candidate_version);
-
-    let badge_box = Box::builder()
+fn create_remote_badge(remote_name: &str) -> ListBox {
+    let remote_label = Label::builder()
         .halign(Align::Start)
         .hexpand(false)
-        .orientation(Orientation::Horizontal)
+        .label(format!("{}: {}", t!("remote_label_label"), remote_name))
         .margin_start(5)
         .margin_end(5)
         .margin_bottom(5)
         .margin_top(5)
         .build();
-
-    let installed_version_box = Box::builder()
-        .halign(Align::Start)
-        .hexpand(false)
-        .orientation(Orientation::Horizontal)
-        .tooltip_text(t!("installed_version_badge_text"))
-        .build();
-
-    let installed_version_base_version_label = Label::builder()
-        .label(format!(
-            "{}: {}",
-            t!("installed_version_badge_text"),
-            &base_version
-        ))
-        .valign(Align::Center)
-        .halign(Align::Start)
-        .hexpand(false)
-        .vexpand(true)
-        .build();
-
-    let installed_diff_label = Label::builder()
-        .label(installed_diff)
-        .valign(Align::Center)
-        .halign(Align::Start)
-        .hexpand(false)
-        .vexpand(true)
-        .build();
-    installed_diff_label.add_css_class("destructive-color-text");
-
-    installed_version_box.append(&installed_version_base_version_label.clone());
-    installed_version_box.append(&installed_diff_label);
-
-    let label_separator = Separator::builder().margin_start(5).margin_end(5).build();
-
-    let candidate_version_box = Box::builder()
-        .halign(Align::Start)
-        .hexpand(false)
-        .orientation(Orientation::Horizontal)
-        .tooltip_text(t!("candidate_version_badge_text"))
-        .build();
-
-    let candidate_version_base_version_label = Label::builder()
-        .label(format!(
-            "{}: {}",
-            t!("candidate_version_badge_text"),
-            &base_version
-        ))
-        .valign(Align::Center)
-        .halign(Align::Start)
-        .hexpand(false)
-        .vexpand(true)
-        .build();
-
-    let candidate_diff_label = Label::builder()
-        .label(candidate_diff)
-        .valign(Align::Center)
-        .halign(Align::Start)
-        .hexpand(false)
-        .vexpand(true)
-        .build();
-    candidate_diff_label.add_css_class("success-color-text");
-
-    candidate_version_box.append(&candidate_version_base_version_label);
-    candidate_version_box.append(&candidate_diff_label);
-
-    badge_box.append(&installed_version_box);
-    badge_box.append(&label_separator);
-    badge_box.append(&candidate_version_box);
 
     let boxedlist = ListBox::builder()
         .selection_mode(SelectionMode::None)
@@ -258,10 +190,9 @@ fn create_version_badge(installed_version: &str, candidate_version: &str) -> Lis
         .build();
 
     boxedlist.add_css_class("boxed-list");
-    boxedlist.append(&badge_box);
+    boxedlist.append(&remote_label);
     boxedlist
 }
-
 fn create_arch_badge(arch: &str) -> ListBox {
     let arch_label = Label::builder()
         .halign(Align::Start)
@@ -287,6 +218,34 @@ fn create_arch_badge(arch: &str) -> ListBox {
     boxedlist
 }
 
+fn create_system_badge(is_system: bool) -> ListBox {
+    let system_label = Label::builder()
+        .halign(Align::Start)
+        .hexpand(false)
+        .label(match is_system {
+            true => "System",
+            false => "User",
+        })
+        .margin_start(5)
+        .margin_end(5)
+        .margin_bottom(5)
+        .margin_top(5)
+        .build();
+
+    let boxedlist = ListBox::builder()
+        .selection_mode(SelectionMode::None)
+        .halign(Align::Start)
+        .valign(Align::End)
+        .margin_start(5)
+        .margin_end(5)
+        .margin_bottom(10)
+        .build();
+
+    boxedlist.add_css_class("boxed-list");
+    boxedlist.append(&system_label);
+    boxedlist
+}
+
 fn remove_all_children_from_box(parent: &gtk::Box) {
     while let Some(child) = parent.last_child() {
         parent.remove(&child);
@@ -295,10 +254,10 @@ fn remove_all_children_from_box(parent: &gtk::Box) {
 
 fn create_prefix_content(
     prefix_box: &gtk::Box,
-    package_name: &str,
-    package_arch: &str,
-    package_installed_version: &str,
-    package_candidate_version: &str,
+    flatref_name: &str,
+    flatref_arch: &str,
+    flatref_is_system: bool,
+    flatref_remote_name: &str,
 ) {
     let package_label = Label::builder()
         .halign(Align::Start)
@@ -306,27 +265,24 @@ fn create_prefix_content(
         .margin_end(5)
         .margin_bottom(5)
         .margin_top(5)
-        .label(package_name)
+        .label(flatref_name)
         .build();
     package_label.add_css_class("size-20-bold-text");
-    let version_box = Box::new(Orientation::Horizontal, 0);
-    version_box.append(&create_version_badge(
-        package_installed_version,
-        package_candidate_version,
-    ));
-    version_box.append(&create_arch_badge(package_arch));
+    let prefix_badge_box = Box::new(Orientation::Horizontal, 0);
+    prefix_badge_box.append(&create_remote_badge(flatref_remote_name));
+    prefix_badge_box.append(&create_arch_badge(flatref_arch));
+    prefix_badge_box.append(&create_system_badge(flatref_is_system));
     prefix_box.append(&package_label);
-    prefix_box.append(&version_box);
+    prefix_box.append(&prefix_badge_box);
 }
 
 fn create_expandable_content(
-    apt_package_row: &impl IsA<ExpanderRow>,
+    flatpak_package_row: &impl IsA<ExpanderRow>,
     expandable_box: &gtk::Box,
-    package_description: String,
-    package_source_uri: String,
-    package_maintainer: String,
-    package_size: u64,
-    package_installed_size: u64,
+    flatref_ref_name: String,
+    flatref_summary: String,
+    flatref_download_size: u64,
+    flatref_installed_size_remote: u64,
 ) {
     let expandable_page_selection_box = Box::builder()
         .orientation(Orientation::Horizontal)
@@ -341,41 +297,29 @@ fn create_expandable_content(
         .build();
     expandable_page_selection_box.add_css_class("linked");
     //
-    let description_page_button = ToggleButton::builder()
-        .label(t!("description_button_label"))
+    let summary_page_button = ToggleButton::builder()
+        .label(t!("summary_button_label"))
         .active(true)
         .build();
     let extra_info_page_button = ToggleButton::builder()
         .label(t!("extra_info_page_button_label"))
-        .group(&description_page_button)
+        .group(&summary_page_button)
         .build();
-    let uris_page_button = ToggleButton::builder()
-        .label(t!("uris_page_button_label"))
-        .group(&description_page_button)
-        .build();
-    let changelog_page_button = ToggleButton::builder()
-        .label(t!("changelog_page_button_label"))
-        // till we find a way to implement
-        .sensitive(false)
-        .group(&description_page_button)
-        .build();
-    expandable_page_selection_box.append(&description_page_button);
+    expandable_page_selection_box.append(&summary_page_button);
     expandable_page_selection_box.append(&extra_info_page_button);
-    expandable_page_selection_box.append(&uris_page_button);
-    expandable_page_selection_box.append(&changelog_page_button);
     //
     expandable_box.append(&expandable_page_selection_box);
     //
     let expandable_bin = Bin::builder().hexpand(true).vexpand(true).build();
     //
-    description_page_button.connect_clicked(clone!(
+    summary_page_button.connect_clicked(clone!(
         #[strong]
         expandable_bin,
         #[strong]
-        description_page_button,
+        summary_page_button,
         move |_| {
-            if description_page_button.is_active() {
-                expandable_bin.set_child(Some(&description_stack_page(&package_description)));
+            if summary_page_button.is_active() {
+                expandable_bin.set_child(Some(&summary_stack_page(&flatref_summary)));
             }
         }
     ));
@@ -388,84 +332,46 @@ fn create_expandable_content(
         move |_| {
             if extra_info_page_button.is_active() {
                 expandable_bin.set_child(Some(&extra_info_stack_page(
-                    &package_maintainer,
-                    package_size,
-                    package_installed_size,
+                    &flatref_ref_name,
+                    flatref_download_size,
+                    flatref_installed_size_remote,
                 )));
             }
         }
     ));
 
-    uris_page_button.connect_clicked(clone!(
-        #[strong]
-        expandable_bin,
-        #[strong]
-        uris_page_button,
-        move |_| {
-            if uris_page_button.is_active() {
-                expandable_bin.set_child(Some(&uris_stack_page(&package_source_uri)));
-            }
-        }
-    ));
-
-    apt_package_row.connect_expanded_notify(clone!(
+    flatpak_package_row.connect_expanded_notify(clone!(
         #[strong]
         expandable_bin,
         #[strong]
         expandable_box,
         #[strong]
-        apt_package_row,
+        flatpak_package_row,
         #[strong]
-        description_page_button,
+        summary_page_button,
         move |_| {
-            if apt_package_row.property("expanded") {
-                description_page_button.set_active(true);
-                description_page_button.emit_by_name::<()>("clicked", &[]);
+            if flatpak_package_row.property("expanded") {
+                summary_page_button.set_active(true);
+                summary_page_button.emit_by_name::<()>("clicked", &[]);
                 expandable_box.append(&expandable_bin)
             } else {
                 expandable_box.remove(&expandable_bin)
             }
         }
     ));
-    //expandable_bin.add_named(&extra_info_stack_page(package_maintainer, package_size, package_installed_size), Some("extra_info_page"));
-    //
 }
 
-fn uris_stack_page(package_source_uri: &str) -> gtk::Box {
-    let uris_content_box = Box::builder()
+fn summary_stack_page(flatref_summary: &str) -> gtk::Box {
+    let summary_content_box = Box::builder()
         .hexpand(true)
         .vexpand(true)
         .orientation(Orientation::Vertical)
         .build();
-    let uris_text_buffer = TextBuffer::builder()
-        .text(package_source_uri.to_owned() + "\n")
+    let summary_text_buffer = TextBuffer::builder()
+        .text(flatref_summary.to_owned() + "\n")
         .build();
-    let uris_text_view = TextView::builder()
-        .buffer(&uris_text_buffer)
-        .hexpand(true)
-        .vexpand(true)
-        .margin_top(15)
-        .margin_bottom(15)
-        .margin_start(15)
-        .margin_end(15)
-        .editable(false)
-        .buffer(&uris_text_buffer)
-        .build();
-    uris_content_box.append(&uris_text_view);
-    uris_content_box
-}
-
-fn description_stack_page(package_description: &str) -> gtk::Box {
-    let description_content_box = Box::builder()
-        .hexpand(true)
-        .vexpand(true)
-        .orientation(Orientation::Vertical)
-        .build();
-    let description_text_buffer = TextBuffer::builder()
-        .text(package_description.to_owned() + "\n")
-        .build();
-    let description_text_view = TextView::builder()
-        .buffer(&description_text_buffer)
+    let summary_text_view = TextView::builder()
+        .buffer(&summary_text_buffer)
         .hexpand(true)
         .vexpand(true)
         .margin_top(0)
@@ -474,14 +380,14 @@ fn description_stack_page(package_description: &str) -> gtk::Box {
         .margin_end(15)
         .editable(false)
         .build();
-    description_content_box.append(&description_text_view);
-    description_content_box
+    summary_content_box.append(&summary_text_view);
+    summary_content_box
 }
 
 fn extra_info_stack_page(
-    package_maintainer: &str,
-    package_size: u64,
-    package_installed_size: u64,
+    flatref_ref_name: &str,
+    flatref_download_size: u64,
+    flatref_installed_size_remote: u64,
 ) -> gtk::Box {
     let extra_info_badges_content_box = Box::builder()
         .hexpand(true)
@@ -491,18 +397,18 @@ fn extra_info_stack_page(
     let extra_info_badges_size_group = SizeGroup::new(SizeGroupMode::Both);
     let extra_info_badges_size_group0 = SizeGroup::new(SizeGroupMode::Both);
     let extra_info_badges_size_group1 = SizeGroup::new(SizeGroupMode::Both);
-    let package_size = package_size as f64;
-    let package_installed_size = package_installed_size as f64;
+    let package_size = flatref_download_size as f64;
+    let package_installed_size = flatref_installed_size_remote as f64;
     extra_info_badges_content_box.append(&create_color_badge(
-        &t!("extra_info_maintainer").to_string(),
-        package_maintainer,
+        &t!("flatpak_extra_info_ref_name").to_string(),
+        flatref_ref_name,
         "background-accent-bg",
         &extra_info_badges_size_group,
         &extra_info_badges_size_group0,
         &extra_info_badges_size_group1,
     ));
     extra_info_badges_content_box.append(&create_color_badge(
-        &t!("extra_info_download_size").to_string(),
+        &t!("flatpak_extra_info_download_size").to_string(),
         &convert(package_size),
         "background-accent-bg",
         &extra_info_badges_size_group,
@@ -510,7 +416,7 @@ fn extra_info_stack_page(
         &extra_info_badges_size_group1,
     ));
     extra_info_badges_content_box.append(&create_color_badge(
-        &t!("extra_info_installed_size").to_string(),
+        &t!("flatpak_extra_info_installed_size").to_string(),
         &convert(package_installed_size),
         "background-accent-bg",
         &extra_info_badges_size_group,
@@ -577,21 +483,4 @@ fn create_color_badge(
     boxedlist.append(&badge_box);
     group_size.add_widget(&boxedlist);
     boxedlist
-}
-
-pub fn get_diff_by_prefix(xs: &str, ys: &str) -> (String, String, String) {
-    let mut count = String::new();
-    for (x, y) in xs.chars().zip(ys.chars()) {
-        if x == y {
-            count.push(x)
-        } else {
-            break;
-        }
-    }
-    let count_clone0 = count.clone();
-    return (
-        count_clone0,
-        xs.trim_start_matches(&count.as_str()).to_string(),
-        ys.trim_start_matches(&count.as_str()).to_string(),
-    );
 }

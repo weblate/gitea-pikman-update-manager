@@ -116,7 +116,7 @@ pub fn apt_update_page(
 
     let packages_no_viewport_page = adw::StatusPage::builder()
         .icon_name("emblem-default-symbolic")
-        .title(t!("packages_no_viewport_page_title"))
+        .title(t!("apt_packages_no_viewport_page_title"))
         .hexpand(true)
         .vexpand(true)
         .build();

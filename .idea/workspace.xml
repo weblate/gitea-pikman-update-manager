@@ -8,17 +8,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="df2ca9e1-e07d-43f4-bc68-0a6113fc1fa2" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/bin-apt.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/bin-gui.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/pikman-update-manager.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/lib.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/bin/apt/apt_full_upgrade/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/apt/apt_full_upgrade/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/bin/apt/apt_update/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/apt/apt_update/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/bin/gui/apt_package_row/imp.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/apt_package_row/imp.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/locales/en_US.json" beforeDir="false" afterPath="$PROJECT_DIR$/locales/en_US.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/bin/gui/apt_update_page/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/apt_update_page/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/bin/gui/apt_update_page/process.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/apt_update_page/process.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/bin/gui/build_ui/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/build_ui/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/bin/gui/config.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/config.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/apt_install_progress_socket/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/apt_install_progress_socket/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/apt_update_progress_socket/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/apt_update_progress_socket/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/pika_unixsocket_tools/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/pika_unixsocket_tools/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/bin/gui/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/main.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -49,28 +49,35 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
-    &quot;Cargo.Build all.executor&quot;: &quot;Run&quot;,
-    &quot;Cargo.Run apt_update.executor&quot;: &quot;Run&quot;,
-    &quot;Cargo.Run pikman-update-manager.executor&quot;: &quot;Run&quot;,
-    &quot;Cargo.Test pikman-update-manager.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.rust.reset.selective.auto.import&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/ward/RustroverProjects/pkg-pikman-update-manager&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;org.rust.cargo.project.model.PROJECT_DISCOVERY&quot;: &quot;true&quot;,
-    &quot;org.rust.cargo.project.model.impl.CargoExternalSystemProjectAware.subscribe.first.balloon&quot;: &quot;&quot;,
-    &quot;org.rust.disableDetachedFileInspection/home/ward/RustroverProjects/pkg-pikman-update-manager/src/apt_update_progress_socket/lib.rs&quot;: &quot;true&quot;,
-    &quot;org.rust.first.attach.projects&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "Cargo.Build all.executor": "Run",
+    "Cargo.Run apt_update.executor": "Run",
+    "Cargo.Run pikman-update-manager.executor": "Run",
+    "Cargo.Test pikman-update-manager.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.rust.reset.selective.auto.import": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/home/ward/RustroverProjects/pkg-pikman-update-manager/.idea",
+    "node.js.detected.package.eslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
+    "org.rust.cargo.project.model.impl.CargoExternalSystemProjectAware.subscribe.first.balloon": "",
+    "org.rust.disableDetachedFileInspection/home/ward/RustroverProjects/pkg-pikman-update-manager/src/apt_update_progress_socket/lib.rs": "true",
+    "org.rust.disableDetachedFileInspection/home/ward/RustroverProjects/pkg-pikman-update-manager/src/bin/gui/flatpak_package_row/imp.rs": "true",
+    "org.rust.disableDetachedFileInspection/home/ward/RustroverProjects/pkg-pikman-update-manager/src/bin/gui/flatpak_package_row/mod.rs": "true",
+    "org.rust.disableDetachedFileInspection/home/ward/RustroverProjects/pkg-pikman-update-manager/src/bin/gui/main.rs": "true",
+    "org.rust.first.attach.projects": "true",
+    "settings.editor.selected.configurable": "language.rust.cargo.check"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/.idea" />
       <recent name="$PROJECT_DIR$/src/lib" />
       <recent name="$PROJECT_DIR$/src" />
     </key>
@@ -81,6 +88,9 @@
       <recent name="$PROJECT_DIR$/src" />
       <recent name="$PROJECT_DIR$" />
     </key>
+  </component>
+  <component name="RsExternalLinterProjectSettings">
+    <option name="runOnTheFly" value="true" />
   </component>
   <component name="RunManager" selected="Cargo.Run pikman-update-manager">
     <configuration name="Build all" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
@@ -100,8 +110,59 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Build all" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="build" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <envs />
+      <option name="emulateTerminal" value="true" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Run pikman-update-manager" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="run --package pikman-update-manager --bin pikman-update-manager" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <envs />
+      <option name="emulateTerminal" value="true" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Run pikman-update-manager" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="run --package pikman-update-manager --bin pikman-update-manager" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <envs />
+      <option name="emulateTerminal" value="true" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test pikman-update-manager" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="test --workspace" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <envs />
       <option name="emulateTerminal" value="true" />
@@ -172,6 +233,10 @@
       <workItem from="1720657757166" duration="11187000" />
       <workItem from="1720668957580" duration="53000" />
       <workItem from="1720669130008" duration="560000" />
+      <workItem from="1721221767735" duration="512000" />
+      <workItem from="1721222294632" duration="410000" />
+      <workItem from="1721222719941" duration="6652000" />
+      <workItem from="1721303523476" duration="21064000" />
     </task>
     <servers />
   </component>
@@ -180,5 +245,16 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/bin/gui/flatpak_update_page/mod.rs</url>
+          <line>492</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

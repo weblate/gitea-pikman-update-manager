@@ -2,6 +2,8 @@ mod apt_package_row;
 mod apt_update_page;
 mod build_ui;
 mod config;
+mod flatpak_ref_row;
+mod flatpak_update_page;
 
 use crate::config::APP_ID;
 use adw::prelude::*;
