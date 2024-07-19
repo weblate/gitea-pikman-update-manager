@@ -14,6 +14,7 @@ pub fn build_ui(app: &Application) {
     // setup glib
     glib::set_prgname(Some(t!("application_name").to_string()));
     glib::set_application_name(&t!("application_name").to_string());
+    let glib_settings = gio::Settings::new(APP_ID);
 
     let internet_connected = Rc::new(RefCell::new(false));
     let (internet_loop_sender, internet_loop_receiver) = async_channel::unbounded();
@@ -61,23 +62,25 @@ pub fn build_ui(app: &Application) {
         .title_widget(&WindowTitle::builder().title(t!("application_name")).build())
         .build();
 
-    let window_adw_view_stack = ViewStack::builder()
+    let window_adw_stack = gtk::Stack::builder()
         .hhomogeneous(true)
         .vhomogeneous(true)
+        .transition_type(gtk::StackTransitionType::SlideUpDown)
         .build();
 
     let window_toolbar = ToolbarView::builder()
-        .content(&window_adw_view_stack)
+        .content(&window_adw_stack)
         .top_bar_style(ToolbarStyle::Flat)
         .bottom_bar_style(ToolbarStyle::Flat)
         .build();
 
-    let window_adw_view_switcher_bar = ViewSwitcherBar::builder()
-        .stack(&window_adw_view_stack)
-        .reveal(true)
+    let window_adw_view_switcher_sidebar = gtk::StackSidebar::builder()
+        .vexpand(true)
+        .hexpand(true)
+        .stack(&window_adw_stack)
         .build();
 
-    window_headerbar.pack_start(&window_adw_view_switcher_bar);
+    window_headerbar.pack_start(&window_adw_view_switcher_sidebar);
 
     window_toolbar.add_top_bar(&window_headerbar);
     window_toolbar.add_top_bar(&window_banner);
@@ -92,6 +95,9 @@ pub fn build_ui(app: &Application) {
         // Application icon
         .icon_name(APP_ICON)
         // Minimum Size/Default
+        .default_width(glib_settings.int("window-width"))
+        .default_height(glib_settings.int("window-height"))
+        //
         .width_request(700)
         .height_request(500)
         .content(&window_toolbar)
@@ -99,6 +105,21 @@ pub fn build_ui(app: &Application) {
         .startup_id(APP_ID)
         // build the window
         .build();
+
+    if glib_settings.boolean("is-maximized") == true {
+        window.maximize()
+    }
+
+    window.connect_close_request(move |window| {
+        if let Some(application) = window.application() {
+            let size = window.default_size();
+            let _ = glib_settings.set_int("window-width", size.0);
+            let _ = glib_settings.set_int("window-height", size.1);
+            let _ = glib_settings.set_boolean("is-maximized", window.is_maximized());
+            application.remove_window(window);
+        }
+        glib::Propagation::Proceed
+    });
 
     let credits_button = gtk::Button::builder()
         .icon_name("dialog-information-symbolic")
@@ -175,11 +196,10 @@ pub fn build_ui(app: &Application) {
         }
     ));
 
-    window_adw_view_stack.add_titled_with_icon(
+    window_adw_stack.add_titled(
         &apt_update_view_stack_bin,
         Some("apt_update_page"),
         &t!("apt_update_page_title"),
-        "software-update-available-symbolic",
     );
     //
 
@@ -187,9 +207,9 @@ pub fn build_ui(app: &Application) {
         #[weak]
         apt_retry_signal_action,
         #[weak]
-        window_adw_view_stack,
+        window_adw_stack,
         move |_| {
-            match window_adw_view_stack.visible_child_name().unwrap().as_str() {
+            match window_adw_stack.visible_child_name().unwrap().as_str() {
                 "apt_update_page" => apt_retry_signal_action.activate(None),
                 _ => {}
             }

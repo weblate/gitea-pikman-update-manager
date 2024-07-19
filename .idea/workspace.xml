@@ -8,10 +8,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="df2ca9e1-e07d-43f4-bc68-0a6113fc1fa2" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/data/com.github.pikaos-linux.pikmanupdatemanager.gschema.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/locales/en_US.json" beforeDir="false" afterPath="$PROJECT_DIR$/locales/en_US.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/bin/gui/flatpak_update_page/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/flatpak_update_page/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/bin/gui/flatpak_update_page/process.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/flatpak_update_page/process.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/bin/gui/build_ui/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/build_ui/mod.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -166,7 +165,7 @@
       <workItem from="1720668957580" duration="53000" />
       <workItem from="1720669130008" duration="560000" />
       <workItem from="1721340242546" duration="6495000" />
-      <workItem from="1721388775654" duration="5094000" />
+      <workItem from="1721388775654" duration="8284000" />
     </task>
     <servers />
   </component>
