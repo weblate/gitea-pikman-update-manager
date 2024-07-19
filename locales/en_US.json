@@ -62,5 +62,11 @@
   "flatpak_update_dialog_heading": "Flatpak Appstream Sync",
   "flatpak_update_dialog_retry_label": "Retry",
   "flatpak_update_dialog_status_failed": "Flatpak Appstream Sync: Failed",
-  "flatpak_packages_no_viewport_page_title": "All Flatpak Packages are Up to date!" 
+  "flatpak_packages_no_viewport_page_title": "All Flatpak Packages are Up to date!",
+  "flatpak_type_user": "User",
+  "flatpak_type_system": "System",
+  "flatpak_ref": "Flatpak Ref",
+  "flatpak_status": "Status",
+  "flatpak_transaction_bytes_transferred": "Downloaded",
+  "flatpak_transaction_installed_size": "Saved to Disk"
 } 

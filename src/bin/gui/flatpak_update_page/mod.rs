@@ -45,6 +45,12 @@ pub fn flatpak_update_page(
     let user_refs_for_upgrade_vec: Rc<RefCell<Vec<FlatpakRefRow>>> =
         Rc::new(RefCell::new(Vec::new()));
 
+    let system_refs_for_upgrade_vec_all: Rc<RefCell<Vec<FlatpakRefRow>>> =
+        Rc::new(RefCell::new(Vec::new()));
+
+    let user_refs_for_upgrade_vec_all: Rc<RefCell<Vec<FlatpakRefRow>>> =
+        Rc::new(RefCell::new(Vec::new()));
+
     let cancellable_no = libflatpak::gio::Cancellable::NONE;
 
     thread::spawn(move || {
@@ -64,7 +70,8 @@ pub fn flatpak_update_page(
                         .expect("appstream_sync_percent_receiver closed");
                     appstream_sync_status_sender
                         .send_blocking(format!(
-                            "System - {}: {}",
+                            "{} - {}: {}",
+                            t!("flatpak_type_system"),
                             remote.name().unwrap_or("Unknown remote".into()),
                             status
                         ))
@@ -104,7 +111,8 @@ pub fn flatpak_update_page(
                         .expect("appstream_sync_percent_receiver closed");
                     appstream_sync_status_sender
                         .send_blocking(format!(
-                            "User - {}: {}",
+                            "{} - {}: {}",
+                            t!("flatpak_type_user"),
                             remote.name().unwrap_or("Unknown remote".into()),
                             status
                         ))
@@ -269,19 +277,27 @@ pub fn flatpak_update_page(
         .build();
     update_button.add_css_class("destructive-action");
 
+    let system_refs_for_upgrade_vec_all_clone0 = &system_refs_for_upgrade_vec_all.clone();
+    let user_refs_for_upgrade_vec_all_clone0 = user_refs_for_upgrade_vec_all.clone();
+
+    let system_refs_for_upgrade_vec_clone0 = system_refs_for_upgrade_vec.clone();
+    let user_refs_for_upgrade_vec_clone0 = user_refs_for_upgrade_vec.clone();
+
     update_button.connect_clicked(clone!(
         #[weak]
         window,
         #[weak]
         retry_signal_action,
         #[strong]
-        system_refs_for_upgrade_vec,
+        system_refs_for_upgrade_vec_all_clone0,
         #[strong]
-        user_refs_for_upgrade_vec,
+        user_refs_for_upgrade_vec_all_clone0,
         move |_| {
             process::flatpak_process_update(
-                &system_refs_for_upgrade_vec.borrow(),
-                &user_refs_for_upgrade_vec.borrow(),
+                Some(&system_refs_for_upgrade_vec_clone0.borrow()),
+                Some(&user_refs_for_upgrade_vec_clone0.borrow()),
+                &system_refs_for_upgrade_vec_all_clone0.borrow(),
+                &user_refs_for_upgrade_vec_all_clone0.borrow(),
                 window,
                 &retry_signal_action,
             )
@@ -312,6 +328,14 @@ pub fn flatpak_update_page(
         flatpak_update_dialog_child_box,
         #[strong]
         packages_boxedlist,
+        #[strong]
+        system_refs_for_upgrade_vec_all,
+        #[strong]
+        user_refs_for_upgrade_vec_all,
+        #[strong]
+        system_refs_for_upgrade_vec,
+        #[strong]
+        user_refs_for_upgrade_vec,
         #[strong]
         viewport_bin,
         #[strong]
@@ -427,6 +451,10 @@ pub fn flatpak_update_page(
                                 let flatpak_row = FlatpakRefRow::new(&flatref_struct);
 
                                 system_refs_for_upgrade_vec
+                                    .borrow_mut()
+                                    .push(flatpak_row.clone());
+
+                                system_refs_for_upgrade_vec_all
                                     .borrow_mut()
                                     .push(flatpak_row.clone());
 
@@ -575,6 +603,10 @@ pub fn flatpak_update_page(
                                 let flatpak_row = FlatpakRefRow::new(&flatref_struct);
 
                                 user_refs_for_upgrade_vec
+                                    .borrow_mut()
+                                    .push(flatpak_row.clone());
+
+                                user_refs_for_upgrade_vec_all
                                     .borrow_mut()
                                     .push(flatpak_row.clone());
 
