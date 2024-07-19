@@ -60,7 +60,14 @@ pub fn build_ui(app: &Application) {
 
     let window_headerbar = HeaderBar::builder()
         .title_widget(&WindowTitle::builder().title(t!("application_name")).build())
+        .show_title(false)
         .build();
+
+    let window_breakpoint = adw::Breakpoint::new(BreakpointCondition::new_length(
+        BreakpointConditionLengthType::MaxWidth,
+        800.0,
+        LengthUnit::Px,
+    ));
 
     let window_adw_stack = gtk::Stack::builder()
         .hhomogeneous(true)
@@ -77,10 +84,56 @@ pub fn build_ui(app: &Application) {
     let window_adw_view_switcher_sidebar = gtk::StackSidebar::builder()
         .vexpand(true)
         .hexpand(true)
+        .margin_start(5)
+        .margin_end(5)
         .stack(&window_adw_stack)
         .build();
 
-    window_headerbar.pack_start(&window_adw_view_switcher_sidebar);
+    let window_adw_view_switcher_sidebar_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    window_adw_view_switcher_sidebar_box.append(&WindowTitle::builder().title(t!("application_name")).margin_top(20).margin_bottom(20).margin_start(5).margin_end(5).build());
+    window_adw_view_switcher_sidebar_box.append(&window_adw_view_switcher_sidebar);
+
+    let window_adw_view_sidebar_navigation_page = adw::NavigationPage::new(&window_adw_view_switcher_sidebar_box, "sidebar_view");
+
+    let sidebar_toggle_button = gtk::ToggleButton::builder()
+        .icon_name("view-right-pane-symbolic")
+        .visible(false)
+        .build();
+
+    let window_content_page_split_view = adw::OverlaySplitView::builder()
+        .vexpand(true)
+        .hexpand(true)
+        .content(&window_toolbar)
+        .sidebar(&window_adw_view_sidebar_navigation_page)
+        .max_sidebar_width(300.0)
+        .min_sidebar_width(300.0)
+        .enable_hide_gesture(true)
+        .enable_show_gesture(true)
+        .build();
+
+    let _sidebar_toggle_button_binding = window_content_page_split_view
+        .bind_property("show_sidebar", &sidebar_toggle_button, "active")
+        .sync_create()
+        .bidirectional()
+        .build();
+
+    window_breakpoint.add_setter(
+        &window_content_page_split_view,
+        "collapsed",
+        Some(&true.to_value()),
+    );
+    window_breakpoint.add_setter(
+        &sidebar_toggle_button,
+        "visible",
+        Some(&true.to_value()),
+    );
+    window_breakpoint.add_setter(
+        &window_headerbar,
+        "show_title",
+        Some(&true.to_value()),
+    );
+
+    window_headerbar.pack_end(&sidebar_toggle_button);
 
     window_toolbar.add_top_bar(&window_headerbar);
     window_toolbar.add_top_bar(&window_banner);
@@ -100,11 +153,13 @@ pub fn build_ui(app: &Application) {
         //
         .width_request(700)
         .height_request(500)
-        .content(&window_toolbar)
+        .content(&window_content_page_split_view)
         // Startup
         .startup_id(APP_ID)
         // build the window
         .build();
+
+    window.add_breakpoint(window_breakpoint);
 
     if glib_settings.boolean("is-maximized") == true {
         window.maximize()
@@ -149,68 +204,90 @@ pub fn build_ui(app: &Application) {
 
     window.present();
 
-    // Apt Update Page
-    let apt_retry_signal_action = gio::SimpleAction::new("retry", None);
+    // Flatpak Update Page
 
-    //let apt_update_view_stack_bin = Bin::builder()
-    //    .child(&apt_update_page::apt_update_page(
-    //        window.clone(),
-    //        &apt_retry_signal_action,
-    //    ))
-    //    .build();
+    let flatpak_retry_signal_action = gio::SimpleAction::new("retry", None);
 
-    //    apt_retry_signal_action.connect_activate(clone!(
-    //        #[weak]
-    //        window,
-    //        #[strong]
-    //        apt_retry_signal_action,
-    //        #[strong]
-    //        apt_update_view_stack_bin,
-    //        move |_, _| {
-    //           apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(
-    //                window,
-    //                &apt_retry_signal_action,
-    //            )));
-    //        }
-    //    ));
-
-    let apt_update_view_stack_bin = Bin::builder()
-        .child(&flatpak_update_page::flatpak_update_page(
-            window.clone(),
-            &apt_retry_signal_action,
-        ))
+    let flatpak_update_view_stack_bin = Bin::builder()
         .build();
 
-    apt_retry_signal_action.connect_activate(clone!(
+    flatpak_retry_signal_action.connect_activate(clone!(
         #[weak]
         window,
         #[strong]
-        apt_retry_signal_action,
+        flatpak_retry_signal_action,
         #[strong]
-        apt_update_view_stack_bin,
+        flatpak_update_view_stack_bin,
         move |_, _| {
-            apt_update_view_stack_bin.set_child(Some(&flatpak_update_page::flatpak_update_page(
+            flatpak_update_view_stack_bin.set_child(Some(&flatpak_update_page::flatpak_update_page(
                 window,
-                &apt_retry_signal_action,
+                &flatpak_retry_signal_action,
             )));
         }
     ));
+
+    // Apt Update Page
+    let apt_retry_signal_action = gio::SimpleAction::new("retry", None);
+
+    let flatpak_ran_once = Rc::new(RefCell::new(false));
+
+    let apt_update_view_stack_bin = Bin::builder().build();
+
+    apt_retry_signal_action.connect_activate(clone!(
+            #[weak]
+            window,
+            #[strong]
+            apt_retry_signal_action,
+            #[strong]
+            flatpak_retry_signal_action,
+            #[strong]
+            apt_update_view_stack_bin,
+            #[weak]
+            flatpak_ran_once,
+            move |_, _| {
+               apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(
+                    window,
+                    &apt_retry_signal_action,
+                    &flatpak_retry_signal_action,
+                    flatpak_ran_once,
+                )));
+            }
+        ));
+
+    apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(
+        window.clone(),
+        &apt_retry_signal_action,
+        &flatpak_retry_signal_action,
+        flatpak_ran_once,
+    )));
+
+    // Add to stack switcher
 
     window_adw_stack.add_titled(
         &apt_update_view_stack_bin,
         Some("apt_update_page"),
         &t!("apt_update_page_title"),
     );
-    //
+
+    window_adw_stack.add_titled(
+        &flatpak_update_view_stack_bin,
+        Some("flatpak_update_page"),
+        &t!("flatpak_update_page_title"),
+    );
+
+    // Refresh button
 
     refresh_button.connect_clicked(clone!(
         #[weak]
         apt_retry_signal_action,
         #[weak]
+        flatpak_retry_signal_action,
+        #[weak]
         window_adw_stack,
         move |_| {
             match window_adw_stack.visible_child_name().unwrap().as_str() {
                 "apt_update_page" => apt_retry_signal_action.activate(None),
+                "flatpak_update_page" => flatpak_retry_signal_action.activate(None),
                 _ => {}
             }
         }

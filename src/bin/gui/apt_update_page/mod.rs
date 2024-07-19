@@ -31,6 +31,8 @@ pub struct AptPackageSocket {
 pub fn apt_update_page(
     window: adw::ApplicationWindow,
     retry_signal_action: &SimpleAction,
+    flatpak_retry_signal_action: &SimpleAction,
+    flatpak_ran_once: Rc<RefCell<bool>>
 ) -> gtk::Box {
     let (update_percent_sender, update_percent_receiver) = async_channel::unbounded::<String>();
     let update_percent_sender = update_percent_sender.clone();
@@ -254,6 +256,8 @@ pub fn apt_update_page(
         apt_update_dialog,
         #[weak]
         apt_update_dialog_child_box,
+        #[weak]
+        flatpak_retry_signal_action,
         async move {
             while let Ok(state) = update_status_receiver.recv().await {
                 match state.as_ref() {
@@ -307,6 +311,11 @@ pub fn apt_update_page(
                             }
                         });
                         apt_update_dialog.close();
+                        let mut flatpak_ran_once_borrow = flatpak_ran_once.borrow_mut();
+                        if *flatpak_ran_once_borrow != true {
+                            flatpak_retry_signal_action.activate(None);
+                            *flatpak_ran_once_borrow = true;
+                        }
                     }
                     "FN_OVERRIDE_FAILED" => {
                         apt_update_dialog_child_box.set_visible(false);
