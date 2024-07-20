@@ -252,7 +252,7 @@ pub fn build_ui(app: &Application) {
                     flatpak_ran_once,
                 )));
             }
-        ));
+        ));g
 
     apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(
         window.clone(),
