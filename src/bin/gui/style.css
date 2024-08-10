@@ -10,6 +10,17 @@
     border-radius: 25px;
 }
 
+.round-all-scroll {
+    border-top-right-radius: 15px;
+    border-top-left-radius: 15px;
+    border-bottom-right-radius: 15px;
+    border-bottom-left-radius: 15px;
+    padding-top: 3px;
+    padding-right: 3px;
+    padding-left: 3px;
+    padding-bottom: 3px;
+}
+
 .background-accent-bg {
     background: @accent_bg_color;
     border-radius: 10px;

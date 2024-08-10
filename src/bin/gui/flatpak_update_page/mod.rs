@@ -161,15 +161,15 @@ pub fn flatpak_update_page(
 
     let packages_boxedlist = ListBox::builder()
         .selection_mode(SelectionMode::None)
-        .margin_end(15)
-        .margin_start(15)
         .sensitive(false)
         .build();
     packages_boxedlist.add_css_class("boxed-list");
+    packages_boxedlist.add_css_class("round-all-scroll");
 
     let packages_viewport = ScrolledWindow::builder()
         .vexpand(true)
         .hexpand(true)
+        .has_frame(true)
         .margin_bottom(15)
         .margin_top(15)
         .margin_end(15)
@@ -177,6 +177,7 @@ pub fn flatpak_update_page(
         .height_request(390)
         .child(&packages_boxedlist)
         .build();
+    packages_viewport.add_css_class("round-all-scroll");
 
     let packages_no_viewport_page = adw::StatusPage::builder()
         .icon_name("emblem-default-symbolic")

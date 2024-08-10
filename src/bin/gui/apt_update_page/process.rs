@@ -334,18 +334,23 @@ fn apt_confirm_window(
             .buffer(&apt_remove_confirm_text_buffer)
             .hexpand(true)
             .vexpand(true)
-            .margin_top(15)
-            .margin_bottom(15)
-            .margin_start(15)
-            .margin_end(15)
             .editable(false)
             .build();
+
+        let apt_remove_confirm_text_viewport = gtk::ScrolledWindow::builder()
+            .vexpand(true)
+            .hexpand(true)
+            .has_frame(true)
+            .hscrollbar_policy(PolicyType::Never)
+            .child(&apt_remove_confirm_text_view)
+            .build();
+        apt_remove_confirm_text_viewport.add_css_class("round-all-scroll");
 
         let apt_remove_confirm_dialog = adw::MessageDialog::builder()
             .transient_for(&window)
             .heading(t!("apt_remove_confirm_dialog_heading"))
             .body(t!("apt_remove_confirm_dialog_body"))
-            .extra_child(&apt_remove_confirm_text_view)
+            .extra_child(&apt_remove_confirm_text_viewport)
             .build();
 
         apt_remove_confirm_dialog.add_response(
