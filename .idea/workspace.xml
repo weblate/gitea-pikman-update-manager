@@ -7,13 +7,9 @@
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="df2ca9e1-e07d-43f4-bc68-0a6113fc1fa2" name="Changes" comment="">
+    <list default="true" id="df2ca9e1-e07d-43f4-bc68-0a6113fc1fa2" name="Changes" comment="Fix scrolling">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/bin/gui/apt_update_page/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/apt_update_page/mod.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/bin/gui/apt_update_page/process.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/apt_update_page/process.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/bin/gui/build_ui/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/build_ui/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/bin/gui/flatpak_update_page/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/flatpak_update_page/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/bin/gui/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/bin/gui/style.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -175,8 +171,20 @@
       <workItem from="1721726689334" duration="811000" />
       <workItem from="1721763208718" duration="1000" />
       <workItem from="1721937337342" duration="20000" />
-      <workItem from="1723284635393" duration="1276000" />
+      <workItem from="1723284635393" duration="2171000" />
+      <workItem from="1723389702463" duration="2000" />
+      <workItem from="1724431821562" duration="113000" />
+      <workItem from="1724477728278" duration="2367000" />
     </task>
+    <task id="LOCAL-00001" summary="Fix scrolling">
+      <option name="closed" value="true" />
+      <created>1723286179091</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1723286179091</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -184,5 +192,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+    <MESSAGE value="Fix scrolling" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fix scrolling" />
   </component>
 </project>
