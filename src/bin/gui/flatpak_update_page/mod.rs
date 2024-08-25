@@ -371,8 +371,10 @@ pub fn flatpak_update_page(
                         let mut user_last_triggered = false;
                         //
                         if !flatpak_system_updates.is_empty() || !flatpak_user_updates.is_empty() {
-                            viewport_bin.set_child(Some(&packages_viewport));
-                            //
+                          viewport_bin.set_child(Some(&packages_viewport));  
+                        }
+                        //
+                        if !flatpak_system_updates.is_empty() {
                             let mut flatpak_system_updates_iter =
                                 &mut flatpak_system_updates.iter().peekable();
                             //
@@ -518,13 +520,15 @@ pub fn flatpak_update_page(
                                 );
 
                                 packages_boxedlist.append(&flatpak_row);
-                                if flatpak_system_updates.is_empty()
-                                    || flatref_struct.is_system && flatref_struct.is_last
+                                if flatref_struct.is_system && flatref_struct.is_last
                                 {
                                     system_last_triggered = true
                                 }
                             }
-                            //
+                        } else {
+                            system_last_triggered = true
+                        }
+                        if !flatpak_user_updates.is_empty() {
                             let mut flatpak_user_updates_iter =
                                 &mut flatpak_user_updates.iter().peekable();
                             //
@@ -669,15 +673,16 @@ pub fn flatpak_update_page(
                                     ),
                                 );
                                 packages_boxedlist.append(&flatpak_row);
-                                if flatpak_user_updates.is_empty()
-                                    || !flatref_struct.is_system && flatref_struct.is_last
+                                if !flatref_struct.is_system && flatref_struct.is_last
                                 {
                                     user_last_triggered = true
                                 }
                             }
-                            if user_last_triggered && system_last_triggered {
-                                packages_boxedlist.set_sensitive(true);
-                            }
+                        } else {
+                            user_last_triggered = true
+                        }
+                        if user_last_triggered && system_last_triggered {
+                            packages_boxedlist.set_sensitive(true);
                         }
                         flatpak_update_dialog.close();
                     }
