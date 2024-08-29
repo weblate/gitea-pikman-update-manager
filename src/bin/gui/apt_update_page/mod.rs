@@ -62,7 +62,7 @@ pub fn apt_update_page(
     thread::spawn(move || {
         let apt_update_command = Command::new("pkexec")
             .args([
-                "/home/ward/RustroverProjects/pkg-pikman-update-manager/target/debug/apt_update",
+                "/usr/lib/pika/pikman-update-manager/scripts/apt_update",
             ])
             .status()
             .unwrap();
