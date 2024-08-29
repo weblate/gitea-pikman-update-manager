@@ -101,7 +101,7 @@ pub fn flatpak_update_page(
         if let Ok(remotes) =
             libflatpak::Installation::list_remotes(&flatpak_user_installation, cancellable_no)
         {
-            for remote in remotes {
+            for remote in remotes.clone() {
                 if remote.is_disabled() {
                     continue;
                 };
@@ -140,6 +140,11 @@ pub fn flatpak_update_page(
                         break;
                     }
                 }
+            }
+            if remotes.is_empty() {
+                appstream_sync_status_sender
+                    .send_blocking("FN_OVERRIDE_SUCCESSFUL".to_owned())
+                    .expect("appstream_sync_status_receiver closed");
             }
         }
     });
