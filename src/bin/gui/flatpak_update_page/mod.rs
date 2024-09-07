@@ -191,6 +191,13 @@ pub fn flatpak_update_page(
         .vexpand(true)
         .build();
 
+    let packages_ignored_viewport_page = adw::StatusPage::builder()
+        .icon_name("dialog-warning-symbolic")
+        .title(t!("flatpak_ignored_viewport_page_title"))
+        .hexpand(true)
+        .vexpand(true)
+        .build();    
+
     let viewport_bin = adw::Bin::builder()
         .child(&packages_no_viewport_page)
         .build();
@@ -229,17 +236,33 @@ pub fn flatpak_update_page(
         adw::ResponseAppearance::Suggested,
     );
 
+    flatpak_update_dialog.add_response(
+        "flatpak_update_dialog_ignore",
+        &t!("flatpak_update_dialog_ignore_label").to_string(),
+    );
+
     flatpak_update_dialog.set_response_enabled("flatpak_update_dialog_retry", false);
+    flatpak_update_dialog.set_response_enabled("flatpak_update_dialog_ignore", false);
 
     let retry_signal_action0 = retry_signal_action.clone();
 
-    flatpak_update_dialog
-        .clone()
-        .choose(None::<&gio::Cancellable>, move |choice| {
-            if choice == "flatpak_update_dialog_retry" {
-                retry_signal_action0.activate(None);
-            }
-        });
+    {
+        let viewport_bin = viewport_bin.clone();
+    
+        flatpak_update_dialog
+            .clone()
+            .choose(None::<&gio::Cancellable>, move |choice| {
+                match choice.as_str() {
+                    "flatpak_update_dialog_retry" => {
+                        retry_signal_action0.activate(None);
+                    }
+                    "flatpak_update_dialog_ignore" => {
+                        viewport_bin.set_child(Some(&packages_ignored_viewport_page));
+                    }
+                    _ => {}
+                }
+            });
+    }
 
     let bottom_bar = Box::builder().valign(Align::End).build();
 
@@ -707,6 +730,7 @@ pub fn flatpak_update_page(
                         ));
                         flatpak_update_dialog
                             .set_response_enabled("flatpak_update_dialog_retry", true);
+                        flatpak_update_dialog.set_response_enabled("flatpak_update_dialog_ignore", true);
                     }
                     _ => flatpak_update_dialog.set_body(&state),
                 }

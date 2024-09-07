@@ -124,6 +124,13 @@ pub fn apt_update_page(
         .vexpand(true)
         .build();
 
+    let packages_ignored_viewport_page = adw::StatusPage::builder()
+        .icon_name("dialog-warning-symbolic")
+        .title(t!("apt_ignored_viewport_page_title"))
+        .hexpand(true)
+        .vexpand(true)
+        .build();    
+
     let viewport_bin = adw::Bin::builder()
         .child(&packages_no_viewport_page)
         .build();
@@ -157,22 +164,45 @@ pub fn apt_update_page(
         &t!("apt_update_dialog_retry_label").to_string(),
     );
 
+    apt_update_dialog.add_response(
+        "apt_update_dialog_ignore",
+        &t!("apt_update_dialog_ignore_label").to_string(),
+    );
+
     apt_update_dialog.set_response_appearance(
         "apt_update_dialog_retry",
         adw::ResponseAppearance::Suggested,
     );
 
     apt_update_dialog.set_response_enabled("apt_update_dialog_retry", false);
+    apt_update_dialog.set_response_enabled("apt_update_dialog_ignore", false);
 
     let retry_signal_action0 = retry_signal_action.clone();
+
+    {
+    let viewport_bin = viewport_bin.clone();
+    let flatpak_retry_signal_action = flatpak_retry_signal_action.clone();
+    let flatpak_ran_once = flatpak_ran_once.clone();
 
     apt_update_dialog
         .clone()
         .choose(None::<&gio::Cancellable>, move |choice| {
-            if choice == "apt_update_dialog_retry" {
-                retry_signal_action0.activate(None);
+            match choice.as_str() {
+                "apt_update_dialog_retry" => {
+                    retry_signal_action0.activate(None);
+                }
+                "apt_update_dialog_ignore" => {
+                    viewport_bin.set_child(Some(&packages_ignored_viewport_page));
+                    let mut flatpak_ran_once_borrow = flatpak_ran_once.borrow_mut();
+                    if *flatpak_ran_once_borrow != true {
+                        flatpak_retry_signal_action.activate(None);
+                        *flatpak_ran_once_borrow = true;
+                    }
+                }
+                _ => {}
             }
         });
+    }
 
     let bottom_bar = Box::builder().valign(Align::End).build();
 
@@ -331,6 +361,7 @@ pub fn apt_update_page(
                         apt_update_dialog
                             .set_title(Some(&t!("apt_update_dialog_status_failed").to_string()));
                         apt_update_dialog.set_response_enabled("apt_update_dialog_retry", true);
+                        apt_update_dialog.set_response_enabled("apt_update_dialog_ignore", true);
                     }
                     _ => apt_update_dialog.set_body(&state),
                 }

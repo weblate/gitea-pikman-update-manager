@@ -80,5 +80,9 @@
   "flatpak_transaction_dialog_ok_label": "OK",
   "flatpak_transaction_dialog_open_log_file_label": "Open Flatpak Log File",
   "flatpak_transaction_dialog_status_successful": "Flatpak Update Transaction: Successful!",
-  "flatpak_transaction_dialog_status_failed": "Flatpak Update Transaction: Failed!"
+  "flatpak_transaction_dialog_status_failed": "Flatpak Update Transaction: Failed!",
+  "apt_update_dialog_ignore_label": "Ignore APT Updates",
+  "apt_ignored_viewport_page_title": "APT Updates Were Failed & Ignored",
+  "flatpak_update_dialog_ignore_label": "Ignore Flatpak Updates",
+  "flatpak_ignored_viewport_page_title": "Flatpak Updates Were Failed & Ignored"
 } 
