@@ -85,5 +85,7 @@
   "apt_ignored_viewport_page_title": "APT Updates Were Failed & Ignored",
   "flatpak_update_dialog_ignore_label": "Ignore Flatpak Updates",
   "flatpak_ignored_viewport_page_title": "Flatpak Updates Were Failed & Ignored",
-  "apt_manage_page_title": "APT Settings"
+  "apt_manage_page_title": "APT Settings",
+  "system_mirror_label0_label": "System Repository Mirror",
+  "system_mirror_label1_label": "The Default URI/Mirror Used by the Base PikaOS System APT Repositories\n(Nest, Cockatiel, Canary, Pigeon, Parrot, Raven)"
 } 
