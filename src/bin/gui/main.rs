@@ -1,5 +1,6 @@
 mod apt_package_row;
 mod apt_update_page;
+mod apt_manage_page;
 mod build_ui;
 mod config;
 mod flatpak_ref_row;

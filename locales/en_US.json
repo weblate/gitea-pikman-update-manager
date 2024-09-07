@@ -84,5 +84,6 @@
   "apt_update_dialog_ignore_label": "Ignore APT Updates",
   "apt_ignored_viewport_page_title": "APT Updates Were Failed & Ignored",
   "flatpak_update_dialog_ignore_label": "Ignore Flatpak Updates",
-  "flatpak_ignored_viewport_page_title": "Flatpak Updates Were Failed & Ignored"
+  "flatpak_ignored_viewport_page_title": "Flatpak Updates Were Failed & Ignored",
+  "apt_manage_page_title": "APT Settings"
 } 

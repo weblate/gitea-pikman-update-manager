@@ -1,3 +1,4 @@
+use crate::apt_manage_page::apt_manage_page;
 use crate::apt_update_page;
 use crate::config::{APP_GITHUB, APP_ICON, APP_ID, VERSION};
 use crate::flatpak_update_page;
@@ -273,6 +274,12 @@ pub fn build_ui(app: &Application) {
         &flatpak_update_view_stack_bin,
         Some("flatpak_update_page"),
         &t!("flatpak_update_page_title"),
+    );
+
+    window_adw_stack.add_titled(
+        &apt_manage_page(window, &apt_retry_signal_action),
+        Some("apt_manage_page"),
+        &t!("apt_manage_page_title"),
     );
 
     // Refresh button
