@@ -209,6 +209,7 @@ pub fn apt_update_page(
         .halign(Align::End)
         .valign(Align::Center)
         .hexpand(false)
+        .sensitive(false)
         .margin_start(10)
         .margin_end(30)
         .margin_bottom(15)
@@ -355,6 +356,7 @@ pub fn apt_update_page(
         async move {
             while let Ok(state) = get_upgradable_receiver.recv().await {
                 viewport_bin.set_child(Some(&packages_viewport));
+                update_button.set_sensitive(true);
                 let apt_row = AptPackageRow::new(state.clone());
                 apt_row.connect_closure(
                     "checkbutton-toggled",

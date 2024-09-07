@@ -275,6 +275,7 @@ pub fn flatpak_update_page(
     let update_button = Button::builder()
         .halign(Align::End)
         .valign(Align::Center)
+        .sensitive(false)
         .hexpand(false)
         .margin_start(10)
         .margin_end(30)
@@ -376,6 +377,7 @@ pub fn flatpak_update_page(
                         let mut user_last_triggered = false;
                         //
                         if !flatpak_system_updates.is_empty() || !flatpak_user_updates.is_empty() {
+                          update_button.set_sensitive(true);
                           viewport_bin.set_child(Some(&packages_viewport));  
                         }
                         //
