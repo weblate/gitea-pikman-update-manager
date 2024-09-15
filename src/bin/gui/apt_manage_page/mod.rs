@@ -41,6 +41,8 @@ pub fn apt_manage_page(
         .orientation(Orientation::Vertical)
         .build();
 
+    //
+
     let system_mirror_label0 = gtk::Label::builder()
         .label(t!("system_mirror_label0_label"))
         .halign(gtk::Align::Start)
@@ -49,6 +51,7 @@ pub fn apt_manage_page(
         .margin_top(15)
         .margin_start(15)
         .margin_end(15)
+        .margin_bottom(5)
         .build();
     system_mirror_label0.add_css_class("heading");
 
@@ -71,9 +74,59 @@ pub fn apt_manage_page(
         .margin_end(15)
         .build();
 
+    //
+
+    let unofficial_sources_label0 = gtk::Label::builder()
+        .label(t!("unofficial_sources_label"))
+        .halign(gtk::Align::Start)
+        .valign(gtk::Align::Start)
+        .hexpand(true)
+        .margin_top(15)
+        .margin_start(15)
+        .margin_end(15)
+        .margin_bottom(5)
+        .build();
+    unofficial_sources_label0.add_css_class("heading");
+
+    let unofficial_sources_label1 = gtk::Label::builder()
+        .label(t!("unofficial_sources_label1_label"))
+        .halign(gtk::Align::Start)
+        .valign(gtk::Align::Start)
+        .hexpand(true)
+        .margin_start(15)
+        .margin_end(15)
+        .build();
+
+    let unofficial_sources_boxedlist = ListBox::builder()
+        .selection_mode(SelectionMode::None)
+        .margin_bottom(3)
+        .margin_top(3)
+        .margin_end(3)
+        .margin_start(3)
+        .build();
+
+    let unofficial_sources_viewport = ScrolledWindow::builder()
+        .vexpand(true)
+        .hexpand(true)
+        .has_frame(true)
+        .margin_bottom(15)
+        .margin_top(15)
+        .margin_end(15)
+        .margin_start(15)
+        .child(&unofficial_sources_boxedlist)
+        .height_request(390)
+        .build();
+    unofficial_sources_viewport.add_css_class("round-all-scroll");
+
+    //
+
     main_box.append(&system_mirror_label0);
     main_box.append(&system_mirror_label1);
     main_box.append(&system_mirror_entry);
+    //
+    main_box.append(&unofficial_sources_label0);
+    main_box.append(&unofficial_sources_label1);
+    main_box.append(&unofficial_sources_viewport);
 
     main_box
 }
