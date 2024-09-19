@@ -151,10 +151,6 @@ pub fn apt_manage_page(
     */
 
     let unofficial_sources_columnview = ColumnView::builder()
-        .margin_bottom(3)
-        .margin_top(3)
-        .margin_end(3)
-        .margin_start(3)
         .vexpand(true)
         .model(&unofficial_sources_selection_model)
         .build();
@@ -271,8 +267,8 @@ pub fn apt_manage_page(
     unofficial_sources_columnview.append_column(&unofficial_sources_columnview_col0);
     unofficial_sources_columnview.append_column(&unofficial_sources_columnview_col1);
 
-    let unofficial_sources_boxedlist = ListBox::builder()
-        .selection_mode(SelectionMode::None)
+    let unofficial_sources_box = Box::builder()
+        .orientation(Orientation::Vertical)
         .margin_bottom(3)
         .margin_top(3)
         .margin_end(3)
@@ -287,10 +283,40 @@ pub fn apt_manage_page(
         .margin_top(15)
         .margin_end(15)
         .margin_start(15)
-        .child(&unofficial_sources_columnview)
+        .child(&unofficial_sources_box)
         .height_request(390)
         .build();
     unofficial_sources_viewport.add_css_class("round-all-scroll");
+
+    //
+
+    let unofficial_sources_edit_box = gtk::Box::builder()
+        .orientation(Orientation::Horizontal)
+        .homogeneous(true)
+        .build();
+    unofficial_sources_edit_box.add_css_class("linked");
+
+    let unofficial_source_edit_button = Button::builder()
+        .icon_name("document-edit-symbolic")
+        .tooltip_text(t!("unofficial_source_edit_button"))
+        //.halign(Align::End)
+        .valign(Align::End)
+        .build();
+
+    let unofficial_source_add_button = Button::builder()
+        .icon_name("list-add-symbolic")
+        .tooltip_text(t!("unofficial_source_add_button"))
+        //.halign(Align::End)
+        .valign(Align::End)
+        .build();
+
+    //
+
+    unofficial_sources_edit_box.append(&unofficial_source_add_button);
+    unofficial_sources_edit_box.append(&unofficial_source_edit_button);
+
+    unofficial_sources_box.append(&unofficial_sources_columnview);
+    unofficial_sources_box.append(&unofficial_sources_edit_box);
 
     //
 
