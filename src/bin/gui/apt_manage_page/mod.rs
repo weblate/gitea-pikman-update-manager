@@ -263,8 +263,8 @@ pub fn apt_manage_page(
     //
 
     unofficial_sources_selection_model.connect_selected_item_notify(|selection| {
-        let selection = selection.selected_item().unwrap();
-        let entry  = selection.downcast_ref::<BoxedAnyObject>().unwrap();
+        //let selection = selection.selected_item().unwrap();
+        //let entry  = selection.downcast_ref::<BoxedAnyObject>().unwrap();
         //let r: Ref<AptSourceConfig> = entry.borrow();
         //println!("{}", r.col2.to_string())
     });
