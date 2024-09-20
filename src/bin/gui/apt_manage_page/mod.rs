@@ -310,6 +310,174 @@ pub fn apt_manage_page(
         .valign(Align::End)
         .build();
 
+    unofficial_source_add_button.connect_clicked(clone!(
+        #[strong]
+        window,
+            move
+            |_|
+            {
+                let unofficial_source_add_dialog_child_box = Box::builder()
+                    .hexpand(true)
+                    .orientation(Orientation::Vertical)
+                    .build();
+
+                let unofficial_source_add_uri_entry = gtk::Entry::builder()
+                    .placeholder_text("https://dl.winehq.org/wine-builds/debian")
+                    .build();
+
+                let unofficial_source_add_uri_prefrencesgroup = adw::PreferencesGroup::builder()
+                    .title(t!("unofficial_source_add_uri_prefrencesgroup_title"))
+                    .build();
+
+                unofficial_source_add_uri_prefrencesgroup.add(&unofficial_source_add_uri_entry);
+
+                let unofficial_source_add_suites_entry = gtk::Entry::builder()
+                    .placeholder_text("trixie bookworm sid")
+                    .build();
+
+                let unofficial_source_add_suites_prefrencesgroup = adw::PreferencesGroup::builder()
+                    .title(t!("unofficial_source_add_suites_prefrencesgroup_title"))
+                    .build();
+
+                unofficial_source_add_suites_prefrencesgroup.add(&unofficial_source_add_suites_entry);
+
+                let unofficial_source_add_components_entry = gtk::Entry::builder()
+                    .placeholder_text("main proprietary")
+                    .build();
+
+                let unofficial_source_add_components_prefrencesgroup = adw::PreferencesGroup::builder()
+                    .title(t!("unofficial_source_add_components_prefrencesgroup_title"))
+                    .build();
+
+                unofficial_source_add_components_prefrencesgroup.add(&unofficial_source_add_components_entry);
+
+                let unofficial_source_add_signed_entry = gtk::Entry::builder()
+                    .build();
+
+                let unofficial_source_add_signed_prefrencesgroup = adw::PreferencesGroup::builder()
+                    .title(t!("unofficial_source_add_signed_prefrencesgroup_title"))
+                    .build();
+                
+                unofficial_source_add_signed_prefrencesgroup.add(&unofficial_source_add_signed_entry);
+
+                let unofficial_source_add_archs_entry = gtk::Entry::builder()
+                    .placeholder_text("amd64 arm64 i386")
+                    .build();
+
+                let unofficial_source_add_archs_prefrencesgroup = adw::PreferencesGroup::builder()
+                    .title(t!("unofficial_source_add_archs_prefrencesgroup_title"))
+                    .build();
+
+                unofficial_source_add_archs_prefrencesgroup.add(&unofficial_source_add_archs_entry);
+
+                let unofficial_source_add_box2 = gtk::Box::builder()
+                    .margin_top(10)
+                    .orientation(Orientation::Horizontal)
+                    .hexpand(true)
+                    .spacing(5)
+                    .build();
+
+                let unofficial_source_add_is_source_label = gtk::Label::builder()
+                    .label(t!("unofficial_source_add_is_source_label_label"))
+                    .halign(Align::Start)
+                    .valign(Align::Center)
+                    .build();
+                
+                let unofficial_source_add_is_source_switch = gtk::Switch::builder()
+                    .halign(Align::Start)
+                    .valign(Align::Center)
+                    .build();
+
+                let unofficial_source_signed_keyring_checkbutton = gtk::CheckButton::builder()
+                    .halign(Align::Start)
+                    .valign(Align::Center)
+                    .label(t!("unofficial_source_signed_keyring_checkbutton_label"))
+                    .active(true)
+                    .build();
+
+                let unofficial_source_signed_file_checkbutton = gtk::CheckButton::builder()
+                    .halign(Align::Start)
+                    .valign(Align::Center)
+                    .label(t!("unofficial_source_signed_file_checkbutton_label"))
+                    .group(&unofficial_source_signed_keyring_checkbutton)
+                    .build();
+
+                let unofficial_source_signed_url_checkbutton = gtk::CheckButton::builder()
+                    .halign(Align::Start)
+                    .valign(Align::Center)
+                    .label(t!("unofficial_source_signed_url_checkbutton_label"))
+                    .group(&unofficial_source_signed_keyring_checkbutton)
+                    .build();
+
+                let unofficial_source_add_dialog_child_clamp = adw::Clamp::builder()
+                    .child(&unofficial_source_add_dialog_child_box)
+                    .maximum_size(500)
+                    .build();
+
+                let unofficial_source_add_viewport = gtk::ScrolledWindow::builder()
+                    .hexpand(true)
+                    .vexpand(true)
+                    .child(&unofficial_source_add_dialog_child_clamp)
+                    .hscrollbar_policy(PolicyType::Never)
+                    .build();
+
+                let unofficial_source_add_dialog = adw::MessageDialog::builder()
+                    .transient_for(&window)
+                    .extra_child(&unofficial_source_add_viewport)
+                    .heading(t!("unofficial_source_add_dialog_heading"))
+                    .width_request(700)
+                    .height_request(500)
+                    .build();
+
+                unofficial_source_add_dialog.add_response(
+                    "unofficial_source_add_dialog_add",
+                    &t!("unofficial_source_add_dialog_add_label").to_string(),
+                );
+                
+                unofficial_source_add_dialog.add_response(
+                    "unofficial_source_add_dialog_cancel",
+                    &t!("unofficial_source_add_dialog_cancel_label").to_string(),
+                    );
+                
+                unofficial_source_add_dialog.set_response_appearance(
+                    "unofficial_source_add_dialog_add",
+                    adw::ResponseAppearance::Suggested,
+                );
+
+                unofficial_source_add_dialog.set_response_appearance(
+                    "unofficial_source_add_dialog_cancel",
+                    adw::ResponseAppearance::Destructive,
+                );
+                
+                unofficial_source_add_box2.append(&unofficial_source_add_is_source_label);
+                unofficial_source_add_box2.append(&unofficial_source_add_is_source_switch);
+                unofficial_source_add_box2.append(&unofficial_source_signed_keyring_checkbutton);
+                unofficial_source_add_box2.append(&unofficial_source_signed_file_checkbutton);
+                unofficial_source_add_box2.append(&unofficial_source_signed_url_checkbutton);
+
+                unofficial_source_add_dialog_child_box.append(&unofficial_source_add_uri_prefrencesgroup);
+                unofficial_source_add_dialog_child_box.append(&unofficial_source_add_suites_prefrencesgroup);
+                unofficial_source_add_dialog_child_box.append(&unofficial_source_add_components_prefrencesgroup);
+                unofficial_source_add_dialog_child_box.append(&unofficial_source_add_archs_prefrencesgroup);
+                unofficial_source_add_dialog_child_box.append(&unofficial_source_add_box2);
+                unofficial_source_add_dialog_child_box.append(&unofficial_source_add_signed_prefrencesgroup);
+
+                unofficial_source_add_dialog.clone()
+                    .choose(None::<&gio::Cancellable>, move |choice| {
+                        match choice.as_str() {
+                            "unofficial_source_add_dialog_add" => {
+                                println!("add")
+                            }
+                            "apt_update_dialog_ignore" => {
+                                unofficial_source_add_dialog.close();
+                            }
+                            _ => {}
+                        }
+                    });
+            }
+        )
+    );
+
     //
 
     unofficial_sources_edit_box.append(&unofficial_source_add_button);

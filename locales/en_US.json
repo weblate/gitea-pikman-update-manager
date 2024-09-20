@@ -93,5 +93,19 @@
   "unofficial_sources_columnview_col0_title": "Apt Repository",
   "unofficial_sources_columnview_col1_title": "Enabled",
   "apt_repo_enabled": "Yes",
-  "apt_repo_disabled": "No"
+  "apt_repo_disabled": "No",
+  "unofficial_source_add_dialog_heading": "Add Custom Un-Official APT Repository",
+  "unofficial_source_add_dialog_add_label": "Add",
+  "unofficial_source_add_dialog_cancel_label": "Cancel",
+  "unofficial_source_add_prefrencespage_title": "APT Repository Definitions",
+  "unofficial_source_add_prefrencespage_description": "Please Supply All The Required Information",
+  "unofficial_source_add_uri_prefrencesgroup_title": "URI",
+  "unofficial_source_add_suites_prefrencesgroup_title": "Suites",
+  "unofficial_source_add_components_prefrencesgroup_title": "Components",
+  "unofficial_source_add_signed_prefrencesgroup_title": "Signing Key",
+  "unofficial_source_add_archs_prefrencesgroup_title": "Architectures (Optional)",
+  "unofficial_source_add_is_source_label_label": "With Source Repository",
+  "unofficial_source_signed_keyring_checkbutton_label": "Signed By Keyring",
+  "unofficial_source_signed_file_checkbutton_label": "Signed By File",
+  "unofficial_source_signed_url_checkbutton_label": "Signed By URL"
 } 
