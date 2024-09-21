@@ -39,4 +39,5 @@ crossbeam-utils = "0.8.20"
 chrono = "0.4.38"
 lock_api = "0.4.2"
 libflatpak = { version = "0.5.0", package = "libflatpak", features = ["v1_11_1"] }
+regex = "1.10.6"
 

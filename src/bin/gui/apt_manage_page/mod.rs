@@ -2,12 +2,12 @@ use crate::apt_package_row::AptPackageRow;
 use adw::gio::SimpleAction;
 use adw::prelude::*;
 use apt_deb822_tools::Deb822Repository;
-use gtk::glib::*;
+use regex::Regex;
+use gtk::glib::{property::PropertyGet, clone, BoxedAnyObject};
 use gtk::*;
 use std::cell::Ref;
 use std::ops::Deref;
 use pika_unixsocket_tools::pika_unixsocket_tools::*;
-use property::PropertyGet;
 use rust_apt::cache::*;
 use rust_apt::new_cache;
 use rust_apt::records::RecordField;
@@ -16,6 +16,7 @@ use std::process::Command;
 use std::rc::Rc;
 use std::thread;
 use tokio::runtime::Runtime;
+
 
 pub fn apt_manage_page(
     window: adw::ApplicationWindow,
@@ -478,7 +479,7 @@ pub fn apt_manage_page(
                         !unofficial_source_add_name_entry_clone0.text().is_empty() &&
                         !unofficial_source_add_uri_entry_clone0.text().is_empty() &&
                         !unofficial_source_add_suites_entry_clone0.text().is_empty() &&
-                        !unofficial_source_add_components_entry_clone0.text().is_empty() &&
+                        !unofficial_source_add_components_entry_clone0.text().is_empty()
                     {
                         if unofficial_source_signed_keyring_checkbutton_clone0.is_active() {
                             unofficial_source_add_dialog_clone0.set_response_enabled("unofficial_source_add_dialog_add", true);
@@ -580,7 +581,40 @@ pub fn apt_manage_page(
                     .choose(None::<&gio::Cancellable>, move |choice| {
                         match choice.as_str() {
                             "unofficial_source_add_dialog_add" => {
-                                println!("add")
+                                println!("add");
+                                let non_alphanum_regex = Regex::new(r"[^a-zA-Z0-9]").unwrap();
+                                let sign_method = if unofficial_source_signed_file_checkbutton.is_active() {
+                                    1
+                                } else if unofficial_source_signed_url_checkbutton.is_active() {
+                                    2
+                                } else {
+                                    0
+                                };
+                                let repo_file_name = non_alphanum_regex.replace_all(unofficial_source_add_name_entry.text().as_str(), "_").to_string().to_lowercase();
+                                let new_repo = Deb822Repository {
+                                    repolib_name: Some(unofficial_source_add_name_entry.text().to_string()),
+                                    filepath: format!("/etc/apt/sources.list.d/{}.source", repo_file_name),
+                                    uris: Some(unofficial_source_add_uri_entry.text().to_string()),
+                                    types: if unofficial_source_add_is_source_switch.is_active() {
+                                        Some("deb deb-src".to_string())
+                                    } else {
+                                        Some("deb".to_string())
+                                    },
+                                    suites: Some(unofficial_source_add_suites_entry.text().to_string()),
+                                    components: Some(unofficial_source_add_components_entry.text().to_string()),
+                                    architectures: if unofficial_source_add_archs_entry.text().is_empty() {
+                                        None
+                                    } else {
+                                        Some(unofficial_source_add_archs_entry.text().to_string())
+                                    },
+                                    signed_by: match sign_method {
+                                        1 => Some(unofficial_source_add_archs_entry.text().to_string()),
+                                        2 => Some(format!("/etc/apt/keyrings/{}.gpg.key", repo_file_name)),
+                                        _ => None
+                                    },
+                                    ..Default::default()
+                                };
+                                dbg!(new_repo);
                             }
                             "apt_update_dialog_ignore" => {
                                 unofficial_source_add_dialog.close();
