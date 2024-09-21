@@ -108,5 +108,7 @@
   "unofficial_source_add_is_source_label_label": "With Source Repository",
   "unofficial_source_signed_keyring_checkbutton_label": "Signed By Keyring",
   "unofficial_source_signed_file_checkbutton_label": "Signed By File",
-  "unofficial_source_signed_url_checkbutton_label": "Signed By URL"
+  "unofficial_source_signed_url_checkbutton_label": "Signed By URL",
+  "key_download_error_dialog_heading": "GPG Download Error",
+  "key_download_error_dialog_ok_label": "OK"
 } 

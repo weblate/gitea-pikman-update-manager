@@ -608,13 +608,30 @@ pub fn apt_manage_page(
                                         Some(unofficial_source_add_archs_entry.text().to_string())
                                     },
                                     signed_by: match sign_method {
-                                        1 => Some(unofficial_source_add_archs_entry.text().to_string()),
+                                        1 => Some(unofficial_source_add_signed_entry.text().to_string()),
                                         2 => Some(format!("/etc/apt/keyrings/{}.gpg.key", repo_file_name)),
                                         _ => None
                                     },
                                     ..Default::default()
                                 };
-                                dbg!(new_repo);
+                                if sign_method == 2 {
+                                    let key_download_cmd = duct::cmd!("pkexec", "/usr/lib/pika/pikman-update-manager/scripts/wget.sh", &unofficial_source_add_signed_entry.text().to_string(), &format!("/etc/apt/keyrings/{}.gpg.key", repo_file_name))
+                                        .run();
+                                    match key_download_cmd {
+                                        Ok(_) => {}
+                                        Err(e) => {
+                                            let key_download_error_dialog = adw::MessageDialog::builder()
+                                                .heading(t!("key_download_error_dialog_heading"))
+                                                .body(e.to_string())
+                                                .build();
+                                            key_download_error_dialog.add_response(
+                                                "key_download_error_dialog_ok",
+                                                &t!("key_download_error_dialog_ok_label").to_string(),
+                                                );
+                                            key_download_error_dialog.present();
+                                        }
+                                    }
+                                }
                             }
                             "apt_update_dialog_ignore" => {
                                 unofficial_source_add_dialog.close();
