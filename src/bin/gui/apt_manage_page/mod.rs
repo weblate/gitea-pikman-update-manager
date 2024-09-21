@@ -320,6 +320,16 @@ pub fn apt_manage_page(
                     .hexpand(true)
                     .orientation(Orientation::Vertical)
                     .build();
+                
+                let unofficial_source_add_name_entry = gtk::Entry::builder()
+                    .placeholder_text("WineHQ Debian")
+                    .build();
+
+                let unofficial_source_add_name_prefrencesgroup = adw::PreferencesGroup::builder()
+                    .title(t!("unofficial_source_add_name_prefrencesgroup_title"))
+                    .build();
+
+                unofficial_source_add_name_prefrencesgroup.add(&unofficial_source_add_name_entry);
 
                 let unofficial_source_add_uri_entry = gtk::Entry::builder()
                     .placeholder_text("https://dl.winehq.org/wine-builds/debian")
@@ -352,6 +362,7 @@ pub fn apt_manage_page(
                 unofficial_source_add_components_prefrencesgroup.add(&unofficial_source_add_components_entry);
 
                 let unofficial_source_add_signed_entry = gtk::Entry::builder()
+                    .sensitive(false)
                     .build();
 
                 let unofficial_source_add_signed_prefrencesgroup = adw::PreferencesGroup::builder()
@@ -409,6 +420,7 @@ pub fn apt_manage_page(
                     .group(&unofficial_source_signed_keyring_checkbutton)
                     .build();
 
+                //
                 let unofficial_source_add_dialog_child_clamp = adw::Clamp::builder()
                     .child(&unofficial_source_add_dialog_child_box)
                     .maximum_size(500)
@@ -438,6 +450,8 @@ pub fn apt_manage_page(
                     "unofficial_source_add_dialog_cancel",
                     &t!("unofficial_source_add_dialog_cancel_label").to_string(),
                     );
+
+                unofficial_source_add_dialog.set_response_enabled("unofficial_source_add_dialog_add", false);
                 
                 unofficial_source_add_dialog.set_response_appearance(
                     "unofficial_source_add_dialog_add",
@@ -448,6 +462,105 @@ pub fn apt_manage_page(
                     "unofficial_source_add_dialog_cancel",
                     adw::ResponseAppearance::Destructive,
                 );
+
+                //
+
+                let unofficial_source_add_dialog_clone0 = unofficial_source_add_dialog.clone();
+                let unofficial_source_add_name_entry_clone0 = unofficial_source_add_name_entry.clone();
+                let unofficial_source_add_uri_entry_clone0 = unofficial_source_add_uri_entry.clone();
+                let unofficial_source_add_suites_entry_clone0 = unofficial_source_add_suites_entry.clone();
+                let unofficial_source_add_components_entry_clone0 = unofficial_source_add_components_entry.clone();
+                let unofficial_source_add_signed_entry_clone0 = unofficial_source_add_signed_entry.clone();
+                let unofficial_source_signed_keyring_checkbutton_clone0 = unofficial_source_signed_keyring_checkbutton.clone();
+
+                let add_button_update_state = move || {
+                    if
+                        !unofficial_source_add_name_entry_clone0.text().is_empty() &&
+                        !unofficial_source_add_uri_entry_clone0.text().is_empty() &&
+                        !unofficial_source_add_suites_entry_clone0.text().is_empty() &&
+                        !unofficial_source_add_components_entry_clone0.text().is_empty() &&
+                    {
+                        if unofficial_source_signed_keyring_checkbutton_clone0.is_active() {
+                            unofficial_source_add_dialog_clone0.set_response_enabled("unofficial_source_add_dialog_add", true);
+                        } else if !unofficial_source_add_signed_entry_clone0.text().is_empty() {
+                            unofficial_source_add_dialog_clone0.set_response_enabled("unofficial_source_add_dialog_add", true);
+                        } else {
+                            unofficial_source_add_dialog_clone0.set_response_enabled("unofficial_source_add_dialog_add", false);
+                        }
+                    } else {
+                        unofficial_source_add_dialog_clone0.set_response_enabled("unofficial_source_add_dialog_add", false);
+                    }
+                };
+
+                //
+
+                for entry in [
+                    &unofficial_source_add_name_entry,
+                    &unofficial_source_add_uri_entry,
+                    &unofficial_source_add_suites_entry,
+                    &unofficial_source_add_components_entry,
+                    &unofficial_source_add_signed_entry,
+                ] {
+                    entry.connect_text_notify(clone!(
+                        #[strong]
+                        add_button_update_state,
+                        move |_|
+                            {
+                                add_button_update_state();
+                            }
+                        )
+                    );
+                }
+                
+                //
+
+                unofficial_source_signed_keyring_checkbutton.connect_toggled(clone!(
+                    #[weak]
+                    unofficial_source_add_signed_entry,
+                    #[strong]
+                    add_button_update_state,
+                    move |checkbutton|
+                        {
+                            if checkbutton.is_active() {
+                                unofficial_source_add_signed_entry.set_sensitive(false);
+                                unofficial_source_add_signed_entry.set_placeholder_text(Some(""));
+                                add_button_update_state();
+                            }
+                        }
+                    )
+                );
+
+                unofficial_source_signed_file_checkbutton.connect_toggled(clone!(
+                    #[weak]
+                    unofficial_source_add_signed_entry,
+                    #[strong]
+                    add_button_update_state,
+                    move |checkbutton|
+                        {
+                            if checkbutton.is_active() {
+                                unofficial_source_add_signed_entry.set_sensitive(true);
+                                unofficial_source_add_signed_entry.set_placeholder_text(Some("/etc/apt/keyrings/winehq-archive.key"));
+                                add_button_update_state();
+                            }
+                        }
+                    )
+                );
+
+                unofficial_source_signed_url_checkbutton.connect_toggled(clone!(
+                    #[weak]
+                    unofficial_source_add_signed_entry,
+                    #[strong]
+                    add_button_update_state,
+                    move |checkbutton|
+                        {
+                            if checkbutton.is_active() {
+                                unofficial_source_add_signed_entry.set_sensitive(true);
+                                unofficial_source_add_signed_entry.set_placeholder_text(Some("https://dl.winehq.org/wine-builds/winehq.key"));
+                                add_button_update_state();
+                            }
+                        }
+                    )
+                );
                 
                 unofficial_source_add_box2.append(&unofficial_source_add_is_source_label);
                 unofficial_source_add_box2.append(&unofficial_source_add_is_source_switch);
@@ -455,6 +568,7 @@ pub fn apt_manage_page(
                 unofficial_source_add_box2.append(&unofficial_source_signed_file_checkbutton);
                 unofficial_source_add_box2.append(&unofficial_source_signed_url_checkbutton);
 
+                unofficial_source_add_dialog_child_box.append(&unofficial_source_add_name_prefrencesgroup);
                 unofficial_source_add_dialog_child_box.append(&unofficial_source_add_uri_prefrencesgroup);
                 unofficial_source_add_dialog_child_box.append(&unofficial_source_add_suites_prefrencesgroup);
                 unofficial_source_add_dialog_child_box.append(&unofficial_source_add_components_prefrencesgroup);

@@ -99,6 +99,7 @@
   "unofficial_source_add_dialog_cancel_label": "Cancel",
   "unofficial_source_add_prefrencespage_title": "APT Repository Definitions",
   "unofficial_source_add_prefrencespage_description": "Please Supply All The Required Information",
+  "unofficial_source_add_name_prefrencesgroup_title": "Name",
   "unofficial_source_add_uri_prefrencesgroup_title": "URI",
   "unofficial_source_add_suites_prefrencesgroup_title": "Suites",
   "unofficial_source_add_components_prefrencesgroup_title": "Components",
