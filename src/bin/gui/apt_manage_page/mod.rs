@@ -117,6 +117,7 @@ pub fn apt_manage_page(
     }
 
     for deb822_source in unofficial_deb822_sources {
+        dbg!(&deb822_source);
         unofficial_sources_list_store.append(&BoxedAnyObject::new(AptSourceConfig::DEB822(deb822_source)));
     };
 
@@ -617,9 +618,9 @@ pub fn apt_manage_page(
                                 if sign_method == 2 {
                                     match duct::cmd!("pkexec", "/usr/lib/pika/pikman-update-manager/scripts/wget.sh", &unofficial_source_add_signed_entry.text().to_string(), &format!("/etc/apt/keyrings/{}.gpg.key", repo_file_name)).run() {
                                         Ok(_) => {
-                                            match Deb822Repository::write_to_file(new_repo.clone(), format!("/tmp/{}.source", repo_file_name).into()) {
+                                            match Deb822Repository::write_to_file(new_repo.clone(), format!("/tmp/{}.sources", repo_file_name).into()) {
                                                 Ok(_) => {
-                                                    match duct::cmd!("pkexec", "mv", "-vf", format!("/tmp/{}.source", repo_file_name), new_repo.filepath).run() {
+                                                    match duct::cmd!("pkexec", "/usr/lib/pika/pikman-update-manager/scripts/move_repo.sh", "deb822", repo_file_name).run() {
                                                         Ok(_) => {}
                                                         Err(e) => {
                                                             let apt_src_create_error_dialog = adw::MessageDialog::builder()
@@ -657,6 +658,36 @@ pub fn apt_manage_page(
                                                 &t!("key_download_error_dialog_ok_label").to_string(),
                                                 );
                                             key_download_error_dialog.present();
+                                        }
+                                    }
+                                } else {
+                                    match Deb822Repository::write_to_file(new_repo.clone(), format!("/tmp/{}.sources", repo_file_name).into()) {
+                                        Ok(_) => {
+                                            match duct::cmd!("pkexec", "/usr/lib/pika/pikman-update-manager/scripts/move_repo.sh", "deb822", repo_file_name).run() {
+                                                Ok(_) => {}
+                                                Err(e) => {
+                                                    let apt_src_create_error_dialog = adw::MessageDialog::builder()
+                                                        .heading(t!("apt_src_create_error_dialog_heading"))
+                                                        .body(e.to_string())
+                                                        .build();
+                                                    apt_src_create_error_dialog.add_response(
+                                                        "apt_src_create_error_dialog_ok",
+                                                        &t!("apt_src_create_error_dialog_ok_label").to_string(),
+                                                        );
+                                                    apt_src_create_error_dialog.present();
+                                                }
+                                            }
+                                        }
+                                        Err(e) => {
+                                            let apt_src_create_error_dialog = adw::MessageDialog::builder()
+                                                .heading(t!("apt_src_create_error_dialog_heading"))
+                                                .body(e.to_string())
+                                                .build();
+                                            apt_src_create_error_dialog.add_response(
+                                                "apt_src_create_error_dialog_ok",
+                                                &t!("apt_src_create_error_dialog_ok_label").to_string(),
+                                                );
+                                            apt_src_create_error_dialog.present();
                                         }
                                     }
                                 }
