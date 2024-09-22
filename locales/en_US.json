@@ -89,6 +89,9 @@
   "system_mirror_label0_label": "System Repository Mirror",
   "system_mirror_label1_label": "The Default URI/Mirror Used by the Base PikaOS System APT Repositories\n(Nest, Cockatiel, Canary, Pigeon, Parrot, Raven)",
   "unofficial_sources_label": "Un-Official APT Sources",
+  "unofficial_source_add_button_tooltip_text": "Add a New Source",
+  "unofficial_source_edit_button_tooltip_text": "Edit Selected Source",
+  "unofficial_source_remove_button_tooltip_text": "Remove Selected Source",
   "unofficial_sources_label1_label": "Un-Official Custom APT Sources Added by The User or Some User Run Script\nThese Sources May Result in ABI/Dep Hell or Security Risks, and Thus Making a \"package-request\" is Recommended Over These Sources",
   "unofficial_sources_columnview_col0_title": "Apt Repository",
   "unofficial_sources_columnview_col1_title": "Enabled",
@@ -110,5 +113,9 @@
   "unofficial_source_signed_file_checkbutton_label": "Signed By File",
   "unofficial_source_signed_url_checkbutton_label": "Signed By URL",
   "key_download_error_dialog_heading": "GPG Download Error",
-  "key_download_error_dialog_ok_label": "OK"
+  "key_download_error_dialog_ok_label": "OK",
+  "apt_src_remove_warning_dialog_heading": "Are You Sure?",
+  "apt_src_remove_warning_dialog_body": "The Repositoy Will Be Deleted, And Any Packages Downloaded From It Might Get Overwritten",
+  "apt_src_remove_warning_dialog_cancel_label": "Cancel",
+  "apt_src_remove_warning_dialog_ok_label": "OK"
 } 
