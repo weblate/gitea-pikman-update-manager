@@ -117,7 +117,6 @@ pub fn apt_manage_page(
     }
 
     for deb822_source in unofficial_deb822_sources {
-        dbg!(&deb822_source);
         unofficial_sources_list_store.append(&BoxedAnyObject::new(AptSourceConfig::DEB822(deb822_source)));
     };
 
