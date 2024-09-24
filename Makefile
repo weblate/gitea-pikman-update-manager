@@ -31,7 +31,6 @@ install_no_build_debug:
 	cp -vf target/debug/pikman-update-manager $(DESTDIR)/usr/bin/
 	cp -vf target/debug/apt_update $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
 	cp -vf target/debug/apt_full_upgrade $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
-	cp -vf data/wget.sh $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
 	cp -vf data/modify_repo.sh $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
 	cp -vf data/*.gschema.xml $(DESTDIR)/usr/share/glib-2.0/schemas/
 	#cp -vf data/com.github.pikaos-linux.pikagnomelayouts.desktop $(DESTDIR)/usr/share/applications/

@@ -19,6 +19,7 @@ use std::thread;
 use tokio::runtime::Runtime;
 
 mod add_dialog;
+mod deb822_edit_dialog;
 
 enum AptSourceConfig {
     Legacy(apt_legacy_tools::LegacyAptSource),
@@ -102,13 +103,6 @@ pub fn apt_manage_page(
         .margin_start(15)
         .margin_end(15)
         .build();
-
-    /*unofficial_sources_selection_model.connect_selected_item_notify(|selection| {
-        let selection = selection.selected_item().unwrap();
-        let entry  = selection.downcast_ref::<BoxedAnyObject>().unwrap();
-        let r: Ref<AptSourceConfig> = entry.borrow();
-        println!("{}", r.col2.to_string())
-    });*/
 
     let unofficial_sources_selection_model_rc: Rc<RefCell<gtk::SingleSelection>> = Rc::new(RefCell::default());
 
@@ -322,7 +316,32 @@ pub fn apt_manage_page(
             move
             |_|
             {
-                add_dialog_fn(window.clone());
+                add_dialog::add_dialog_fn(window.clone());
+            }
+        )
+    );
+
+    unofficial_source_edit_button.connect_clicked(clone!(
+        #[strong]
+        window,
+        #[strong]
+        unofficial_sources_selection_model_rc,
+        #[strong]
+        reload_unofficial_source_closure,
+            move
+            |_|
+            {
+                let unofficial_sources_selection_model = unofficial_sources_selection_model_rc.borrow();
+                let selection = unofficial_sources_selection_model.selected_item().unwrap();
+                let item  = selection.downcast_ref::<BoxedAnyObject>().unwrap();
+                let apt_src: Ref<AptSourceConfig> = item.borrow();
+                match apt_src.deref() {
+                    AptSourceConfig::DEB822(src) => {
+                        deb822_edit_dialog::deb822_edit_dialog_fn(window.clone(), src);
+                    }
+                    AptSourceConfig::Legacy(list) => {}
+                };
+
             }
         )
     );

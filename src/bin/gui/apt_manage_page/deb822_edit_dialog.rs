@@ -16,15 +16,26 @@ use std::process::Command;
 use std::rc::Rc;
 use std::thread;
 use tokio::runtime::Runtime;
+use std::path::Path;
 
-pub fn add_dialog_fn(window: adw::ApplicationWindow) {
-    let unofficial_source_add_dialog_child_box = Box::builder()
+pub fn deb822_edit_dialog_fn(
+    window: adw::ApplicationWindow,
+    deb822_repo: &Deb822Repository,
+) {
+                let repofile_path = Path::new(&deb822_repo.filepath);
+                let repo_file_name = repofile_path
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_owned();
+                
+                let unofficial_source_add_dialog_child_box = Box::builder()
                     .hexpand(true)
                     .orientation(Orientation::Vertical)
                     .build();
                 
                 let unofficial_source_add_name_entry = gtk::Entry::builder()
-                    .placeholder_text("WineHQ Debian")
                     .build();
 
                 let unofficial_source_add_name_prefrencesgroup = adw::PreferencesGroup::builder()
@@ -34,7 +45,6 @@ pub fn add_dialog_fn(window: adw::ApplicationWindow) {
                 unofficial_source_add_name_prefrencesgroup.add(&unofficial_source_add_name_entry);
 
                 let unofficial_source_add_uri_entry = gtk::Entry::builder()
-                    .placeholder_text("https://dl.winehq.org/wine-builds/debian")
                     .build();
 
                 let unofficial_source_add_uri_prefrencesgroup = adw::PreferencesGroup::builder()
@@ -44,7 +54,6 @@ pub fn add_dialog_fn(window: adw::ApplicationWindow) {
                 unofficial_source_add_uri_prefrencesgroup.add(&unofficial_source_add_uri_entry);
 
                 let unofficial_source_add_suites_entry = gtk::Entry::builder()
-                    .placeholder_text("trixie bookworm sid")
                     .build();
 
                 let unofficial_source_add_suites_prefrencesgroup = adw::PreferencesGroup::builder()
@@ -54,7 +63,6 @@ pub fn add_dialog_fn(window: adw::ApplicationWindow) {
                 unofficial_source_add_suites_prefrencesgroup.add(&unofficial_source_add_suites_entry);
 
                 let unofficial_source_add_components_entry = gtk::Entry::builder()
-                    .placeholder_text("main proprietary")
                     .build();
 
                 let unofficial_source_add_components_prefrencesgroup = adw::PreferencesGroup::builder()
@@ -74,7 +82,6 @@ pub fn add_dialog_fn(window: adw::ApplicationWindow) {
                 unofficial_source_add_signed_prefrencesgroup.add(&unofficial_source_add_signed_entry);
 
                 let unofficial_source_add_archs_entry = gtk::Entry::builder()
-                    .placeholder_text("amd64 arm64 i386")
                     .build();
 
                 let unofficial_source_add_archs_prefrencesgroup = adw::PreferencesGroup::builder()
@@ -95,8 +102,20 @@ pub fn add_dialog_fn(window: adw::ApplicationWindow) {
                     .halign(Align::Start)
                     .valign(Align::Center)
                     .build();
+
+
+                let unofficial_source_add_is_enabled_label = gtk::Label::builder()
+                    .label(t!("unofficial_source_add_is_enabled_label_label"))
+                    .halign(Align::Start)
+                    .valign(Align::Center)
+                    .build();
                 
                 let unofficial_source_add_is_source_switch = gtk::Switch::builder()
+                    .halign(Align::Start)
+                    .valign(Align::Center)
+                    .build();
+
+                let unofficial_source_add_is_enabled_switch = gtk::Switch::builder()
                     .halign(Align::Start)
                     .valign(Align::Center)
                     .build();
@@ -114,14 +133,6 @@ pub fn add_dialog_fn(window: adw::ApplicationWindow) {
                     .label(t!("unofficial_source_signed_file_checkbutton_label"))
                     .group(&unofficial_source_signed_keyring_checkbutton)
                     .build();
-
-                let unofficial_source_signed_url_checkbutton = gtk::CheckButton::builder()
-                    .halign(Align::Start)
-                    .valign(Align::Center)
-                    .label(t!("unofficial_source_signed_url_checkbutton_label"))
-                    .group(&unofficial_source_signed_keyring_checkbutton)
-                    .build();
-
                 //
                 let unofficial_source_add_dialog_child_clamp = adw::Clamp::builder()
                     .child(&unofficial_source_add_dialog_child_box)
@@ -138,14 +149,14 @@ pub fn add_dialog_fn(window: adw::ApplicationWindow) {
                 let unofficial_source_add_dialog = adw::MessageDialog::builder()
                     .transient_for(&window)
                     .extra_child(&unofficial_source_add_viewport)
-                    .heading(t!("unofficial_source_add_dialog_heading"))
+                    .heading(t!("unofficial_source_edit_dialog_heading").to_string() + " " + &repo_file_name)
                     .width_request(700)
                     .height_request(500)
                     .build();
 
                 unofficial_source_add_dialog.add_response(
-                    "unofficial_source_add_dialog_add",
-                    &t!("unofficial_source_add_dialog_add_label").to_string(),
+                    "unofficial_source_edit_dialog_edit",
+                    &t!("unofficial_source_edit_dialog_add_edit").to_string(),
                 );
                 
                 unofficial_source_add_dialog.add_response(
@@ -154,14 +165,14 @@ pub fn add_dialog_fn(window: adw::ApplicationWindow) {
                     );
 
                 unofficial_source_add_dialog.set_response_enabled("unofficial_source_add_dialog_add", false);
-                
+
                 unofficial_source_add_dialog.set_response_appearance(
                     "unofficial_source_add_dialog_cancel",
                     adw::ResponseAppearance::Destructive,
                 );
 
                 unofficial_source_add_dialog.set_response_appearance(
-                    "unofficial_source_add_dialog_add",
+                    "unofficial_source_edit_dialog_edit",
                     adw::ResponseAppearance::Suggested,
                 );
 
@@ -225,7 +236,6 @@ pub fn add_dialog_fn(window: adw::ApplicationWindow) {
                         {
                             if checkbutton.is_active() {
                                 unofficial_source_add_signed_entry.set_sensitive(false);
-                                unofficial_source_add_signed_entry.set_placeholder_text(Some(""));
                                 add_button_update_state();
                             }
                         }
@@ -241,23 +251,6 @@ pub fn add_dialog_fn(window: adw::ApplicationWindow) {
                         {
                             if checkbutton.is_active() {
                                 unofficial_source_add_signed_entry.set_sensitive(true);
-                                unofficial_source_add_signed_entry.set_placeholder_text(Some("/etc/apt/keyrings/winehq-archive.key"));
-                                add_button_update_state();
-                            }
-                        }
-                    )
-                );
-
-                unofficial_source_signed_url_checkbutton.connect_toggled(clone!(
-                    #[weak]
-                    unofficial_source_add_signed_entry,
-                    #[strong]
-                    add_button_update_state,
-                    move |checkbutton|
-                        {
-                            if checkbutton.is_active() {
-                                unofficial_source_add_signed_entry.set_sensitive(true);
-                                unofficial_source_add_signed_entry.set_placeholder_text(Some("https://dl.winehq.org/wine-builds/winehq.key"));
                                 add_button_update_state();
                             }
                         }
@@ -266,9 +259,10 @@ pub fn add_dialog_fn(window: adw::ApplicationWindow) {
                 
                 unofficial_source_add_box2.append(&unofficial_source_add_is_source_label);
                 unofficial_source_add_box2.append(&unofficial_source_add_is_source_switch);
+                unofficial_source_add_box2.append(&unofficial_source_add_is_enabled_label);
+                unofficial_source_add_box2.append(&unofficial_source_add_is_enabled_switch);
                 unofficial_source_add_box2.append(&unofficial_source_signed_keyring_checkbutton);
                 unofficial_source_add_box2.append(&unofficial_source_signed_file_checkbutton);
-                unofficial_source_add_box2.append(&unofficial_source_signed_url_checkbutton);
 
                 unofficial_source_add_dialog_child_box.append(&unofficial_source_add_name_prefrencesgroup);
                 unofficial_source_add_dialog_child_box.append(&unofficial_source_add_uri_prefrencesgroup);
@@ -278,19 +272,75 @@ pub fn add_dialog_fn(window: adw::ApplicationWindow) {
                 unofficial_source_add_dialog_child_box.append(&unofficial_source_add_box2);
                 unofficial_source_add_dialog_child_box.append(&unofficial_source_add_signed_prefrencesgroup);
 
+
+                //
+
+                match &deb822_repo.repolib_name {
+                    Some(t) => {
+                        unofficial_source_add_name_entry.set_text(&t);
+                    }
+                    None => {}
+                }
+                match &deb822_repo.uris {
+                    Some(t) => {
+                        unofficial_source_add_uri_entry.set_text(&t);
+                    }
+                    None => {}
+                }
+                match &deb822_repo.suites {
+                    Some(t) => {
+                        unofficial_source_add_suites_entry.set_text(&t);
+                    }
+                    None => {}
+                }
+                match &deb822_repo.components {
+                    Some(t) => {
+                        unofficial_source_add_components_entry.set_text(&t);
+                    }
+                    None => {}
+                }
+                match &deb822_repo.signed_by {
+                    Some(t) => {
+                        unofficial_source_signed_file_checkbutton.set_active(true);
+                        unofficial_source_add_signed_entry.set_text(&t);
+                    }
+                    None => {
+                        unofficial_source_signed_keyring_checkbutton.set_active(true)
+                    }
+                }
+                match &deb822_repo.architectures {
+                    Some(t) => {
+                        unofficial_source_add_archs_entry.set_text(&t);
+                    }
+                    None => {}
+                }
+                match &deb822_repo.enabled {
+                    Some(t) => {
+                        unofficial_source_add_is_enabled_switch.set_active(match t.to_lowercase().as_str() {
+                            "yes" => true,
+                            "true" => true,
+                            "no" => false,
+                            "false" => false,
+                            _ => true,
+                        });
+                    }
+                    None => {
+                        unofficial_source_add_is_enabled_switch.set_active(true);
+                    }
+                }
+
+                //
+                let deb822_repo_clone0 = deb822_repo.clone();
+
                 unofficial_source_add_dialog.clone()
                     .choose(None::<&gio::Cancellable>, move |choice| {
                         match choice.as_str() {
-                            "unofficial_source_add_dialog_add" => {
-                                let non_alphanum_regex = Regex::new(r"[^a-zA-Z0-9]").unwrap();
+                            "unofficial_source_edit_dialog_edit" => {       
                                 let sign_method = if unofficial_source_signed_file_checkbutton.is_active() {
                                     1
-                                } else if unofficial_source_signed_url_checkbutton.is_active() {
-                                    2
                                 } else {
                                     0
                                 };
-                                let repo_file_name = non_alphanum_regex.replace_all(unofficial_source_add_name_entry.text().as_str(), "_").to_string().to_lowercase();
                                 let new_repo = Deb822Repository {
                                     repolib_name: Some(unofficial_source_add_name_entry.text().to_string()),
                                     filepath: format!("/etc/apt/sources.list.d/{}.source", repo_file_name),
@@ -309,42 +359,10 @@ pub fn add_dialog_fn(window: adw::ApplicationWindow) {
                                     },
                                     signed_by: match sign_method {
                                         1 => Some(unofficial_source_add_signed_entry.text().to_string()),
-                                        2 => Some(format!("/etc/apt/keyrings/{}.gpg.key", repo_file_name)),
                                         _ => None
                                     },
-                                    ..Default::default()
+                                    ..deb822_repo_clone0
                                 };
-                                if sign_method == 2 {
-                                            match Deb822Repository::write_to_file(new_repo.clone(), format!("/tmp/{}.sources", repo_file_name).into()) {
-                                                Ok(_) => {
-                                                    match duct::cmd!("pkexec", "/usr/lib/pika/pikman-update-manager/scripts/modify_repo.sh", "deb822_move_with_wget", &repo_file_name, &unofficial_source_add_signed_entry.text().to_string(), &format!("/etc/apt/keyrings/{}.gpg.key", &repo_file_name)).run() {
-                                                        Ok(_) => {}
-                                                        Err(e) => {
-                                                            let apt_src_create_error_dialog = adw::MessageDialog::builder()
-                                                                .heading(t!("apt_src_create_error_dialog_heading"))
-                                                                .body(e.to_string())
-                                                                .build();
-                                                            apt_src_create_error_dialog.add_response(
-                                                                "apt_src_create_error_dialog_ok",
-                                                                &t!("apt_src_create_error_dialog_ok_label").to_string(),
-                                                                );
-                                                            apt_src_create_error_dialog.present();
-                                                        }
-                                                    }
-                                                }
-                                                Err(e) => {
-                                                    let apt_src_create_error_dialog = adw::MessageDialog::builder()
-                                                        .heading(t!("apt_src_create_error_dialog_heading"))
-                                                        .body(e.to_string())
-                                                        .build();
-                                                    apt_src_create_error_dialog.add_response(
-                                                        "apt_src_create_error_dialog_ok",
-                                                        &t!("apt_src_create_error_dialog_ok_label").to_string(),
-                                                        );
-                                                    apt_src_create_error_dialog.present();
-                                                }
-                                            }
-                                } else {
                                     match Deb822Repository::write_to_file(new_repo.clone(), format!("/tmp/{}.sources", repo_file_name).into()) {
                                         Ok(_) => {
                                             match duct::cmd!("pkexec", "/usr/lib/pika/pikman-update-manager/scripts/modify_repo.sh", "deb822_move", repo_file_name).run() {
@@ -375,7 +393,6 @@ pub fn add_dialog_fn(window: adw::ApplicationWindow) {
                                         }
                                     }
                                 }
-                            }
                             _ => {}
                         }
                     });
