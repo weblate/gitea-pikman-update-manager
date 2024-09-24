@@ -24,10 +24,10 @@ struct FlatpakChangesInfo {
     total_download_size: u64,
     total_installed_size: i64,
 }
-#[derive(Serialize)]
+/*#[derive(Serialize)]
 struct Exclusions {
     exclusions: Vec<Value>,
-}
+}*/
 
 impl FlatpakChangesInfo {
     fn add_system(&mut self) {

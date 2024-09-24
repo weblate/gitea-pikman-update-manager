@@ -120,5 +120,7 @@
   "apt_src_remove_warning_dialog_ok_label": "OK",
   "unofficial_source_add_is_enabled_label_label": "Enabled",
   "unofficial_source_edit_dialog_add_edit": "Save Changes",
-  "unofficial_source_edit_dialog_heading": "Editing"
+  "unofficial_source_edit_dialog_heading": "Editing",
+  "unofficial_source_add_legacy_options_prefrencesgroup_title": "Options",
+  "unofficial_source_add_is_legacy_source_label_label": "Is A Source Repository"
 } 

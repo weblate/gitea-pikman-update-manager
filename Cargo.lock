@@ -1071,8 +1071,8 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "legacy-apt-list-tools-rs"
-version = "0.1.0"
-source = "git+https://github.com/CosmicFusion/legacy-apt-list-tools-rs#0606e8431239a45a14cddc9934ad3eab46e4bb99"
+version = "0.1.1"
+source = "git+https://github.com/CosmicFusion/legacy-apt-list-tools-rs#f6ad0545a2cc32bda63ba4d72f99374644c3abf9"
 dependencies = [
  "apt-sources-lists",
 ]

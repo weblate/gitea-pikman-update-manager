@@ -20,6 +20,7 @@ use tokio::runtime::Runtime;
 
 mod add_dialog;
 mod deb822_edit_dialog;
+mod legacy_edit_dialog;
 
 enum AptSourceConfig {
     Legacy(apt_legacy_tools::LegacyAptSource),
@@ -349,7 +350,9 @@ pub fn apt_manage_page(
                     AptSourceConfig::DEB822(src) => {
                         deb822_edit_dialog::deb822_edit_dialog_fn(window.clone(), src, &reload_unofficial_action);
                     }
-                    AptSourceConfig::Legacy(list) => {}
+                    AptSourceConfig::Legacy(list) => {
+                        legacy_edit_dialog::legacy_edit_dialog_fn(window.clone(), list, &reload_unofficial_action)
+                    }
                 };
 
             }
