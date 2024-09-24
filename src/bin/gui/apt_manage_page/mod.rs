@@ -112,7 +112,12 @@ pub fn apt_manage_page(
 
     let unofficial_sources_columnview_bin_clone0 = unofficial_sources_columnview_bin.clone();
 
-    let reload_unofficial_source_closure = move || {
+    let reload_unofficial_action = gio::SimpleAction::new("reload_unofficial_action", None);
+    
+    reload_unofficial_action.connect_activate(clone!(
+        #[weak]
+        unofficial_sources_columnview_bin_clone0,
+        move |_, _| {
         
         let mut unofficial_deb822_sources = Deb822Repository::get_deb822_sources().unwrap();
 
@@ -256,9 +261,9 @@ pub fn apt_manage_page(
         unofficial_sources_columnview.append_column(&unofficial_sources_columnview_col0);
         unofficial_sources_columnview.append_column(&unofficial_sources_columnview_col1);
         unofficial_sources_columnview_bin_clone0.set_child(Some(&unofficial_sources_columnview));
-    };
+    }));
 
-    reload_unofficial_source_closure();
+    reload_unofficial_action.activate(None);
 
     let unofficial_sources_box = Box::builder()
         .orientation(Orientation::Vertical)
@@ -313,10 +318,15 @@ pub fn apt_manage_page(
     unofficial_source_add_button.connect_clicked(clone!(
         #[strong]
         window,
+        #[strong]
+        reload_unofficial_action,
             move
             |_|
             {
-                add_dialog::add_dialog_fn(window.clone());
+                add_dialog::add_dialog_fn(
+                    window.clone(),
+                    &reload_unofficial_action
+                );
             }
         )
     );
@@ -327,7 +337,7 @@ pub fn apt_manage_page(
         #[strong]
         unofficial_sources_selection_model_rc,
         #[strong]
-        reload_unofficial_source_closure,
+        reload_unofficial_action,
             move
             |_|
             {
@@ -352,7 +362,7 @@ pub fn apt_manage_page(
         #[strong]
         unofficial_sources_selection_model_rc,
         #[strong]
-        reload_unofficial_source_closure,
+        reload_unofficial_action,
             move
             |_|
             {
@@ -387,13 +397,13 @@ pub fn apt_manage_page(
                         &t!("apt_src_remove_warning_dialog_ok_label").to_string(),
                     );
                     apt_src_remove_warning_dialog.set_response_appearance("apt_src_remove_warning_dialog_ok", adw::ResponseAppearance::Destructive);
-                    let reload_unofficial_source_closure_clone0 = reload_unofficial_source_closure.clone();
+                    let reload_unofficial_action_clone0 = reload_unofficial_action.clone();
                     apt_src_remove_warning_dialog.clone()
                     .choose(None::<&gio::Cancellable>, move |choice| {
                         match choice.as_str() {
                             "apt_src_remove_warning_dialog_ok" => {
                                 let _ = command.run().unwrap();
-                                reload_unofficial_source_closure_clone0();
+                                reload_unofficial_action_clone0.activate(None);
                             }
                             _ => {}
                         }

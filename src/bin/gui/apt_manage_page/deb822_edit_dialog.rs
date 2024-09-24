@@ -28,6 +28,7 @@ pub fn deb822_edit_dialog_fn(
                     .unwrap()
                     .to_str()
                     .unwrap()
+                    .trim_end_matches(".sources")
                     .to_owned();
                 
                 let unofficial_source_add_dialog_child_box = Box::builder()
@@ -329,6 +330,13 @@ pub fn deb822_edit_dialog_fn(
                     }
                 }
 
+                match &deb822_repo.types {
+                    Some(t) => {
+                       unofficial_source_add_is_source_switch.set_active(t.contains("deb-src"));
+                    }
+                    None => {}
+                }
+
                 //
                 let deb822_repo_clone0 = deb822_repo.clone();
 
@@ -360,6 +368,10 @@ pub fn deb822_edit_dialog_fn(
                                     signed_by: match sign_method {
                                         1 => Some(unofficial_source_add_signed_entry.text().to_string()),
                                         _ => None
+                                    },
+                                    enabled: match unofficial_source_add_is_enabled_switch.is_active() {
+                                        true => Some("yes".to_string()),
+                                        false => Some("no".to_string())
                                     },
                                     ..deb822_repo_clone0
                                 };
