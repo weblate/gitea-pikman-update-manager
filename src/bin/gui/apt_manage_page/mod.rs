@@ -347,7 +347,7 @@ pub fn apt_manage_page(
                 let apt_src: Ref<AptSourceConfig> = item.borrow();
                 match apt_src.deref() {
                     AptSourceConfig::DEB822(src) => {
-                        deb822_edit_dialog::deb822_edit_dialog_fn(window.clone(), src);
+                        deb822_edit_dialog::deb822_edit_dialog_fn(window.clone(), src, &reload_unofficial_action);
                     }
                     AptSourceConfig::Legacy(list) => {}
                 };
