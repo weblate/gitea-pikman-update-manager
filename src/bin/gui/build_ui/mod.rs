@@ -5,7 +5,7 @@ use crate::flatpak_update_page;
 use adw::prelude::*;
 use adw::*;
 use gtk::glib::{clone, MainContext};
-use gtk::License;
+use gtk::{License, WindowControls};
 use std::cell::RefCell;
 use std::process::Command;
 use std::rc::Rc;
@@ -66,7 +66,7 @@ pub fn build_ui(app: &Application) {
 
     let window_breakpoint = adw::Breakpoint::new(BreakpointCondition::new_length(
         BreakpointConditionLengthType::MaxWidth,
-        800.0,
+        1100.0,
         LengthUnit::Px,
     ));
 
@@ -90,11 +90,19 @@ pub fn build_ui(app: &Application) {
         .stack(&window_adw_stack)
         .build();
 
+    let window_adw_view_switcher_sidebar_control_box = gtk::Box::builder()
+        .orientation(gtk::Orientation::Horizontal)
+        .margin_top(10)
+        .margin_bottom(20)
+        .margin_start(5)
+        .margin_end(5)
+        .build();
+    window_adw_view_switcher_sidebar_control_box.append(&WindowControls::builder().build());
+    window_adw_view_switcher_sidebar_control_box.append(&WindowTitle::builder().title(t!("application_name")).build());
+    
     let window_adw_view_switcher_sidebar_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
-    window_adw_view_switcher_sidebar_box.append(&WindowTitle::builder().title(t!("application_name")).margin_top(20).margin_bottom(20).margin_start(5).margin_end(5).build());
-    window_adw_view_switcher_sidebar_box.append(&window_adw_view_switcher_sidebar);
-
-    let window_adw_view_sidebar_navigation_page = adw::NavigationPage::new(&window_adw_view_switcher_sidebar_box, "sidebar_view");
+    window_adw_view_switcher_sidebar_box.append(&window_adw_view_switcher_sidebar_control_box);
+    //window_adw_view_switcher_sidebar_box.append(&window_adw_view_switcher_sidebar);
 
     let sidebar_toggle_button = gtk::ToggleButton::builder()
         .icon_name("view-right-pane-symbolic")
@@ -105,7 +113,7 @@ pub fn build_ui(app: &Application) {
         .vexpand(true)
         .hexpand(true)
         .content(&window_toolbar)
-        .sidebar(&window_adw_view_sidebar_navigation_page)
+        .sidebar(&window_adw_view_switcher_sidebar_box)
         .max_sidebar_width(300.0)
         .min_sidebar_width(300.0)
         .enable_hide_gesture(true)
@@ -152,8 +160,8 @@ pub fn build_ui(app: &Application) {
         .default_width(glib_settings.int("window-width"))
         .default_height(glib_settings.int("window-height"))
         //
-        .width_request(700)
-        .height_request(500)
+        .width_request(1000)
+        .height_request(700)
         .content(&window_content_page_split_view)
         // Startup
         .startup_id(APP_ID)
