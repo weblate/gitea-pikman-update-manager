@@ -6,6 +6,7 @@ use adw::prelude::*;
 use adw::*;
 use gtk::glib::{clone, MainContext};
 use gtk::{License, WindowControls};
+use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::process::Command;
 use std::rc::Rc;
@@ -82,14 +83,6 @@ pub fn build_ui(app: &Application) {
         .bottom_bar_style(ToolbarStyle::Flat)
         .build();
 
-    let window_adw_view_switcher_sidebar = gtk::StackSidebar::builder()
-        .vexpand(true)
-        .hexpand(true)
-        .margin_start(5)
-        .margin_end(5)
-        .stack(&window_adw_stack)
-        .build();
-
     let window_adw_view_switcher_sidebar_control_box = gtk::Box::builder()
         .orientation(gtk::Orientation::Horizontal)
         .margin_top(10)
@@ -102,7 +95,31 @@ pub fn build_ui(app: &Application) {
     
     let window_adw_view_switcher_sidebar_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
     window_adw_view_switcher_sidebar_box.append(&window_adw_view_switcher_sidebar_control_box);
-    //window_adw_view_switcher_sidebar_box.append(&window_adw_view_switcher_sidebar);
+    
+    let null_toggle_button: gtk::ToggleButton = gtk::ToggleButton::new();
+
+    let window_adw_stack_clone0 = window_adw_stack.clone();
+    let window_adw_view_switcher_sidebar_box_clone0 = window_adw_view_switcher_sidebar_box.clone();
+
+    let add_content_button = |active: bool, name: String, title: String| {
+        let toggle_button = gtk::ToggleButton::builder()
+            .group(&null_toggle_button)
+            .label(&title)
+            .active(active)
+            .margin_top(5)
+            .margin_bottom(5)
+            .margin_start(10)
+            .margin_end(10)
+            .valign(gtk::Align::Start)
+            .build();
+        toggle_button.add_css_class("flat");
+        toggle_button.connect_clicked(move |toggle_button| {
+            if toggle_button.is_active() {
+                window_adw_stack_clone0.set_visible_child_name(&name);
+            }
+        });
+        window_adw_view_switcher_sidebar_box_clone0.append(&toggle_button);
+    };
 
     let sidebar_toggle_button = gtk::ToggleButton::builder()
         .icon_name("view-right-pane-symbolic")
@@ -278,17 +295,29 @@ pub fn build_ui(app: &Application) {
         &t!("apt_update_page_title"),
     );
 
+    {
+        add_content_button.clone()(true, "apt_update_page".to_string(), t!("apt_update_page_title").to_string());
+    }
+
     window_adw_stack.add_titled(
         &flatpak_update_view_stack_bin,
         Some("flatpak_update_page"),
         &t!("flatpak_update_page_title"),
     );
 
+    {
+        add_content_button.clone()(false, "flatpak_update_page".to_string(), t!("flatpak_update_page_title").to_string());
+    }
+
     window_adw_stack.add_titled(
         &apt_manage_page(window, &apt_retry_signal_action),
         Some("apt_manage_page"),
         &t!("apt_manage_page_title"),
     );
+
+    {
+        add_content_button.clone()(false, "apt_manage_page".to_string(), t!("apt_manage_page_title").to_string());
+    }
 
     // Refresh button
 
