@@ -221,7 +221,9 @@ pub fn legacy_edit_dialog_fn(
                 unofficial_source_add_dialog.clone()
                     .choose(None::<&gio::Cancellable>, move |choice| {
                         match choice.as_str() {
-                            "unofficial_source_edit_dialog_edit" => {       
+                            "unofficial_source_edit_dialog_edit" => {   
+                                let mut new_apt_legacy_vec = LegacyAptSource::get_legacy_sources().unwrap();
+                                new_apt_legacy_vec.retain(|x| x != &legacy_repo_clone0);
                                 let new_repo = LegacyAptSource {
                                     url: unofficial_source_add_uri_entry.text().to_string(),
                                     is_source: unofficial_source_add_is_source_switch.is_active(),
@@ -231,7 +233,8 @@ pub fn legacy_edit_dialog_fn(
                                     enabled: unofficial_source_add_is_enabled_switch.is_active(),
                                     ..legacy_repo_clone0
                                 };
-                                    /*match LegacyAptSource::save_to_file(new_repo.clone(), LegacyAptSource::get_legacy_sources().unwrap(), &format!("/tmp/{}.list", repo_file_name)) {
+                                new_apt_legacy_vec.push(new_repo.clone());
+                                    match LegacyAptSource::save_to_file(new_repo, new_apt_legacy_vec, &format!("/tmp/{}.list", repo_file_name)) {
                                         Ok(_) => {
                                             match duct::cmd!("pkexec", "/usr/lib/pika/pikman-update-manager/scripts/modify_repo.sh", "legacy_move", repo_file_name).run() {
                                                 Ok(_) => {}
@@ -261,9 +264,7 @@ pub fn legacy_edit_dialog_fn(
                                             apt_src_create_error_dialog.present();
                                             reload_action_clone0.activate(None);
                                         }
-                                    }*/
-                                    dbg!(&new_repo);
-                                    LegacyAptSource::save_to_file(new_repo.clone(), LegacyAptSource::get_legacy_sources().unwrap(), &format!("/tmp/{}.list", repo_file_name)).unwrap();
+                                    }
                                 }
                             _ => {}
                         }

@@ -27,7 +27,7 @@ async-channel = "2.1.1"
 rust-i18n = "3.0.1"
 rust-apt = { git = "https://gitlab.com/volian/rust-apt" }
 apt-deb822-tools = { package = "deb822-tools", git = "https://github.com/CosmicFusion/deb822-tools" }
-apt-legacy-tools = { version = "0.1.1", package = "legacy-apt-list-tools-rs", git = "https://github.com/CosmicFusion/legacy-apt-list-tools-rs" }
+apt-legacy-tools = { version = "0.1.3", package = "legacy-apt-list-tools-rs", git = "https://github.com/CosmicFusion/legacy-apt-list-tools-rs" }
 tokio = { version = "1", features = ["full"] }
 tokio-uds = "0.2"
 serde = { version = "1.0.203", features = ["derive"] }
