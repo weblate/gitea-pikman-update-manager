@@ -124,5 +124,6 @@
   "unofficial_source_add_legacy_options_prefrencesgroup_title": "Options",
   "unofficial_source_add_is_legacy_source_label_label": "Is A Source Repository",
   "apt_src_create_error_dialog_heading": "Could Not Save Changes: Error",
-  "apt_src_create_error_dialog_ok_label": "OK"
+  "apt_src_create_error_dialog_ok_label": "OK",
+  "system_mirror_save_button_tooltip_text": "Save Changes"
 } 

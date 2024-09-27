@@ -43,8 +43,6 @@ pub fn apt_manage_page(
         }
     }).next().unwrap();
 
-    let system_mirror_refcell = Rc::new(RefCell::new(system_source.repolib_default_mirror.as_deref().unwrap().to_string()));
-
     let main_box = Box::builder()
         .hexpand(true)
         .vexpand(true)
@@ -52,17 +50,6 @@ pub fn apt_manage_page(
         .build();
 
     //
-
-    let mirror_entry_box = gtk::Box::builder()
-        .orientation(Orientation::Horizontal)
-        .margin_top(15)
-        .margin_bottom(5)
-        .margin_start(15)
-        .margin_end(15)
-        .hexpand(true)
-        .valign(gtk::Align::Start)
-        .build();
-    mirror_entry_box.add_css_class("linked");
 
     let system_mirror_label0 = gtk::Label::builder()
         .label(t!("system_mirror_label0_label"))
@@ -86,78 +73,15 @@ pub fn apt_manage_page(
         .build();
 
     let system_mirror_entry = gtk::Entry::builder()
-        .placeholder_text(system_mirror_refcell.borrow().to_string())
+        .placeholder_text(system_source.repolib_default_mirror.as_deref().unwrap())
         .text(system_source.uris.as_deref().unwrap())
-        .hexpand(true)
+        .valign(gtk::Align::Start)
+        .margin_top(5)
+        .margin_bottom(5)
+        .margin_start(15)
+        .margin_end(15)
         .build();
 
-    let system_mirror_save_button = gtk::Button::builder()
-        .tooltip_text(t!("system_mirror_save_button_tooltip_text"))
-        .sensitive(false)
-        .halign(gtk::Align::End)
-        .icon_name("object-select-symbolic")
-        .build();
-
-    system_mirror_entry.connect_changed(clone!(
-        #[weak]
-        system_mirror_save_button,
-        #[strong]
-        system_mirror_refcell,
-        move |entry| {
-            system_mirror_save_button.set_sensitive(!(entry.text().to_string() == system_mirror_refcell.borrow().to_string()));
-        }
-    ));
-
-    system_mirror_save_button.connect_clicked(clone!(
-        #[weak]
-        system_mirror_entry,
-        #[strong]
-        system_mirror_refcell,
-        #[strong]
-        system_source,
-        #[strong]
-        retry_signal_action,
-        move |button| {
-            let new_repo = Deb822Repository {
-                uris: (Some(system_mirror_entry.text().to_string())),
-                ..system_source.clone()
-            };
-            match Deb822Repository::write_to_file(new_repo.clone(), std::path::Path::new("/tmp/system.sources").to_path_buf()) {
-                Ok(_) => {
-                    match duct::cmd!("pkexec", "/usr/lib/pika/pikman-update-manager/scripts/modify_repo.sh", "deb822_move", "system", "system").run() {
-                        Ok(_) => {
-                            retry_signal_action.activate(None);
-                            *system_mirror_refcell.borrow_mut() = system_mirror_entry.text().to_string();
-                            button.set_sensitive(false);
-                        }
-                        Err(e) => {
-                            let apt_src_create_error_dialog = adw::MessageDialog::builder()
-                                .heading(t!("apt_src_create_error_dialog_heading"))
-                                .body(e.to_string())
-                                .build();
-                            apt_src_create_error_dialog.add_response(
-                                "apt_src_create_error_dialog_ok",
-                                &t!("apt_src_create_error_dialog_ok_label").to_string(),
-                                );
-                            apt_src_create_error_dialog.present();
-                            retry_signal_action.activate(None);
-                        }
-                    }
-                }
-                Err(e) => {
-                    let apt_src_create_error_dialog = adw::MessageDialog::builder()
-                        .heading(t!("apt_src_create_error_dialog_heading"))
-                        .body(e.to_string())
-                        .build();
-                    apt_src_create_error_dialog.add_response(
-                        "apt_src_create_error_dialog_ok",
-                        &t!("apt_src_create_error_dialog_ok_label").to_string(),
-                        );
-                    apt_src_create_error_dialog.present();
-                }
-            }
-        }
-    ));
     //
 
     let unofficial_sources_label0 = gtk::Label::builder()
@@ -479,23 +403,8 @@ pub fn apt_manage_page(
                     .choose(None::<&gio::Cancellable>, move |choice| {
                         match choice.as_str() {
                             "apt_src_remove_warning_dialog_ok" => {
-                                match command.run() {
-                                    Ok(_) => {
-                                        retry_signal_action_clone0.activate(None);
-                                    }
-                                    Err(e) => {
-                                        let apt_src_create_error_dialog = adw::MessageDialog::builder()
-                                            .heading(t!("apt_src_create_error_dialog_heading"))
-                                            .body(e.to_string())
-                                            .build();
-                                        apt_src_create_error_dialog.add_response(
-                                            "apt_src_create_error_dialog_ok",
-                                            &t!("apt_src_create_error_dialog_ok_label").to_string(),
-                                            );
-                                        apt_src_create_error_dialog.present();
-                                        retry_signal_action_clone0.activate(None);
-                                    }
-                                }
+                                let _ = command.run().unwrap();
+                                retry_signal_action_clone0.activate(None);
                             }
                             _ => {}
                         }
@@ -518,10 +427,7 @@ pub fn apt_manage_page(
 
     main_box.append(&system_mirror_label0);
     main_box.append(&system_mirror_label1);
-    main_box.append(&mirror_entry_box);
-
-    mirror_entry_box.append(&system_mirror_entry);
-    mirror_entry_box.append(&system_mirror_save_button);
+    main_box.append(&system_mirror_entry);
     //
     main_box.append(&unofficial_sources_label0);
     main_box.append(&unofficial_sources_label1);
