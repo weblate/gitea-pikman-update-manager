@@ -2,7 +2,8 @@ use crate::apt_package_row::AptPackageRow;
 use adw::gio::SimpleAction;
 use adw::prelude::*;
 use apt_deb822_tools::Deb822Repository;
-use regex::Regex;
+use libflatpak::builders::RemoteRefBuilder;
+use regex::{bytes, Regex};
 use gtk::glib::{property::PropertyGet, clone, BoxedAnyObject};
 use gtk::*;
 use std::cell::Ref;
@@ -16,196 +17,126 @@ use std::process::Command;
 use std::rc::Rc;
 use std::thread;
 use tokio::runtime::Runtime;
+use libflatpak::prelude::*;
+use libflatpak::InstalledRef;
 
 pub fn add_dialog_fn(
         window: adw::ApplicationWindow,
         reload_action: &gio::SimpleAction
     )
     {
-    let unofficial_source_add_dialog_child_box = Box::builder()
+                let flatpak_remote_add_dialog_child_box = Box::builder()
                     .hexpand(true)
                     .orientation(Orientation::Vertical)
                     .build();
                 
-                let unofficial_source_add_name_entry = gtk::Entry::builder()
-                    .placeholder_text("WineHQ Debian")
+                let flatpak_remote_add_name_entry = gtk::Entry::builder()
+                    .placeholder_text("Flathub")
                     .build();
 
-                let unofficial_source_add_name_prefrencesgroup = adw::PreferencesGroup::builder()
-                    .title(t!("unofficial_source_add_name_prefrencesgroup_title"))
+                let flatpak_remote_add_name_prefrencesgroup = adw::PreferencesGroup::builder()
+                    .title(t!("flatpak_remote_add_name_prefrencesgroup_title"))
                     .build();
 
-                unofficial_source_add_name_prefrencesgroup.add(&unofficial_source_add_name_entry);
+                flatpak_remote_add_name_prefrencesgroup.add(&flatpak_remote_add_name_entry);
 
-                let unofficial_source_add_uri_entry = gtk::Entry::builder()
-                    .placeholder_text("https://dl.winehq.org/wine-builds/debian")
+                let flatpak_remote_add_url_entry = gtk::Entry::builder()
+                    .placeholder_text("https://dl.flathub.org/repo/flathub.flatpakrepo")
                     .build();
 
-                let unofficial_source_add_uri_prefrencesgroup = adw::PreferencesGroup::builder()
-                    .title(t!("unofficial_source_add_uri_prefrencesgroup_title"))
+                let flatpak_remote_add_url_prefrencesgroup = adw::PreferencesGroup::builder()
+                    .title(t!("flatpak_remote_add_url_prefrencesgroup_title"))
                     .build();
 
-                unofficial_source_add_uri_prefrencesgroup.add(&unofficial_source_add_uri_entry);
+                flatpak_remote_add_url_prefrencesgroup.add(&flatpak_remote_add_url_entry);
 
-                let unofficial_source_add_suites_entry = gtk::Entry::builder()
-                    .placeholder_text("trixie bookworm sid")
-                    .build();
-
-                let unofficial_source_add_suites_prefrencesgroup = adw::PreferencesGroup::builder()
-                    .title(t!("unofficial_source_add_suites_prefrencesgroup_title"))
-                    .build();
-
-                unofficial_source_add_suites_prefrencesgroup.add(&unofficial_source_add_suites_entry);
-
-                let unofficial_source_add_components_entry = gtk::Entry::builder()
-                    .placeholder_text("main proprietary")
-                    .build();
-
-                let unofficial_source_add_components_prefrencesgroup = adw::PreferencesGroup::builder()
-                    .title(t!("unofficial_source_add_components_prefrencesgroup_title"))
-                    .build();
-
-                unofficial_source_add_components_prefrencesgroup.add(&unofficial_source_add_components_entry);
-
-                let unofficial_source_add_signed_entry = gtk::Entry::builder()
-                    .sensitive(false)
-                    .build();
-
-                let unofficial_source_add_signed_prefrencesgroup = adw::PreferencesGroup::builder()
-                    .title(t!("unofficial_source_add_signed_prefrencesgroup_title"))
-                    .build();
-                
-                unofficial_source_add_signed_prefrencesgroup.add(&unofficial_source_add_signed_entry);
-
-                let unofficial_source_add_archs_entry = gtk::Entry::builder()
-                    .placeholder_text("amd64 arm64 i386")
-                    .build();
-
-                let unofficial_source_add_archs_prefrencesgroup = adw::PreferencesGroup::builder()
-                    .title(t!("unofficial_source_add_archs_prefrencesgroup_title"))
-                    .build();
-
-                unofficial_source_add_archs_prefrencesgroup.add(&unofficial_source_add_archs_entry);
-
-                let unofficial_source_add_box2 = gtk::Box::builder()
+                let flatpak_remote_add_box2 = gtk::Box::builder()
                     .margin_top(10)
                     .orientation(Orientation::Horizontal)
                     .hexpand(true)
                     .spacing(5)
                     .build();
 
-                let unofficial_source_add_is_source_label = gtk::Label::builder()
-                    .label(t!("unofficial_source_add_is_source_label_label"))
-                    .halign(Align::Start)
+                let flatpak_remote_user_togglebutton = gtk::ToggleButton::builder()
                     .valign(Align::Center)
-                    .build();
-                
-                let unofficial_source_add_is_source_switch = gtk::Switch::builder()
-                    .halign(Align::Start)
-                    .valign(Align::Center)
-                    .build();
-
-                let unofficial_source_signed_keyring_checkbutton = gtk::CheckButton::builder()
-                    .halign(Align::Start)
-                    .valign(Align::Center)
-                    .label(t!("unofficial_source_signed_keyring_checkbutton_label"))
+                    .hexpand(true)
+                    .label(t!("flatpak_remotes_columnview_user"))
                     .active(true)
                     .build();
 
-                let unofficial_source_signed_file_checkbutton = gtk::CheckButton::builder()
-                    .halign(Align::Start)
+                let flatpak_remote_system_togglebutton = gtk::ToggleButton::builder()
                     .valign(Align::Center)
-                    .label(t!("unofficial_source_signed_file_checkbutton_label"))
-                    .group(&unofficial_source_signed_keyring_checkbutton)
-                    .build();
-
-                let unofficial_source_signed_url_checkbutton = gtk::CheckButton::builder()
-                    .halign(Align::Start)
-                    .valign(Align::Center)
-                    .label(t!("unofficial_source_signed_url_checkbutton_label"))
-                    .group(&unofficial_source_signed_keyring_checkbutton)
+                    .hexpand(true)
+                    .label(t!("flatpak_remotes_columnview_system"))
+                    .group(&flatpak_remote_user_togglebutton)
                     .build();
 
                 //
-                let unofficial_source_add_dialog_child_clamp = adw::Clamp::builder()
-                    .child(&unofficial_source_add_dialog_child_box)
+                let flatpak_remote_add_dialog_child_clamp = adw::Clamp::builder()
+                    .child(&flatpak_remote_add_dialog_child_box)
                     .maximum_size(500)
                     .build();
 
-                let unofficial_source_add_viewport = gtk::ScrolledWindow::builder()
+                let flatpak_remote_add_viewport = gtk::ScrolledWindow::builder()
                     .hexpand(true)
                     .vexpand(true)
-                    .child(&unofficial_source_add_dialog_child_clamp)
+                    .child(&flatpak_remote_add_dialog_child_clamp)
                     .hscrollbar_policy(PolicyType::Never)
                     .build();
 
-                let unofficial_source_add_dialog = adw::MessageDialog::builder()
+                let flatpak_remote_add_dialog = adw::MessageDialog::builder()
                     .transient_for(&window)
-                    .extra_child(&unofficial_source_add_viewport)
-                    .heading(t!("unofficial_source_add_dialog_heading"))
+                    .extra_child(&flatpak_remote_add_viewport)
+                    .heading(t!("flatpak_remote_add_dialog_heading"))
                     .width_request(700)
-                    .height_request(500)
+                    .height_request(400)
                     .build();
 
-                unofficial_source_add_dialog.add_response(
-                    "unofficial_source_add_dialog_add",
-                    &t!("unofficial_source_add_dialog_add_label").to_string(),
+                flatpak_remote_add_dialog.add_response(
+                    "flatpak_remote_add_dialog_add",
+                    &t!("flatpak_remote_add_dialog_add_label").to_string(),
                 );
                 
-                unofficial_source_add_dialog.add_response(
-                    "unofficial_source_add_dialog_cancel",
-                    &t!("unofficial_source_add_dialog_cancel_label").to_string(),
+                flatpak_remote_add_dialog.add_response(
+                    "flatpak_remote_add_dialog_cancel",
+                    &t!("flatpak_remote_add_dialog_cancel_label").to_string(),
                     );
 
-                unofficial_source_add_dialog.set_response_enabled("unofficial_source_add_dialog_add", false);
+                flatpak_remote_add_dialog.set_response_enabled("flatpak_remote_add_dialog_add", false);
                 
-                unofficial_source_add_dialog.set_response_appearance(
-                    "unofficial_source_add_dialog_cancel",
+                flatpak_remote_add_dialog.set_response_appearance(
+                    "flatpak_remote_add_dialog_cancel",
                     adw::ResponseAppearance::Destructive,
                 );
 
-                unofficial_source_add_dialog.set_response_appearance(
-                    "unofficial_source_add_dialog_add",
+                flatpak_remote_add_dialog.set_response_appearance(
+                    "flatpak_remote_add_dialog_add",
                     adw::ResponseAppearance::Suggested,
                 );
 
                 //
 
-                let unofficial_source_add_dialog_clone0 = unofficial_source_add_dialog.clone();
-                let unofficial_source_add_name_entry_clone0 = unofficial_source_add_name_entry.clone();
-                let unofficial_source_add_uri_entry_clone0 = unofficial_source_add_uri_entry.clone();
-                let unofficial_source_add_suites_entry_clone0 = unofficial_source_add_suites_entry.clone();
-                let unofficial_source_add_components_entry_clone0 = unofficial_source_add_components_entry.clone();
-                let unofficial_source_add_signed_entry_clone0 = unofficial_source_add_signed_entry.clone();
-                let unofficial_source_signed_keyring_checkbutton_clone0 = unofficial_source_signed_keyring_checkbutton.clone();
+                let flatpak_remote_add_dialog_clone0 = flatpak_remote_add_dialog.clone();
+                let flatpak_remote_add_name_entry_clone0 = flatpak_remote_add_name_entry.clone();
+                let flatpak_remote_add_url_entry_clone0 = flatpak_remote_add_url_entry.clone();
+
 
                 let add_button_update_state = move || {
                     if
-                        !unofficial_source_add_name_entry_clone0.text().is_empty() &&
-                        !unofficial_source_add_uri_entry_clone0.text().is_empty() &&
-                        !unofficial_source_add_suites_entry_clone0.text().is_empty() &&
-                        !unofficial_source_add_components_entry_clone0.text().is_empty()
+                        !flatpak_remote_add_name_entry_clone0.text().is_empty() &&
+                        !flatpak_remote_add_url_entry_clone0.text().is_empty()
                     {
-                        if unofficial_source_signed_keyring_checkbutton_clone0.is_active() {
-                            unofficial_source_add_dialog_clone0.set_response_enabled("unofficial_source_add_dialog_add", true);
-                        } else if !unofficial_source_add_signed_entry_clone0.text().is_empty() {
-                            unofficial_source_add_dialog_clone0.set_response_enabled("unofficial_source_add_dialog_add", true);
-                        } else {
-                            unofficial_source_add_dialog_clone0.set_response_enabled("unofficial_source_add_dialog_add", false);
-                        }
+                        flatpak_remote_add_dialog_clone0.set_response_enabled("flatpak_remote_add_dialog_add", true);
                     } else {
-                        unofficial_source_add_dialog_clone0.set_response_enabled("unofficial_source_add_dialog_add", false);
+                        flatpak_remote_add_dialog_clone0.set_response_enabled("flatpak_remote_add_dialog_add", false);
                     }
                 };
 
                 //
 
                 for entry in [
-                    &unofficial_source_add_name_entry,
-                    &unofficial_source_add_uri_entry,
-                    &unofficial_source_add_suites_entry,
-                    &unofficial_source_add_components_entry,
-                    &unofficial_source_add_signed_entry,
+                    &flatpak_remote_add_name_entry,
+                    &flatpak_remote_add_url_entry,
                 ] {
                     entry.connect_text_notify(clone!(
                         #[strong]
@@ -219,177 +150,70 @@ pub fn add_dialog_fn(
                 }
                 
                 //
-
-                unofficial_source_signed_keyring_checkbutton.connect_toggled(clone!(
-                    #[weak]
-                    unofficial_source_add_signed_entry,
-                    #[strong]
-                    add_button_update_state,
-                    move |checkbutton|
-                        {
-                            if checkbutton.is_active() {
-                                unofficial_source_add_signed_entry.set_sensitive(false);
-                                unofficial_source_add_signed_entry.set_placeholder_text(Some(""));
-                                add_button_update_state();
-                            }
-                        }
-                    )
-                );
-
-                unofficial_source_signed_file_checkbutton.connect_toggled(clone!(
-                    #[weak]
-                    unofficial_source_add_signed_entry,
-                    #[strong]
-                    add_button_update_state,
-                    move |checkbutton|
-                        {
-                            if checkbutton.is_active() {
-                                unofficial_source_add_signed_entry.set_sensitive(true);
-                                unofficial_source_add_signed_entry.set_placeholder_text(Some("/etc/apt/keyrings/winehq-archive.key"));
-                                add_button_update_state();
-                            }
-                        }
-                    )
-                );
-
-                unofficial_source_signed_url_checkbutton.connect_toggled(clone!(
-                    #[weak]
-                    unofficial_source_add_signed_entry,
-                    #[strong]
-                    add_button_update_state,
-                    move |checkbutton|
-                        {
-                            if checkbutton.is_active() {
-                                unofficial_source_add_signed_entry.set_sensitive(true);
-                                unofficial_source_add_signed_entry.set_placeholder_text(Some("https://dl.winehq.org/wine-builds/winehq.key"));
-                                add_button_update_state();
-                            }
-                        }
-                    )
-                );
                 
-                unofficial_source_add_box2.append(&unofficial_source_add_is_source_label);
-                unofficial_source_add_box2.append(&unofficial_source_add_is_source_switch);
-                unofficial_source_add_box2.append(&unofficial_source_signed_keyring_checkbutton);
-                unofficial_source_add_box2.append(&unofficial_source_signed_file_checkbutton);
-                unofficial_source_add_box2.append(&unofficial_source_signed_url_checkbutton);
+                flatpak_remote_add_box2.append(&flatpak_remote_user_togglebutton);
+                flatpak_remote_add_box2.append(&flatpak_remote_system_togglebutton);
 
-                unofficial_source_add_dialog_child_box.append(&unofficial_source_add_name_prefrencesgroup);
-                unofficial_source_add_dialog_child_box.append(&unofficial_source_add_uri_prefrencesgroup);
-                unofficial_source_add_dialog_child_box.append(&unofficial_source_add_suites_prefrencesgroup);
-                unofficial_source_add_dialog_child_box.append(&unofficial_source_add_components_prefrencesgroup);
-                unofficial_source_add_dialog_child_box.append(&unofficial_source_add_archs_prefrencesgroup);
-                unofficial_source_add_dialog_child_box.append(&unofficial_source_add_box2);
-                unofficial_source_add_dialog_child_box.append(&unofficial_source_add_signed_prefrencesgroup);
+                flatpak_remote_add_dialog_child_box.append(&flatpak_remote_add_name_prefrencesgroup);
+                flatpak_remote_add_dialog_child_box.append(&flatpak_remote_add_url_prefrencesgroup);
+                flatpak_remote_add_dialog_child_box.append(&flatpak_remote_add_box2);
 
                 let reload_action_clone0 = reload_action.clone();
 
-                unofficial_source_add_dialog.clone()
+                flatpak_remote_add_dialog.clone()
                     .choose(None::<&gio::Cancellable>, move |choice| {
                         match choice.as_str() {
-                            "unofficial_source_add_dialog_add" => {
-                                let non_alphanum_regex = Regex::new(r"[^a-zA-Z0-9]").unwrap();
-                                let sign_method = if unofficial_source_signed_file_checkbutton.is_active() {
-                                    1
-                                } else if unofficial_source_signed_url_checkbutton.is_active() {
-                                    2
-                                } else {
-                                    0
+                            "flatpak_remote_add_dialog_add" => {
+                                let cancellable_no = libflatpak::gio::Cancellable::NONE;          
+
+                                let flatpak_installation = match flatpak_remote_system_togglebutton.is_active() {
+                                    true => libflatpak::Installation::new_system(cancellable_no).unwrap(),
+                                    false => libflatpak::Installation::new_user(cancellable_no).unwrap(),
                                 };
-                                let repo_file_name = non_alphanum_regex.replace_all(unofficial_source_add_name_entry.text().as_str(), "_").to_string().to_lowercase();
-                                let new_repo = Deb822Repository {
-                                    repolib_name: Some(unofficial_source_add_name_entry.text().to_string()),
-                                    filepath: format!("/etc/apt/sources.list.d/{}.source", repo_file_name),
-                                    uris: Some(unofficial_source_add_uri_entry.text().to_string()),
-                                    types: if unofficial_source_add_is_source_switch.is_active() {
-                                        Some("deb deb-src".to_string())
-                                    } else {
-                                        Some("deb".to_string())
-                                    },
-                                    suites: Some(unofficial_source_add_suites_entry.text().to_string()),
-                                    components: Some(unofficial_source_add_components_entry.text().to_string()),
-                                    architectures: if unofficial_source_add_archs_entry.text().is_empty() {
-                                        None
-                                    } else {
-                                        Some(unofficial_source_add_archs_entry.text().to_string())
-                                    },
-                                    signed_by: match sign_method {
-                                        1 => Some(unofficial_source_add_signed_entry.text().to_string()),
-                                        2 => Some(format!("/etc/apt/keyrings/{}.gpg.key", repo_file_name)),
-                                        _ => None
-                                    },
-                                    ..Default::default()
-                                };
-                                if sign_method == 2 {
-                                            match Deb822Repository::write_to_file(new_repo.clone(), format!("/tmp/{}.sources", repo_file_name).into()) {
-                                                Ok(_) => {
-                                                    match duct::cmd!("pkexec", "/usr/lib/pika/pikman-update-manager/scripts/modify_repo.sh", "deb822_move_with_wget", &repo_file_name, &unofficial_source_add_signed_entry.text().to_string(), &format!("/etc/apt/keyrings/{}.gpg.key", &repo_file_name)).run() {
-                                                        Ok(_) => {
-                                                            reload_action_clone0.activate(None);
-                                                        }
-                                                        Err(e) => {
-                                                            let apt_src_create_error_dialog = adw::MessageDialog::builder()
-                                                                .heading(t!("apt_src_create_error_dialog_heading"))
-                                                                .body(e.to_string())
-                                                                .build();
-                                                            apt_src_create_error_dialog.add_response(
-                                                                "apt_src_create_error_dialog_ok",
-                                                                &t!("apt_src_create_error_dialog_ok_label").to_string(),
-                                                                );
-                                                            apt_src_create_error_dialog.present();
-                                                            reload_action_clone0.activate(None);
-                                                        }
-                                                    }
-                                                }
-                                                Err(e) => {
-                                                    let apt_src_create_error_dialog = adw::MessageDialog::builder()
-                                                        .heading(t!("apt_src_create_error_dialog_heading"))
-                                                        .body(e.to_string())
-                                                        .build();
-                                                    apt_src_create_error_dialog.add_response(
-                                                        "apt_src_create_error_dialog_ok",
-                                                        &t!("apt_src_create_error_dialog_ok_label").to_string(),
-                                                        );
-                                                    apt_src_create_error_dialog.present();
-                                                }
+
+                                match libflatpak::Remote::from_file(&flatpak_remote_add_name_entry.text(), &get_data_from_url(&flatpak_remote_add_url_entry.text()).unwrap()) {
+                                    Ok(remote) => {
+                                        match libflatpak::Installation::add_remote(&flatpak_installation, &remote, true, cancellable_no) {
+                                            Ok(_) => {
+                                                reload_action_clone0.activate(None);
                                             }
-                                } else {
-                                    match Deb822Repository::write_to_file(new_repo.clone(), format!("/tmp/{}.sources", repo_file_name).into()) {
-                                        Ok(_) => {
-                                            match duct::cmd!("pkexec", "/usr/lib/pika/pikman-update-manager/scripts/modify_repo.sh", "deb822_move", repo_file_name).run() {
-                                                Ok(_) => {
-                                                    reload_action_clone0.activate(None);
-                                                }
-                                                Err(e) => {
-                                                    let apt_src_create_error_dialog = adw::MessageDialog::builder()
-                                                        .heading(t!("apt_src_create_error_dialog_heading"))
-                                                        .body(e.to_string())
-                                                        .build();
-                                                    apt_src_create_error_dialog.add_response(
-                                                        "apt_src_create_error_dialog_ok",
-                                                        &t!("apt_src_create_error_dialog_ok_label").to_string(),
-                                                        );
-                                                    apt_src_create_error_dialog.present();
-                                                    reload_action_clone0.activate(None);
-                                                }
+                                            Err(e) => {
+                                                let flatpak_remote_add_error_dialog = adw::MessageDialog::builder()
+                                                    .heading(t!("flatpak_remote_add_error_dialog_heading"))
+                                                    .body(e.to_string())
+                                                    .build();
+                                                flatpak_remote_add_error_dialog.add_response(
+                                                    "flatpak_remote_add_error_dialog_ok",
+                                                    &t!("flatpak_remote_add_error_dialog_ok_label").to_string(),
+                                                    );
+                                                flatpak_remote_add_error_dialog.present();
                                             }
                                         }
-                                        Err(e) => {
-                                            let apt_src_create_error_dialog = adw::MessageDialog::builder()
-                                                .heading(t!("apt_src_create_error_dialog_heading"))
-                                                .body(e.to_string())
-                                                .build();
-                                            apt_src_create_error_dialog.add_response(
-                                                "apt_src_create_error_dialog_ok",
-                                                &t!("apt_src_create_error_dialog_ok_label").to_string(),
-                                                );
-                                            apt_src_create_error_dialog.present();
-                                            reload_action_clone0.activate(None);
-                                        }
+                                    }
+                                    Err(e) => {
+                                        let flatpak_remote_add_error_dialog = adw::MessageDialog::builder()
+                                                    .heading(t!("flatpak_remote_add_error_dialog_heading"))
+                                                    .body(e.to_string())
+                                                    .build();
+                                        flatpak_remote_add_error_dialog.add_response(
+                                            "flatpak_remote_add_error_dialog_ok",
+                                            &t!("flatpak_remote_add_error_dialog_ok_label").to_string(),
+                                        );
                                     }
                                 }
                             }
                             _ => {}
                         }
                     });
+}
+
+fn get_data_from_url(url: &str) -> Result<libflatpak::glib::Bytes, reqwest::Error> {
+    let data = reqwest::blocking::get(url)?
+        .text()
+        .unwrap();
+        
+    let bytes = data.as_bytes();
+
+    let glib_bytes = libflatpak::glib::Bytes::from(bytes);
+    Ok(glib_bytes)
 }

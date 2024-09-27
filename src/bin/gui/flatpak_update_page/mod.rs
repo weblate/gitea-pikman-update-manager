@@ -56,7 +56,7 @@ pub fn flatpak_update_page(
     thread::spawn(move || {
         let cancellable_no = libflatpak::gio::Cancellable::NONE;
         let flatpak_system_installation =
-            libflatpak::Installation::new_user(cancellable_no).unwrap();
+            libflatpak::Installation::new_system(cancellable_no).unwrap();
         if let Ok(remotes) =
             libflatpak::Installation::list_remotes(&flatpak_system_installation, cancellable_no)
         {

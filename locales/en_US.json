@@ -125,5 +125,20 @@
   "unofficial_source_add_is_legacy_source_label_label": "Is A Source Repository",
   "apt_src_create_error_dialog_heading": "Could Not Save Changes: Error",
   "apt_src_create_error_dialog_ok_label": "OK",
-  "system_mirror_save_button_tooltip_text": "Save Changes"
+  "flatpak_manage_page_title": "Flatpak Settings",
+  "system_mirror_save_button_tooltip_text": "Save Changes",
+  "flatpak_remotes_columnview_col0_title": "Remote Title",
+  "flatpak_remotes_columnview_col1_title": "Remote URL",
+  "flatpak_remotes_columnview_col2_title": "Remote Installation Type",
+  "flatpak_remotes_label": "Flatpak Remotes",
+  "flatpak_remotes_label1_label": "These Remotes Are for Software Provided via Flatpak. They May Present a Security Risk. Only Add Remotes That You Trust.",
+  "flatpak_remotes_columnview_system": "System",
+  "flatpak_remotes_columnview_user": "User",
+  "flatpak_remote_add_dialog_heading": "Add Flatpak Remote from URL",
+  "flatpak_remote_add_dialog_add_label": "Add Remote",
+  "flatpak_remote_add_dialog_cancel_label": "Cancel",
+  "flatpak_remote_add_error_dialog_heading": "Flatpak Remote Changes Failed Error:",
+  "flatpak_remote_add_error_dialog_ok_label": "OK",
+  "flatpak_remote_add_name_prefrencesgroup_title": "Remote Name",
+  "flatpak_remote_add_url_prefrencesgroup_title": "Remote Ref URL (flatpakrepo)"
 } 

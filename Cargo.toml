@@ -41,4 +41,5 @@ lock_api = "0.4.2"
 libflatpak = { version = "0.5.0", package = "libflatpak", features = ["v1_11_1"] }
 regex = "1.10.6"
 duct = "0.13.7"
+reqwest = { version = "0.11", features = ["blocking"] }
 

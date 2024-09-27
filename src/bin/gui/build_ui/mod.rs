@@ -1,4 +1,5 @@
 use crate::apt_manage_page::apt_manage_page;
+use crate::flatpak_manage_page::flatpak_manage_page;
 use crate::apt_update_page;
 use crate::config::{APP_GITHUB, APP_ICON, APP_ID, VERSION};
 use crate::flatpak_update_page;
@@ -310,7 +311,7 @@ pub fn build_ui(app: &Application) {
     }
 
     window_adw_stack.add_titled(
-        &apt_manage_page(window, &apt_retry_signal_action),
+        &apt_manage_page(window.clone(), &apt_retry_signal_action),
         Some("apt_manage_page"),
         &t!("apt_manage_page_title"),
     );
@@ -318,6 +319,17 @@ pub fn build_ui(app: &Application) {
     {
         add_content_button.clone()(false, "apt_manage_page".to_string(), t!("apt_manage_page_title").to_string());
     }
+
+    window_adw_stack.add_titled(
+        &flatpak_manage_page(window, &flatpak_retry_signal_action),
+        Some("flatpak_manage_page"),
+        &t!("flatpak_manage_page_title"),
+    );
+
+    {
+        add_content_button.clone()(false, "flatpak_manage_page".to_string(), t!("flatpak_manage_page_title").to_string());
+    }
+
 
     // Refresh button
 
@@ -331,7 +343,9 @@ pub fn build_ui(app: &Application) {
         move |_| {
             match window_adw_stack.visible_child_name().unwrap().as_str() {
                 "apt_update_page" => apt_retry_signal_action.activate(None),
+                "apt_manage_page" => apt_retry_signal_action.activate(None),
                 "flatpak_update_page" => flatpak_retry_signal_action.activate(None),
+                "flatpak_manage_page" => flatpak_retry_signal_action.activate(None),
                 _ => {}
             }
         }
