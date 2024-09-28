@@ -141,5 +141,8 @@
   "flatpak_remote_add_error_dialog_heading": "Flatpak Remote Changes Failed Error:",
   "flatpak_remote_add_error_dialog_ok_label": "OK",
   "flatpak_remote_add_name_prefrencesgroup_title": "Remote Name",
-  "flatpak_remote_add_url_prefrencesgroup_title": "Remote Ref URL (flatpakrepo)"
+  "flatpak_remote_add_url_prefrencesgroup_title": "Remote Ref URL (flatpakrepo)",
+  "flatpak_remote_add_error_dialog_used_error_body": "Should We Force Remove The Remote Alongside Everything Using It?",
+  "flatpak_remote_add_error_used_no_label": "No",
+  "flatpak_remote_add_error_used_yes_label": "Yes"
 } 

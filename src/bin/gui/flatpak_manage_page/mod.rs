@@ -328,18 +328,18 @@ pub fn flatpak_manage_page(
             |_|
             {
                 {
-                    let (mut installation, mut remote_name): (libflatpak::Installation, libflatpak::glib::GString);
+                    let (mut installation, mut remote_name, mut cmd_installation): (libflatpak::Installation, libflatpak::glib::GString, String);
                     {
                         let flatpak_remotes_selection_model = flatpak_remotes_selection_model_rc.borrow();
                         let selection = flatpak_remotes_selection_model.selected_item().unwrap();
                         let item  = selection.downcast_ref::<BoxedAnyObject>().unwrap();
                         let flatpak_remote: Ref<FlatpakRemote> = item.borrow();
-                        (installation, remote_name) = match flatpak_remote.deref() {
+                        (installation, remote_name, cmd_installation) = match flatpak_remote.deref() {
                             FlatpakRemote::System(remote) => {
-                                (libflatpak::Installation::new_system(cancellable_no).unwrap(), remote.name().unwrap_or_default())
+                                (libflatpak::Installation::new_system(cancellable_no).unwrap(), remote.name().unwrap_or_default(), "--system".to_string())
                             }
                             FlatpakRemote::User(remote) => {
-                                (libflatpak::Installation::new_user(cancellable_no).unwrap(), remote.name().unwrap_or_default())
+                                (libflatpak::Installation::new_user(cancellable_no).unwrap(), remote.name().unwrap_or_default(), "--user".to_string())
                             }
                         };
                     }
@@ -348,15 +348,63 @@ pub fn flatpak_manage_page(
                                     retry_signal_action.activate(None);
                                 }
                                 Err(e) => {
-                                    let flatpak_remote_add_error_dialog = adw::MessageDialog::builder()
-                                        .heading(t!("flatpak_remote_add_error_dialog_heading"))
-                                        .body(e.to_string())
-                                        .build();
-                                    flatpak_remote_add_error_dialog.add_response(
-                                        "flatpak_remote_add_error_dialog_ok",
-                                        &t!("flatpak_remote_add_error_dialog_ok_label").to_string(),
-                                        );
-                                    flatpak_remote_add_error_dialog.present();
+                                    match e.matches(libflatpak::Error::RemoteUsed) {
+                                        true => {
+                                                    let flatpak_remote_add_error_dialog = adw::MessageDialog::builder()
+                                                        .heading(t!("flatpak_remote_add_error_dialog_heading"))
+                                                        .body(e.to_string() + "\n" + &t!("flatpak_remote_add_error_dialog_used_error_body").to_string())
+                                                        .build();
+                                                    flatpak_remote_add_error_dialog.add_response(
+                                                        "flatpak_remote_add_error_dialog_used_no",
+                                                        &t!("flatpak_remote_add_error_used_no_label").to_string(),
+                                                        );
+                                                    flatpak_remote_add_error_dialog.add_response(
+                                                        "flatpak_remote_add_error_dialog_used_yes",
+                                                        &t!("flatpak_remote_add_error_used_yes_label").to_string(),
+                                                    );
+                                                    flatpak_remote_add_error_dialog.set_response_appearance(
+                                                        "flatpak_remote_add_error_dialog_used_yes",
+                                                        adw::ResponseAppearance::Destructive,
+                                                    );
+                                                    let retry_signal_action_clone0 = retry_signal_action.clone();
+                                                    flatpak_remote_add_error_dialog.clone()
+                                                        .choose(None::<&gio::Cancellable>, move |choice| {
+                                                            match choice.as_str() {
+                                                                "flatpak_remote_add_error_dialog_used_yes" => {
+                                                                    match duct::cmd!("flatpak", "remote-delete",  "--force", "--noninteractive", &cmd_installation, &remote_name).run() {
+                                                                    Ok(_) => {
+                                                                        retry_signal_action_clone0.activate(None);
+                                                                    }
+                                                                    Err(e) => {
+                                                                        let flatpak_remote_add_error_dialog = adw::MessageDialog::builder()
+                                                                            .heading(t!("flatpak_remote_add_error_dialog_heading"))
+                                                                            .body(e.to_string())
+                                                                            .build();
+                                                                        flatpak_remote_add_error_dialog.add_response(
+                                                                            "flatpak_remote_add_error_dialog_ok",
+                                                                            &t!("flatpak_remote_add_error_dialog_ok_label").to_string(),
+                                                                            );
+                                                                        flatpak_remote_add_error_dialog.present();
+                                                                    }
+                                                                    }
+                                                                }
+                                                                _ => {}
+                                                        }
+                                                    }
+                                                );
+                                        }
+                                        false => {
+                                                let flatpak_remote_add_error_dialog = adw::MessageDialog::builder()
+                                                    .heading(t!("flatpak_remote_add_error_dialog_heading"))
+                                                    .body(e.to_string())
+                                                    .build();
+                                                flatpak_remote_add_error_dialog.add_response(
+                                                    "flatpak_remote_add_error_dialog_ok",
+                                                    &t!("flatpak_remote_add_error_dialog_ok_label").to_string(),
+                                                    );
+                                                flatpak_remote_add_error_dialog.present();
+                                        }
+                                    }
                                 }
                         }
                 }
