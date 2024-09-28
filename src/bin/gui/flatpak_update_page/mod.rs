@@ -379,22 +379,12 @@ pub fn flatpak_update_page(
                         let flatpak_system_updates = flatpak_system_installation
                             .list_installed_refs_for_update(cancellable_no)
                             .unwrap();
-                        let flatpak_system_transaction = libflatpak::Transaction::for_installation(
-                            &flatpak_system_installation,
-                            cancellable_no,
-                        )
-                        .unwrap();
                         //
                         let flatpak_user_installation =
                             libflatpak::Installation::new_user(cancellable_no).unwrap();
                         let flatpak_user_updates = flatpak_user_installation
                             .list_installed_refs_for_update(cancellable_no)
                             .unwrap();
-                        let flatpak_user_transaction = libflatpak::Transaction::for_installation(
-                            &flatpak_user_installation,
-                            cancellable_no,
-                        )
-                        .unwrap();
                         //
                         let mut system_last_triggered = false;
                         let mut user_last_triggered = false;
@@ -405,7 +395,7 @@ pub fn flatpak_update_page(
                         }
                         //
                         if !flatpak_system_updates.is_empty() {
-                            let mut flatpak_system_updates_iter =
+                            let flatpak_system_updates_iter =
                                 &mut flatpak_system_updates.iter().peekable();
                             //
                             while let Some(flatpak_ref) = flatpak_system_updates_iter.next() {
@@ -559,7 +549,7 @@ pub fn flatpak_update_page(
                             system_last_triggered = true
                         }
                         if !flatpak_user_updates.is_empty() {
-                            let mut flatpak_user_updates_iter =
+                            let flatpak_user_updates_iter =
                                 &mut flatpak_user_updates.iter().peekable();
                             //
                             while let Some(flatpak_ref) = flatpak_user_updates_iter.next() {

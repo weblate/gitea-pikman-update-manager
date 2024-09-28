@@ -164,9 +164,9 @@ pub fn add_dialog_fn(
                     .choose(None::<&gio::Cancellable>, move |choice| {
                         match choice.as_str() {
                             "flatpak_remote_add_dialog_add" => {
-                                let cancellable_no = libflatpak::gio::Cancellable::NONE;          
+                                let cancellable_no = libflatpak::gio::Cancellable::NONE;      
 
-                                let flatpak_installation = match flatpak_remote_system_togglebutton.is_active() {
+                                /*let flatpak_installation = match flatpak_remote_system_togglebutton.is_active() {
                                     true => libflatpak::Installation::new_system(cancellable_no).unwrap(),
                                     false => libflatpak::Installation::new_user(cancellable_no).unwrap(),
                                 };
@@ -200,6 +200,28 @@ pub fn add_dialog_fn(
                                             &t!("flatpak_remote_add_error_dialog_ok_label").to_string(),
                                         );
                                     }
+                                }*/
+
+                                let flatpak_installation = match flatpak_remote_system_togglebutton.is_active() {
+                                    true => "--system",
+                                    false => "--user"
+                                };    
+
+                                match duct::cmd!("flatpak", "remote-add",  "--if-not-exists", &flatpak_installation, &flatpak_remote_add_name_entry.text(), &flatpak_remote_add_url_entry.text()).run() {
+                                    Ok(_) => {
+                                        reload_action_clone0.activate(None);
+                                    }
+                                    Err(e) => {
+                                        let flatpak_remote_add_error_dialog = adw::MessageDialog::builder()
+                                            .heading(t!("flatpak_remote_add_error_dialog_heading"))
+                                            .body(e.to_string())
+                                            .build();
+                                        flatpak_remote_add_error_dialog.add_response(
+                                            "flatpak_remote_add_error_dialog_ok",
+                                            &t!("flatpak_remote_add_error_dialog_ok_label").to_string(),
+                                            );
+                                        flatpak_remote_add_error_dialog.present();
+                                    }
                                 }
                             }
                             _ => {}
@@ -207,6 +229,7 @@ pub fn add_dialog_fn(
                     });
 }
 
+/* 
 fn get_data_from_url(url: &str) -> Result<libflatpak::glib::Bytes, reqwest::Error> {
     let data = reqwest::blocking::get(url)?
         .text()
@@ -216,4 +239,4 @@ fn get_data_from_url(url: &str) -> Result<libflatpak::glib::Bytes, reqwest::Erro
 
     let glib_bytes = libflatpak::glib::Bytes::from(bytes);
     Ok(glib_bytes)
-}
+}*/
