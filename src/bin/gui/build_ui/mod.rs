@@ -165,6 +165,8 @@ pub fn build_ui(app: &Application) {
         // Startup
         .startup_id(APP_ID)
         // build the window
+        .hide_on_close(true)
+        //
         .build();
 
     window.add_breakpoint(window_breakpoint);
@@ -210,7 +212,7 @@ pub fn build_ui(app: &Application) {
 
     // show the window
 
-    window.present();
+    //window.present();
 
     // Flatpak Update Page
 
@@ -299,7 +301,7 @@ pub fn build_ui(app: &Application) {
     window_adw_view_switcher_sidebar_box.append(&apt_manage_page_toggle_button);
 
     window_adw_stack.add_titled(
-        &flatpak_manage_page(window, &flatpak_retry_signal_action),
+        &flatpak_manage_page(window.clone(), &flatpak_retry_signal_action),
         Some("flatpak_manage_page"),
         &t!("flatpak_manage_page_title"),
     );
@@ -312,6 +314,8 @@ pub fn build_ui(app: &Application) {
         apt_manage_page_toggle_button,
         #[strong]
         flatpak_manage_page_toggle_button,
+        #[strong]
+        window,
         move |_, cmdline| {
         // Create Vec from cmdline
         let mut gtk_application_args = Vec::new();
@@ -323,6 +327,9 @@ pub fn build_ui(app: &Application) {
         }
 
         // Check for cmd lines
+        if !(gtk_application_args.contains(&"--hidden".to_string())) && !window.is_visible() {
+            window.present();
+        }
 
         if gtk_application_args.contains(&"--software-properties".to_string()) {
             apt_manage_page_toggle_button.set_active(true);
