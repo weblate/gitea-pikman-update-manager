@@ -33,7 +33,7 @@ fn main() {
         None => panic!("$LANG is not set"),
     };
     rust_i18n::set_locale(&current_locale);
-    let application = adw::Application::new(Some(APP_ID), Default::default());
+    let application = adw::Application::new(Some(APP_ID), gio::ApplicationFlags::HANDLES_COMMAND_LINE);
     application.connect_startup(|app| {
         // The CSS "magic" happens here.
         let provider = CssProvider::new();
@@ -45,7 +45,7 @@ fn main() {
             &provider,
             STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
-        app.connect_activate(build_ui);
+        build_ui(&app);
     });
 
     //if get_current_username().unwrap() == "pikaos" {

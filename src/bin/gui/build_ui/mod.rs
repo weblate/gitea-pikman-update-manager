@@ -90,9 +90,10 @@ pub fn build_ui(app: &Application) {
         .margin_bottom(20)
         .margin_start(5)
         .margin_end(5)
+        .hexpand(true)
         .build();
-    window_adw_view_switcher_sidebar_control_box.append(&WindowControls::builder().build());
-    window_adw_view_switcher_sidebar_control_box.append(&WindowTitle::builder().title(t!("application_name")).build());
+    window_adw_view_switcher_sidebar_control_box.append(&WindowControls::builder().halign(gtk::Align::Start).valign(gtk::Align::Center).build());
+    window_adw_view_switcher_sidebar_control_box.append(&WindowTitle::builder().halign(gtk::Align::Center).margin_top(10).margin_bottom(20).valign(gtk::Align::Center).hexpand(true).title(t!("application_name")).build());
     
     let window_adw_view_switcher_sidebar_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
     window_adw_view_switcher_sidebar_box.append(&window_adw_view_switcher_sidebar_control_box);
@@ -101,26 +102,6 @@ pub fn build_ui(app: &Application) {
 
     let window_adw_stack_clone0 = window_adw_stack.clone();
     let window_adw_view_switcher_sidebar_box_clone0 = window_adw_view_switcher_sidebar_box.clone();
-
-    let add_content_button = |active: bool, name: String, title: String| {
-        let toggle_button = gtk::ToggleButton::builder()
-            .group(&null_toggle_button)
-            .label(&title)
-            .active(active)
-            .margin_top(5)
-            .margin_bottom(5)
-            .margin_start(10)
-            .margin_end(10)
-            .valign(gtk::Align::Start)
-            .build();
-        toggle_button.add_css_class("flat");
-        toggle_button.connect_clicked(move |toggle_button| {
-            if toggle_button.is_active() {
-                window_adw_stack_clone0.set_visible_child_name(&name);
-            }
-        });
-        window_adw_view_switcher_sidebar_box_clone0.append(&toggle_button);
-    };
 
     let sidebar_toggle_button = gtk::ToggleButton::builder()
         .icon_name("view-right-pane-symbolic")
@@ -296,9 +277,8 @@ pub fn build_ui(app: &Application) {
         &t!("apt_update_page_title"),
     );
 
-    {
-        add_content_button.clone()(true, "apt_update_page".to_string(), t!("apt_update_page_title").to_string());
-    }
+    let apt_update_page_toggle_button = add_content_button(&window_adw_stack, true, "apt_update_page".to_string(), t!("apt_update_page_title").to_string(), &null_toggle_button);
+    window_adw_view_switcher_sidebar_box.append(&apt_update_page_toggle_button);
 
     window_adw_stack.add_titled(
         &flatpak_update_view_stack_bin,
@@ -306,9 +286,8 @@ pub fn build_ui(app: &Application) {
         &t!("flatpak_update_page_title"),
     );
 
-    {
-        add_content_button.clone()(false, "flatpak_update_page".to_string(), t!("flatpak_update_page_title").to_string());
-    }
+    let flatpak_update_page_toggle_button = add_content_button(&window_adw_stack, false, "flatpak_update_page".to_string(), t!("flatpak_update_page_title").to_string(), &null_toggle_button);
+    window_adw_view_switcher_sidebar_box.append(&flatpak_update_page_toggle_button);
 
     window_adw_stack.add_titled(
         &apt_manage_page(window.clone(), &apt_retry_signal_action),
@@ -316,9 +295,8 @@ pub fn build_ui(app: &Application) {
         &t!("apt_manage_page_title"),
     );
 
-    {
-        add_content_button.clone()(false, "apt_manage_page".to_string(), t!("apt_manage_page_title").to_string());
-    }
+    let apt_manage_page_toggle_button = add_content_button(&window_adw_stack, false, "apt_manage_page".to_string(), t!("apt_manage_page_title").to_string(), &null_toggle_button);
+    window_adw_view_switcher_sidebar_box.append(&apt_manage_page_toggle_button);
 
     window_adw_stack.add_titled(
         &flatpak_manage_page(window, &flatpak_retry_signal_action),
@@ -326,9 +304,37 @@ pub fn build_ui(app: &Application) {
         &t!("flatpak_manage_page_title"),
     );
 
-    {
-        add_content_button.clone()(false, "flatpak_manage_page".to_string(), t!("flatpak_manage_page_title").to_string());
-    }
+    let flatpak_manage_page_toggle_button = add_content_button(&window_adw_stack, false, "flatpak_manage_page".to_string(), t!("flatpak_manage_page_title").to_string(), &null_toggle_button);
+    window_adw_view_switcher_sidebar_box.append(&flatpak_manage_page_toggle_button);
+
+    app.connect_command_line(clone!(
+        #[strong]
+        apt_manage_page_toggle_button,
+        #[strong]
+        flatpak_manage_page_toggle_button,
+        move |_, cmdline| {
+        // Create Vec from cmdline
+        let mut gtk_application_args = Vec::new();
+        for arg in cmdline.arguments() {
+            match arg.to_str() {
+                Some(a) => gtk_application_args.push(a.to_string()),
+                None => {}
+            }
+        }
+
+        // Check for cmd lines
+
+        if gtk_application_args.contains(&"--software-properties".to_string()) {
+            apt_manage_page_toggle_button.set_active(true);
+            apt_manage_page_toggle_button.emit_clicked();
+        }
+        if gtk_application_args.contains(&"--flatpak-settings".to_string()) {
+            flatpak_manage_page_toggle_button.set_active(true);
+            flatpak_manage_page_toggle_button.emit_clicked();
+        }
+
+        0
+    }));
 
 
     // Refresh button
@@ -350,4 +356,24 @@ pub fn build_ui(app: &Application) {
             }
         }
     ));
+}
+
+fn add_content_button(window_adw_stack: &gtk::Stack, active: bool, name: String, title: String, null_toggle_button: &gtk::ToggleButton) -> gtk::ToggleButton {
+    let toggle_button = gtk::ToggleButton::builder()
+        .group(null_toggle_button)
+        .label(&title)
+        .active(active)
+        .margin_top(5)
+        .margin_bottom(5)
+        .margin_start(10)
+        .margin_end(10)
+        .valign(gtk::Align::Start)
+        .build();
+    toggle_button.add_css_class("flat");
+    toggle_button.connect_clicked(clone!(#[weak] window_adw_stack,move |toggle_button| {
+        if toggle_button.is_active() {
+            window_adw_stack.set_visible_child_name(&name);
+        }
+    }));
+    toggle_button
 }
