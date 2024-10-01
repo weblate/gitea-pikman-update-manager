@@ -32,8 +32,9 @@ enum FlatpakRemote {
 
 pub fn flatpak_manage_page(
     window: adw::ApplicationWindow,
-    retry_signal_action: &SimpleAction,
+    flatpak_retry_signal_action: &SimpleAction,
 ) -> gtk::Box {
+    let retry_signal_action = gio::SimpleAction::new("flatpak_manage_action", None);
     let cancellable_no = libflatpak::gio::Cancellable::NONE;
 
     let main_box = Box::builder()
@@ -304,12 +305,15 @@ pub fn flatpak_manage_page(
         window,
         #[strong]
         retry_signal_action,
+        #[strong]
+        flatpak_retry_signal_action,
             move
             |_|
             {
                 add_dialog::add_dialog_fn(
                     window.clone(),
-                    &retry_signal_action
+                    &retry_signal_action,
+                    &flatpak_retry_signal_action,
                 );
             }
         )
@@ -322,6 +326,8 @@ pub fn flatpak_manage_page(
         flatpak_remotes_selection_model_rc,
         #[strong]
         retry_signal_action,
+        #[strong]
+        flatpak_retry_signal_action,
         #[strong]
         cancellable_no,
             move
@@ -346,6 +352,7 @@ pub fn flatpak_manage_page(
                     match libflatpak::Installation::remove_remote(&installation, &remote_name, cancellable_no) {
                                 Ok(_) => {
                                     retry_signal_action.activate(None);
+                                    flatpak_retry_signal_action.activate(None);
                                 }
                                 Err(e) => {
                                     match e.matches(libflatpak::Error::RemoteUsed) {
@@ -367,6 +374,7 @@ pub fn flatpak_manage_page(
                                                         adw::ResponseAppearance::Destructive,
                                                     );
                                                     let retry_signal_action_clone0 = retry_signal_action.clone();
+                                                    let flatpak_retry_signal_action_clone0 = flatpak_retry_signal_action.clone();
                                                     flatpak_remote_add_error_dialog.clone()
                                                         .choose(None::<&gio::Cancellable>, move |choice| {
                                                             match choice.as_str() {
@@ -374,6 +382,7 @@ pub fn flatpak_manage_page(
                                                                     match duct::cmd!("flatpak", "remote-delete",  "--force", "--noninteractive", &cmd_installation, &remote_name).run() {
                                                                     Ok(_) => {
                                                                         retry_signal_action_clone0.activate(None);
+                                                                        flatpak_retry_signal_action_clone0.activate(None);
                                                                     }
                                                                     Err(e) => {
                                                                         let flatpak_remote_add_error_dialog = adw::MessageDialog::builder()

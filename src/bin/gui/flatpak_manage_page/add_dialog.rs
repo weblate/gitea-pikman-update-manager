@@ -22,7 +22,8 @@ use libflatpak::InstalledRef;
 
 pub fn add_dialog_fn(
         window: adw::ApplicationWindow,
-        reload_action: &gio::SimpleAction
+        reload_action: &gio::SimpleAction,
+        flatpak_retry_signal_action: &SimpleAction,
     )
     {
                 let flatpak_remote_add_dialog_child_box = Box::builder()
@@ -159,6 +160,7 @@ pub fn add_dialog_fn(
                 flatpak_remote_add_dialog_child_box.append(&flatpak_remote_add_box2);
 
                 let reload_action_clone0 = reload_action.clone();
+                let flatpak_retry_signal_action_clone0 = flatpak_retry_signal_action.clone();
 
                 flatpak_remote_add_dialog.clone()
                     .choose(None::<&gio::Cancellable>, move |choice| {
@@ -210,6 +212,7 @@ pub fn add_dialog_fn(
                                 match duct::cmd!("flatpak", "remote-add",  "--if-not-exists", &flatpak_installation, &flatpak_remote_add_name_entry.text(), &flatpak_remote_add_url_entry.text()).run() {
                                     Ok(_) => {
                                         reload_action_clone0.activate(None);
+                                        flatpak_retry_signal_action_clone0.activate(None);
                                     }
                                     Err(e) => {
                                         let flatpak_remote_add_error_dialog = adw::MessageDialog::builder()
