@@ -244,9 +244,8 @@ pub fn flatpak_update_page(
     flatpak_update_dialog.set_response_enabled("flatpak_update_dialog_retry", false);
     flatpak_update_dialog.set_response_enabled("flatpak_update_dialog_ignore", false);
 
-    let retry_signal_action0 = retry_signal_action.clone();
-
-    {
+    if window.is_visible() {
+        let retry_signal_action0 = retry_signal_action.clone();
         let viewport_bin = viewport_bin.clone();
     
         flatpak_update_dialog
@@ -765,7 +764,6 @@ pub fn flatpak_update_page(
     main_box.append(&viewport_bin);
     main_box.append(&bottom_bar);
 
-    flatpak_update_dialog.present();
     main_box
 }
 

@@ -177,31 +177,32 @@ pub fn apt_update_page(
     apt_update_dialog.set_response_enabled("apt_update_dialog_retry", false);
     apt_update_dialog.set_response_enabled("apt_update_dialog_ignore", false);
 
-    let retry_signal_action0 = retry_signal_action.clone();
+    
 
-    {
-    let viewport_bin = viewport_bin.clone();
-    let flatpak_retry_signal_action = flatpak_retry_signal_action.clone();
-    let flatpak_ran_once = flatpak_ran_once.clone();
+    if window.is_visible() {
+        let retry_signal_action0 = retry_signal_action.clone();
+        let viewport_bin = viewport_bin.clone();
+        let flatpak_retry_signal_action = flatpak_retry_signal_action.clone();
+        let flatpak_ran_once = flatpak_ran_once.clone();
 
-    apt_update_dialog
-        .clone()
-        .choose(None::<&gio::Cancellable>, move |choice| {
-            match choice.as_str() {
-                "apt_update_dialog_retry" => {
-                    retry_signal_action0.activate(None);
-                }
-                "apt_update_dialog_ignore" => {
-                    viewport_bin.set_child(Some(&packages_ignored_viewport_page));
-                    let mut flatpak_ran_once_borrow = flatpak_ran_once.borrow_mut();
-                    if *flatpak_ran_once_borrow != true {
-                        flatpak_retry_signal_action.activate(None);
-                        *flatpak_ran_once_borrow = true;
+        apt_update_dialog
+            .clone()
+            .choose(None::<&gio::Cancellable>, move |choice| {
+                match choice.as_str() {
+                    "apt_update_dialog_retry" => {
+                        retry_signal_action0.activate(None);
                     }
+                    "apt_update_dialog_ignore" => {
+                        viewport_bin.set_child(Some(&packages_ignored_viewport_page));
+                        let mut flatpak_ran_once_borrow = flatpak_ran_once.borrow_mut();
+                        if *flatpak_ran_once_borrow != true {
+                            flatpak_retry_signal_action.activate(None);
+                            *flatpak_ran_once_borrow = true;
+                        }
+                    }
+                    _ => {}
                 }
-                _ => {}
-            }
-        });
+            });
     }
 
     let bottom_bar = Box::builder().valign(Align::End).build();
@@ -480,7 +481,6 @@ pub fn apt_update_page(
     main_box.append(&viewport_bin);
     main_box.append(&bottom_bar);
 
-    apt_update_dialog.present();
     main_box
 }
 
