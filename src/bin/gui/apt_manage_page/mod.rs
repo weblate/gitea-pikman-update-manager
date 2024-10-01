@@ -29,8 +29,9 @@ enum AptSourceConfig {
 
 pub fn apt_manage_page(
     window: adw::ApplicationWindow,
-    retry_signal_action: &SimpleAction,
+    apt_retry_signal_action: &SimpleAction,
 ) -> gtk::Box {
+    let retry_signal_action = gio::SimpleAction::new("apt_manage_retry", None);
 
     let deb822_sources = Deb822Repository::get_deb822_sources().unwrap();
 
@@ -395,12 +396,15 @@ pub fn apt_manage_page(
         window,
         #[strong]
         retry_signal_action,
+        #[strong]
+        apt_retry_signal_action,
             move
             |_|
             {
                 add_dialog::add_dialog_fn(
                     window.clone(),
-                    &retry_signal_action
+                    &retry_signal_action,
+                    &apt_retry_signal_action
                 );
             }
         )
@@ -413,6 +417,8 @@ pub fn apt_manage_page(
         unofficial_sources_selection_model_rc,
         #[strong]
         retry_signal_action,
+        #[strong]
+        apt_retry_signal_action,
             move
             |_|
             {
@@ -422,10 +428,10 @@ pub fn apt_manage_page(
                 let apt_src: Ref<AptSourceConfig> = item.borrow();
                 match apt_src.deref() {
                     AptSourceConfig::DEB822(src) => {
-                        deb822_edit_dialog::deb822_edit_dialog_fn(window.clone(), src, &retry_signal_action);
+                        deb822_edit_dialog::deb822_edit_dialog_fn(window.clone(), src, &retry_signal_action, &apt_retry_signal_action);
                     }
                     AptSourceConfig::Legacy(list) => {
-                        legacy_edit_dialog::legacy_edit_dialog_fn(window.clone(), list, &retry_signal_action)
+                        legacy_edit_dialog::legacy_edit_dialog_fn(window.clone(), list, &retry_signal_action, &apt_retry_signal_action)
                     }
                 };
 
@@ -440,6 +446,8 @@ pub fn apt_manage_page(
         unofficial_sources_selection_model_rc,
         #[strong]
         retry_signal_action,
+        #[strong]
+        apt_retry_signal_action,
             move
             |_|
             {
@@ -475,6 +483,7 @@ pub fn apt_manage_page(
                     );
                     apt_src_remove_warning_dialog.set_response_appearance("apt_src_remove_warning_dialog_ok", adw::ResponseAppearance::Destructive);
                     let retry_signal_action_clone0 = retry_signal_action.clone();
+                    let apt_retry_signal_action_clone0 = apt_retry_signal_action.clone();
                     apt_src_remove_warning_dialog.clone()
                     .choose(None::<&gio::Cancellable>, move |choice| {
                         match choice.as_str() {
@@ -482,6 +491,7 @@ pub fn apt_manage_page(
                                 match command.run() {
                                     Ok(_) => {
                                         retry_signal_action_clone0.activate(None);
+                                        apt_retry_signal_action_clone0.activate(None)
                                     }
                                     Err(e) => {
                                         let apt_src_create_error_dialog = adw::MessageDialog::builder()
@@ -494,6 +504,7 @@ pub fn apt_manage_page(
                                             );
                                         apt_src_create_error_dialog.present();
                                         retry_signal_action_clone0.activate(None);
+                                        apt_retry_signal_action_clone0.activate(None)
                                     }
                                 }
                             }

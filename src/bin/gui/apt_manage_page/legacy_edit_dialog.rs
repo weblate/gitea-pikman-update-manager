@@ -22,6 +22,7 @@ pub fn legacy_edit_dialog_fn(
     window: adw::ApplicationWindow,
     legacy_repo: &LegacyAptSource,
     reload_action: &gio::SimpleAction,
+    apt_retry_signal_action: &SimpleAction,
 ) {
                 let repofile_path = Path::new(&legacy_repo.filepath);
                 let repo_file_name = repofile_path
@@ -217,6 +218,7 @@ pub fn legacy_edit_dialog_fn(
                 let legacy_repo_clone0 = legacy_repo.clone();
 
                 let reload_action_clone0 = reload_action.clone();
+                let apt_retry_signal_action_clone0 = apt_retry_signal_action.clone();
 
                 unofficial_source_add_dialog.clone()
                     .choose(None::<&gio::Cancellable>, move |choice| {
@@ -251,6 +253,7 @@ pub fn legacy_edit_dialog_fn(
                                                 }
                                             }
                                             reload_action_clone0.activate(None);
+                                            apt_retry_signal_action_clone0.activate(None);
                                         }
                                         Err(e) => {
                                             let apt_src_create_error_dialog = adw::MessageDialog::builder()
@@ -263,6 +266,7 @@ pub fn legacy_edit_dialog_fn(
                                                 );
                                             apt_src_create_error_dialog.present();
                                             reload_action_clone0.activate(None);
+                                            apt_retry_signal_action_clone0.activate(None);
                                         }
                                     }
                                 }

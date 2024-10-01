@@ -19,7 +19,8 @@ use tokio::runtime::Runtime;
 
 pub fn add_dialog_fn(
         window: adw::ApplicationWindow,
-        reload_action: &gio::SimpleAction
+        reload_action: &gio::SimpleAction,
+        apt_retry_signal_action: &gio::SimpleAction,
     )
     {
     let unofficial_source_add_dialog_child_box = Box::builder()
@@ -283,6 +284,7 @@ pub fn add_dialog_fn(
                 unofficial_source_add_dialog_child_box.append(&unofficial_source_add_signed_prefrencesgroup);
 
                 let reload_action_clone0 = reload_action.clone();
+                let apt_retry_signal_action_clone0 = apt_retry_signal_action.clone();
 
                 unofficial_source_add_dialog.clone()
                     .choose(None::<&gio::Cancellable>, move |choice| {
@@ -326,6 +328,8 @@ pub fn add_dialog_fn(
                                                     match duct::cmd!("pkexec", "/usr/lib/pika/pikman-update-manager/scripts/modify_repo.sh", "deb822_move_with_wget", &repo_file_name, &unofficial_source_add_signed_entry.text().to_string(), &format!("/etc/apt/keyrings/{}.gpg.key", &repo_file_name)).run() {
                                                         Ok(_) => {
                                                             reload_action_clone0.activate(None);
+                                                            apt_retry_signal_action_clone0.activate(None);
+                                                            
                                                         }
                                                         Err(e) => {
                                                             let apt_src_create_error_dialog = adw::MessageDialog::builder()
@@ -338,6 +342,7 @@ pub fn add_dialog_fn(
                                                                 );
                                                             apt_src_create_error_dialog.present();
                                                             reload_action_clone0.activate(None);
+                                                            apt_retry_signal_action_clone0.activate(None);
                                                         }
                                                     }
                                                 }
@@ -359,6 +364,7 @@ pub fn add_dialog_fn(
                                             match duct::cmd!("pkexec", "/usr/lib/pika/pikman-update-manager/scripts/modify_repo.sh", "deb822_move", repo_file_name).run() {
                                                 Ok(_) => {
                                                     reload_action_clone0.activate(None);
+                                                    apt_retry_signal_action_clone0.activate(None);
                                                 }
                                                 Err(e) => {
                                                     let apt_src_create_error_dialog = adw::MessageDialog::builder()
@@ -371,6 +377,7 @@ pub fn add_dialog_fn(
                                                         );
                                                     apt_src_create_error_dialog.present();
                                                     reload_action_clone0.activate(None);
+                                                    apt_retry_signal_action_clone0.activate(None);
                                                 }
                                             }
                                         }
@@ -385,6 +392,7 @@ pub fn add_dialog_fn(
                                                 );
                                             apt_src_create_error_dialog.present();
                                             reload_action_clone0.activate(None);
+                                            apt_retry_signal_action_clone0.activate(None);
                                         }
                                     }
                                 }

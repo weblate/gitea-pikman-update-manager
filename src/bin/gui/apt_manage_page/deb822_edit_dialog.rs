@@ -22,6 +22,7 @@ pub fn deb822_edit_dialog_fn(
     window: adw::ApplicationWindow,
     deb822_repo: &Deb822Repository,
     reload_action: &gio::SimpleAction,
+    apt_retry_signal_action: &SimpleAction,
 ) {
                 let repofile_path = Path::new(&deb822_repo.filepath);
                 let repo_file_name = repofile_path
@@ -342,6 +343,8 @@ pub fn deb822_edit_dialog_fn(
                 let deb822_repo_clone0 = deb822_repo.clone();
 
                 let reload_action_clone0 = reload_action.clone();
+                let apt_retry_signal_action_clone0 = apt_retry_signal_action.clone();
+                
 
                 unofficial_source_add_dialog.clone()
                     .choose(None::<&gio::Cancellable>, move |choice| {
@@ -395,6 +398,7 @@ pub fn deb822_edit_dialog_fn(
                                                 }
                                             }
                                             reload_action_clone0.activate(None);
+                                            apt_retry_signal_action_clone0.activate(None);
                                         }
                                         Err(e) => {
                                             let apt_src_create_error_dialog = adw::MessageDialog::builder()
@@ -407,6 +411,7 @@ pub fn deb822_edit_dialog_fn(
                                                 );
                                             apt_src_create_error_dialog.present();
                                             reload_action_clone0.activate(None);
+                                            apt_retry_signal_action_clone0.activate(None);
                                         }
                                     }
                                 }
