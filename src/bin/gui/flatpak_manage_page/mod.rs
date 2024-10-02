@@ -24,6 +24,7 @@ use libflatpak::prelude::*;
 use libflatpak::InstalledRef;
 
 mod add_dialog;
+mod install_ref_dialog;
 
 enum FlatpakRemote {
     System(libflatpak::Remote),
