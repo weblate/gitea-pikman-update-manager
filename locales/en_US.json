@@ -146,9 +146,13 @@
   "flatpak_remote_add_error_used_no_label": "No",
   "flatpak_remote_add_error_used_yes_label": "Yes",
   "flatpak_flatref_install_button_tooltip_text": "Install a FlatRef File",
-  "flatpak_ref_install_flatref_path_file_dialog_title": "Open a Flatpak Repository Referance File",
+  "flatpak_ref_install_flatref_path_file_dialog_title": "Open a Flatpak Repository Reference File",
   "flatpak_ref_install_flatref_path_file_dialog_accept_label": "Open",
   "flatpak_ref_install_flatref_path_file_dialog_cancel_label": "Cancel",
   "flatpak_ref_install_flatref_path_entry_open_file_dialog_text": "Open File Chooser",
-  "flatpak_ref_install_label": "{NAME} Will be Installed and It Uses The remote \"{REMOTE}\" Which Will Be Installed\nOn Your System If It Isn't Already"
+  "flatpak_ref_install_label": "{NAME} Will be Installed and It Uses The remote \"{REMOTE}\" Which Will Be Installed\nOn Your System If It Isn't Already",
+  "flatpak_ref_install_flatref_path_prefrencesgroup_title": "The File Path to The Flatpak Reference File You Want to Install",
+  "flatpak_ref_install_dialog_heading": "Flatpak Reference File Installer",
+  "flatpak_ref_install_dialog_add_label": "Install",
+  "flatpak_ref_install_dialog_cancel_label": "Cancel"
 } 

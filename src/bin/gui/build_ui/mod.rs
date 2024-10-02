@@ -9,6 +9,7 @@ use gtk::glib::{clone, MainContext};
 use gtk::{License, WindowControls};
 use std::borrow::Borrow;
 use std::cell::RefCell;
+use std::ops::Index;
 use std::process::Command;
 use std::rc::Rc;
 use std::thread;
@@ -181,7 +182,6 @@ pub fn build_ui(app: &Application) {
             let _ = glib_settings.set_int("window-width", size.0);
             let _ = glib_settings.set_int("window-height", size.1);
             let _ = glib_settings.set_boolean("is-maximized", window.is_maximized());
-            application.remove_window(window);
         }
         glib::Propagation::Proceed
     });
@@ -300,8 +300,17 @@ pub fn build_ui(app: &Application) {
     let apt_manage_page_toggle_button = add_content_button(&window_adw_stack, false, "apt_manage_page".to_string(), t!("apt_manage_page_title").to_string(), &null_toggle_button);
     window_adw_view_switcher_sidebar_box.append(&apt_manage_page_toggle_button);
 
+    let flatpak_entry_signal_action = gio::SimpleAction::new("entry-change", Some(glib::VariantTy::STRING));
+
+    let flatpak_flatref_install_button = gtk::Button::builder()
+        .icon_name("document-open-symbolic")
+        .tooltip_text(t!("flatpak_flatref_install_button_tooltip_text"))
+        //.halign(Align::End)
+        .valign(gtk::Align::End)
+        .build();
+
     window_adw_stack.add_titled(
-        &flatpak_manage_page(window.clone(), &flatpak_retry_signal_action),
+        &flatpak_manage_page(window.clone(), &flatpak_retry_signal_action, &flatpak_entry_signal_action, &flatpak_flatref_install_button),
         Some("flatpak_manage_page"),
         &t!("flatpak_manage_page_title"),
     );
@@ -316,6 +325,10 @@ pub fn build_ui(app: &Application) {
         flatpak_manage_page_toggle_button,
         #[strong]
         window,
+        #[strong]
+        flatpak_flatref_install_button,
+        #[strong]
+        flatpak_entry_signal_action,
         move |_, cmdline| {
         // Create Vec from cmdline
         let mut gtk_application_args = Vec::new();
@@ -327,7 +340,7 @@ pub fn build_ui(app: &Application) {
         }
 
         // Check for cmd lines
-        if !(gtk_application_args.contains(&"--hidden".to_string())) && !window.is_visible() {
+        if !(gtk_application_args.contains(&"--hidden".to_string())) && !(gtk_application_args.contains(&"--flatpak-installer".to_string())) && !window.is_visible() {
             window.present();
         }
 
@@ -338,6 +351,11 @@ pub fn build_ui(app: &Application) {
         if gtk_application_args.contains(&"--flatpak-settings".to_string()) {
             flatpak_manage_page_toggle_button.set_active(true);
             flatpak_manage_page_toggle_button.emit_clicked();
+        }
+        if gtk_application_args.contains(&"--flatpak-installer".to_string()) {
+            flatpak_flatref_install_button.emit_clicked();
+            let index = ((gtk_application_args.iter().position(|r| r == "--flatpak-installer").unwrap() as i32) +1) as usize;
+            flatpak_entry_signal_action.activate(Some(&glib::Variant::from(&gtk_application_args[index])));
         }
 
         0

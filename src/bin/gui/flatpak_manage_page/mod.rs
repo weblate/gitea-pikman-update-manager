@@ -34,6 +34,8 @@ enum FlatpakRemote {
 pub fn flatpak_manage_page(
     window: adw::ApplicationWindow,
     flatpak_retry_signal_action: &SimpleAction,
+    flatpak_ref_entry_action: &SimpleAction,
+    flatpak_flatref_install_button: &gtk::Button,
 ) -> gtk::Box {
     let retry_signal_action = gio::SimpleAction::new("flatpak_manage_action", None);
     let cancellable_no = libflatpak::gio::Cancellable::NONE;
@@ -294,13 +296,6 @@ pub fn flatpak_manage_page(
         .valign(Align::End)
         .build();
 
-    let flatpak_flatref_install_button = Button::builder()
-        .icon_name("document-open-symbolic")
-        .tooltip_text(t!("flatpak_flatref_install_button_tooltip_text"))
-        //.halign(Align::End)
-        .valign(Align::End)
-        .build();
-
     let flatpak_remote_remove_button = Button::builder()
         .icon_name("edit-delete-symbolic")
         .tooltip_text(t!("flatpak_remote_remove_button_tooltip_text"))
@@ -334,21 +329,22 @@ pub fn flatpak_manage_page(
         retry_signal_action,
         #[strong]
         flatpak_retry_signal_action,
+        #[strong]
+        flatpak_ref_entry_action,
             move
             |_|
             {
                 install_ref_dialog::install_ref_dialog_fn(
                     window.clone(),
                     &retry_signal_action,
-                    &flatpak_retry_signal_action
+                    &flatpak_retry_signal_action,
+                    &flatpak_ref_entry_action
                 );
             }
         )
     );
 
     flatpak_remote_remove_button.connect_clicked(clone!(
-        #[strong]
-        window,
         #[strong]
         flatpak_remotes_selection_model_rc,
         #[strong]
@@ -451,7 +447,7 @@ pub fn flatpak_manage_page(
     //
 
     flatpak_remotes_edit_box.append(&flatpak_remote_add_button);
-    flatpak_remotes_edit_box.append(&flatpak_flatref_install_button);
+    flatpak_remotes_edit_box.append(flatpak_flatref_install_button);
     flatpak_remotes_edit_box.append(&flatpak_remote_remove_button);
 
     flatpak_remotes_box.append(&flatpak_remotes_columnview_bin);

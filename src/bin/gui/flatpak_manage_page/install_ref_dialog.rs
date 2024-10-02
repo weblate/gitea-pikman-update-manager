@@ -29,8 +29,9 @@ pub fn install_ref_dialog_fn(
         window: adw::ApplicationWindow,
         reload_action: &gio::SimpleAction,
         flatpak_retry_signal_action: &SimpleAction,
+        flatpak_ref_entry_action: &SimpleAction,
     )
-    {
+    {     
                 let flatpak_ref_install_dialog_child_box = Box::builder()
                     .hexpand(true)
                     .orientation(Orientation::Vertical)
@@ -52,6 +53,16 @@ pub fn install_ref_dialog_fn(
                     .placeholder_text("/home/andy/Downloads/com.visualstudio.code.flatpakref")
                     .hexpand(true)
                     .build();
+
+                flatpak_ref_entry_action.connect_activate(clone!(
+                    #[strong]
+                    flatpak_ref_install_flatref_path_entry,
+                    move |_ , param|
+                        {
+                            flatpak_ref_install_flatref_path_entry.set_text(&param.unwrap().get::<String>().unwrap());
+                        }
+                    )
+                );
 
                 let flatpak_ref_install_flatref_path_entry_open_file_dialog = gtk::Button::builder()
                         .tooltip_text(t!("flatpak_ref_install_flatref_path_entry_open_file_dialog_text"))
@@ -113,6 +124,8 @@ pub fn install_ref_dialog_fn(
                     .build();
 
                 let flatpak_ref_install_label0 = gtk::Label::builder()
+                    .margin_top(10)
+                    .margin_bottom(10)
                     .build();
 
                 let flatpak_remote_user_togglebutton = gtk::ToggleButton::builder()
@@ -270,6 +283,7 @@ pub fn install_ref_dialog_fn(
 
                 let reload_action_clone0 = reload_action.clone();
                 let flatpak_retry_signal_action_clone0 = flatpak_retry_signal_action.clone();
+                let flatpak_ref_install_flatref_path_entry_clone0 = flatpak_ref_install_flatref_path_entry.clone();
                 let tbi_remote_name_clone0 = tbi_remote_name.clone();
                 let tbi_remote_url_clone0 = tbi_remote_url.clone();
 
@@ -283,7 +297,7 @@ pub fn install_ref_dialog_fn(
                                     }
                                     (_,_) => {}
                                 }
-                                run_flatpak_ref_install_transaction(&flatpak_retry_signal_action_clone0, &reload_action_clone0, flatpak_remote_system_togglebutton.is_active(), window, &flatpak_ref_install_flatref_path_entry.text());
+                                run_flatpak_ref_install_transaction(&flatpak_retry_signal_action_clone0, &reload_action_clone0, flatpak_remote_system_togglebutton.is_active(), window, &flatpak_ref_install_flatref_path_entry_clone0.text());
                             }
                             _ => {}
                         }
