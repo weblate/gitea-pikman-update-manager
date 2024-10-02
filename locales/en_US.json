@@ -149,5 +149,6 @@
   "flatpak_ref_install_flatref_path_file_dialog_title": "Open a Flatpak Repository Referance File",
   "flatpak_ref_install_flatref_path_file_dialog_accept_label": "Open",
   "flatpak_ref_install_flatref_path_file_dialog_cancel_label": "Cancel",
-  "flatpak_ref_install_flatref_path_entry_open_file_dialog_text": "Open File Chooser"
+  "flatpak_ref_install_flatref_path_entry_open_file_dialog_text": "Open File Chooser",
+  "flatpak_ref_install_label": "{NAME} Will be Installed and It Uses The remote \"{REMOTE}\" Which Will Be Installed\nOn Your System If It Isn't Already"
 } 

@@ -112,6 +112,9 @@ pub fn install_ref_dialog_fn(
                     .spacing(5)
                     .build();
 
+                let flatpak_ref_install_label0 = gtk::Label::builder()
+                    .build();
+
                 let flatpak_remote_user_togglebutton = gtk::ToggleButton::builder()
                     .valign(Align::Center)
                     .hexpand(true)
@@ -175,7 +178,7 @@ pub fn install_ref_dialog_fn(
 
                 let flatpak_ref_install_dialog_clone0 = flatpak_ref_install_dialog.clone();
                 let flatpak_ref_install_flatref_path_entry_clone0 = flatpak_ref_install_flatref_path_entry.clone();
-
+                let flatpak_ref_install_label0_clone0 = flatpak_ref_install_label0.clone();
 
                 let add_button_update_state = move || {
                     if
@@ -188,23 +191,44 @@ pub fn install_ref_dialog_fn(
                                     Ok(_) => {
                                         let ref_name = flatref_file.get("Flatpak Ref", "Name");
                                         let ref_remote_name = flatref_file.get("Flatpak Ref", "SuggestRemoteName");
-                                        //Write text
+                                        match (ref_name, ref_remote_name) {
+                                            (Some(name), Some(remote_name)) => {
+                                                flatpak_ref_install_label0_clone0.set_label(&strfmt::strfmt(
+                                                    &t!("flatpak_ref_install_label").to_string(),
+                                                    &std::collections::HashMap::from([
+                                                        (
+                                                            "NAME".to_string(),
+                                                            name,
+                                                        ),
+                                                        (
+                                                            "REMOTE".to_string(),
+                                                            remote_name,
+                                                        ),
+                                                    ]),
+                                                )
+                                                .unwrap());
+                                            }
+                                            (_, _) => {
+                                                flatpak_ref_install_dialog_clone0.set_response_enabled("flatpak_ref_install_dialog_add", false);
+                                                flatpak_ref_install_label0_clone0.set_label("");
+                                            }
+                                        }
                                         flatpak_ref_install_dialog_clone0.set_response_enabled("flatpak_ref_install_dialog_add", true);
                                     }
                                     Err(_) => {
-                                        // Delete Text
                                         flatpak_ref_install_dialog_clone0.set_response_enabled("flatpak_ref_install_dialog_add", false);
+                                        flatpak_ref_install_label0_clone0.set_label("");
                                     }
                                 }
                             }
                             Err(_) => {
-                                // Delete Text
                                 flatpak_ref_install_dialog_clone0.set_response_enabled("flatpak_ref_install_dialog_add", false);
+                                flatpak_ref_install_label0_clone0.set_label("");
                             }
                         }
-                        // Write Text
                     } else {
                         flatpak_ref_install_dialog_clone0.set_response_enabled("flatpak_ref_install_dialog_add", false);
+                        flatpak_ref_install_label0_clone0.set_label("");
                     }
                 };
 
@@ -231,6 +255,7 @@ pub fn install_ref_dialog_fn(
 
                 flatpak_ref_install_dialog_child_box.append(&flatpak_ref_install_flatref_path_prefrencesgroup);
                 flatpak_ref_install_dialog_child_box.append(&flatpak_ref_install_box2);
+                flatpak_ref_install_dialog_child_box.append(&flatpak_ref_install_label0);
 
                 let reload_action_clone0 = reload_action.clone();
                 //let flatpak_retry_signal_action_clone0 = flatpak_retry_signal_action.clone();
