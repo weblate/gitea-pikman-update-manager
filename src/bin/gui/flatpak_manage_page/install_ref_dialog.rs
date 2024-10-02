@@ -22,6 +22,7 @@ use std::io::Write;
 use libflatpak::InstalledRef;
 use std::fs::OpenOptions;
 use pretty_bytes::converter::convert;
+use configparser::ini::Ini;
 
 
 pub fn install_ref_dialog_fn(
@@ -180,7 +181,28 @@ pub fn install_ref_dialog_fn(
                     if
                         !flatpak_ref_install_flatref_path_entry_clone0.text().is_empty()
                     {
-                        flatpak_ref_install_dialog_clone0.set_response_enabled("flatpak_ref_install_dialog_add", true);
+                        match std::fs::read_to_string(flatpak_ref_install_flatref_path_entry_clone0.text()) {
+                            Ok(t) => {
+                                let mut flatref_file = Ini::new();
+                                match flatref_file.read(t) {
+                                    Ok(_) => {
+                                        let ref_name = flatref_file.get("Flatpak Ref", "Name");
+                                        let ref_remote_name = flatref_file.get("Flatpak Ref", "SuggestRemoteName");
+                                        //Write text
+                                        flatpak_ref_install_dialog_clone0.set_response_enabled("flatpak_ref_install_dialog_add", true);
+                                    }
+                                    Err(_) => {
+                                        // Delete Text
+                                        flatpak_ref_install_dialog_clone0.set_response_enabled("flatpak_ref_install_dialog_add", false);
+                                    }
+                                }
+                            }
+                            Err(_) => {
+                                // Delete Text
+                                flatpak_ref_install_dialog_clone0.set_response_enabled("flatpak_ref_install_dialog_add", false);
+                            }
+                        }
+                        // Write Text
                     } else {
                         flatpak_ref_install_dialog_clone0.set_response_enabled("flatpak_ref_install_dialog_add", false);
                     }
