@@ -180,6 +180,12 @@ pub fn install_ref_dialog_fn(
                 let flatpak_ref_install_flatref_path_entry_clone0 = flatpak_ref_install_flatref_path_entry.clone();
                 let flatpak_ref_install_label0_clone0 = flatpak_ref_install_label0.clone();
 
+                let tbi_remote_name = Rc::new(RefCell::new(None));
+                let tbi_remote_url = Rc::new(RefCell::new(None));
+
+                let tbi_remote_name_clone0 = tbi_remote_name.clone();
+                let tbi_remote_url_clone0 = tbi_remote_url.clone();
+
                 let add_button_update_state = move || {
                     if
                         !flatpak_ref_install_flatref_path_entry_clone0.text().is_empty()
@@ -191,7 +197,8 @@ pub fn install_ref_dialog_fn(
                                     Ok(_) => {
                                         let ref_name = flatref_file.get("Flatpak Ref", "Name");
                                         let ref_remote_name = flatref_file.get("Flatpak Ref", "SuggestRemoteName");
-                                        match (ref_name, ref_remote_name) {
+                                        let ref_remote_url = flatref_file.get("Flatpak Ref", "RuntimeRepo");
+                                        match (ref_name, ref_remote_name.clone()) {
                                             (Some(name), Some(remote_name)) => {
                                                 flatpak_ref_install_label0_clone0.set_label(&strfmt::strfmt(
                                                     &t!("flatpak_ref_install_label").to_string(),
@@ -207,6 +214,10 @@ pub fn install_ref_dialog_fn(
                                                     ]),
                                                 )
                                                 .unwrap());
+                                                {
+                                                    *tbi_remote_name_clone0.borrow_mut() = ref_remote_name;
+                                                    *tbi_remote_url_clone0.borrow_mut() = ref_remote_url;
+                                                }
                                             }
                                             (_, _) => {
                                                 flatpak_ref_install_dialog_clone0.set_response_enabled("flatpak_ref_install_dialog_add", false);
@@ -258,79 +269,28 @@ pub fn install_ref_dialog_fn(
                 flatpak_ref_install_dialog_child_box.append(&flatpak_ref_install_label0);
 
                 let reload_action_clone0 = reload_action.clone();
-                //let flatpak_retry_signal_action_clone0 = flatpak_retry_signal_action.clone();
+                let flatpak_retry_signal_action_clone0 = flatpak_retry_signal_action.clone();
+                let tbi_remote_name_clone0 = tbi_remote_name.clone();
+                let tbi_remote_url_clone0 = tbi_remote_url.clone();
 
                 flatpak_ref_install_dialog.clone()
                     .choose(None::<&gio::Cancellable>, move |choice| {
                         match choice.as_str() {
                             "flatpak_ref_install_dialog_add" => {
-                                /*let cancellable_no = libflatpak::gio::Cancellable::NONE;      
-
-                                let flatpak_installation = match flatpak_remote_system_togglebutton.is_active() {
-                                    true => libflatpak::Installation::new_system(cancellable_no).unwrap(),
-                                    false => libflatpak::Installation::new_user(cancellable_no).unwrap(),
-                                };
-
-                                match libflatpak::Remote::from_file(&flatpak_ref_install_name_entry.text(), &get_data_from_flatref_path(&flatpak_ref_install_flatref_path_entry.text()).unwrap()) {
-                                    Ok(remote) => {
-                                        match libflatpak::Installation::add_remote(&flatpak_installation, &remote, true, cancellable_no) {
-                                            Ok(_) => {
-                                                reload_action_clone0.activate(None);
-                                            }
-                                            Err(e) => {
-                                                let flatpak_ref_install_error_dialog = adw::MessageDialog::builder()
-                                                    .heading(t!("flatpak_ref_install_error_dialog_heading"))
-                                                    .body(e.to_string())
-                                                    .build();
-                                                flatpak_ref_install_error_dialog.add_response(
-                                                    "flatpak_ref_install_error_dialog_ok",
-                                                    &t!("flatpak_ref_install_error_dialog_ok_label").to_string(),
-                                                    );
-                                                flatpak_ref_install_error_dialog.present();
-                                            }
-                                        }
+                                match (tbi_remote_name_clone0.borrow().deref(), tbi_remote_url_clone0.borrow().deref()) {
+                                    (Some(remote_name), Some(remote_url)) => {
+                                        add_flatpakref_remote(&reload_action_clone0, &remote_name, &remote_url, flatpak_remote_system_togglebutton.is_active());
                                     }
-                                    Err(e) => {
-                                        let flatpak_ref_install_error_dialog = adw::MessageDialog::builder()
-                                                    .heading(t!("flatpak_ref_install_error_dialog_heading"))
-                                                    .body(e.to_string())
-                                                    .build();
-                                        flatpak_ref_install_error_dialog.add_response(
-                                            "flatpak_ref_install_error_dialog_ok",
-                                            &t!("flatpak_ref_install_error_dialog_ok_label").to_string(),
-                                        );
-                                    }
-                                }*/
-
-                                /*let flatpak_installation = match flatpak_remote_system_togglebutton.is_active() {
-                                    true => "--system",
-                                    false => "--user"
-                                };    
-
-                                match duct::cmd!("flatpak", "remote-add",  "--if-not-exists", &flatpak_installation, &flatpak_ref_install_name_entry.text(), &flatpak_ref_install_flatref_path_entry.text()).run() {
-                                    Ok(_) => {
-                                        reload_action_clone0.activate(None);
-                                        flatpak_retry_signal_action_clone0.activate(None);
-                                    }
-                                    Err(e) => {
-                                        let flatpak_ref_install_error_dialog = adw::MessageDialog::builder()
-                                            .heading(t!("flatpak_ref_install_error_dialog_heading"))
-                                            .body(e.to_string())
-                                            .build();
-                                        flatpak_ref_install_error_dialog.add_response(
-                                            "flatpak_ref_install_error_dialog_ok",
-                                            &t!("flatpak_ref_install_error_dialog_ok_label").to_string(),
-                                            );
-                                        flatpak_ref_install_error_dialog.present();
-                                    }
-                                }*/
+                                    (_,_) => {}
+                                }
+                                run_flatpak_ref_install_transaction(&flatpak_retry_signal_action_clone0, &reload_action_clone0, flatpak_remote_system_togglebutton.is_active(), window, &flatpak_ref_install_flatref_path_entry.text());
                             }
                             _ => {}
                         }
                     });
 }
 
-pub fn run_flatpak_ref_install_transaction(retry_signal_action: &gio::SimpleAction, is_system: bool, window: adw::ApplicationWindow, flatref_path: &str) {
+pub fn run_flatpak_ref_install_transaction(flatpak_retry_signal_action: &gio::SimpleAction, retry_signal_action: &gio::SimpleAction, is_system: bool, window: adw::ApplicationWindow, flatref_path: &str) {
     let (transaction_percent_sender, transaction_percent_receiver) =
     async_channel::unbounded::<u32>();
     let transaction_percent_sender = transaction_percent_sender.clone();
@@ -554,6 +514,7 @@ pub fn run_flatpak_ref_install_transaction(retry_signal_action: &gio::SimpleActi
     ));
 
     let retry_signal_action0 = retry_signal_action.clone();
+    let flatpak_retry_signal_action0 = flatpak_retry_signal_action.clone();
 
     flatpak_transaction_log_button.connect_clicked(move |_| {
         let _ = Command::new("xdg-open")
@@ -565,6 +526,7 @@ pub fn run_flatpak_ref_install_transaction(retry_signal_action: &gio::SimpleActi
         match choice.as_str() {
             "flatpak_transaction_dialog_ok" => {
                 retry_signal_action0.activate(None);
+                flatpak_retry_signal_action0.activate(None);
             }
             _ => {}
         }
@@ -578,4 +540,28 @@ fn get_data_from_filepath(filepath: &str) -> Result<libflatpak::glib::Bytes, std
 
     let glib_bytes = libflatpak::glib::Bytes::from(bytes);
     Ok(glib_bytes)
+}
+
+fn add_flatpakref_remote(reload_action: &gio::SimpleAction, remote_name: &str, remote_url: &str, is_system: bool) {
+    let flatpak_installation = match is_system {
+        true => "--system",
+        false => "--user"
+    };    
+
+    match duct::cmd!("flatpak", "remote-add",  "--if-not-exists", &flatpak_installation, remote_name, remote_url).run() {
+        Ok(_) => {
+            reload_action.activate(None);
+        }
+        Err(e) => {
+            let flatpak_remote_add_error_dialog = adw::MessageDialog::builder()
+                .heading(t!("flatpak_remote_add_error_dialog_heading"))
+                .body(e.to_string())
+                .build();
+            flatpak_remote_add_error_dialog.add_response(
+                "flatpak_remote_add_error_dialog_ok",
+                &t!("flatpak_remote_add_error_dialog_ok_label").to_string(),
+                );
+            flatpak_remote_add_error_dialog.present();
+        }
+    }
 }
