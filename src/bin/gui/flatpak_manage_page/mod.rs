@@ -294,6 +294,13 @@ pub fn flatpak_manage_page(
         .valign(Align::End)
         .build();
 
+    let flatpak_flatref_install_button = Button::builder()
+        .icon_name("document-open-symbolic")
+        .tooltip_text(t!("flatpak_flatref_install_button_tooltip_text"))
+        //.halign(Align::End)
+        .valign(Align::End)
+        .build();
+
     let flatpak_remote_remove_button = Button::builder()
         .icon_name("edit-delete-symbolic")
         .tooltip_text(t!("flatpak_remote_remove_button_tooltip_text"))
@@ -315,6 +322,25 @@ pub fn flatpak_manage_page(
                     window.clone(),
                     &retry_signal_action,
                     &flatpak_retry_signal_action,
+                );
+            }
+        )
+    );
+
+    flatpak_flatref_install_button.connect_clicked(clone!(
+        #[strong]
+        window,
+        #[strong]
+        retry_signal_action,
+        #[strong]
+        flatpak_retry_signal_action,
+            move
+            |_|
+            {
+                install_ref_dialog::install_ref_dialog_fn(
+                    window.clone(),
+                    &retry_signal_action,
+                    &flatpak_retry_signal_action
                 );
             }
         )
@@ -425,6 +451,7 @@ pub fn flatpak_manage_page(
     //
 
     flatpak_remotes_edit_box.append(&flatpak_remote_add_button);
+    flatpak_remotes_edit_box.append(&flatpak_flatref_install_button);
     flatpak_remotes_edit_box.append(&flatpak_remote_remove_button);
 
     flatpak_remotes_box.append(&flatpak_remotes_columnview_bin);

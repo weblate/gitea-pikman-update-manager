@@ -34,26 +34,75 @@ pub fn install_ref_dialog_fn(
                     .hexpand(true)
                     .orientation(Orientation::Vertical)
                     .build();
-                
-                let flatpak_ref_install_name_entry = gtk::Entry::builder()
-                    .placeholder_text("Flathub")
+
+                let flatpak_ref_install_flatref_path_file_dialog_filter = FileFilter::new();
+                flatpak_ref_install_flatref_path_file_dialog_filter.add_pattern("*.flatpakref");
+
+                #[allow(deprecated)]
+                let flatpak_ref_install_flatref_path_file_dialog = gtk::FileChooserNative::builder()
+                    .title(t!("flatpak_ref_install_flatref_path_file_dialog_title"))
+                    .accept_label(t!("flatpak_ref_install_flatref_path_file_dialog_accept_label"))
+                    .cancel_label(t!("flatpak_ref_install_flatref_path_file_dialog_cancel_label"))
+                    .action(gtk::FileChooserAction::Open)
+                    .filter(&flatpak_ref_install_flatref_path_file_dialog_filter)
+                    .build(); 
+
+                let flatpak_ref_install_flatref_path_entry = gtk::Entry::builder()
+                    .placeholder_text("/home/andy/Downloads/com.visualstudio.code.flatpakref")
+                    .hexpand(true)
                     .build();
 
-                let flatpak_ref_install_name_prefrencesgroup = adw::PreferencesGroup::builder()
-                    .title(t!("flatpak_ref_install_name_prefrencesgroup_title"))
+                let flatpak_ref_install_flatref_path_entry_open_file_dialog = gtk::Button::builder()
+                        .tooltip_text(t!("flatpak_ref_install_flatref_path_entry_open_file_dialog_text"))
+                        .halign(gtk::Align::End)
+                        .icon_name("document-open-symbolic")
+                        .build();
+
+                let flatpak_ref_install_flatref_path_entry_box = gtk::Box::builder()
+                    .orientation(gtk::Orientation::Horizontal)
+                    .hexpand(true)
+                    .build();
+                flatpak_ref_install_flatref_path_entry_box.add_css_class("linked");
+
+                flatpak_ref_install_flatref_path_entry_open_file_dialog.connect_clicked(clone!(
+                    #[strong]
+                    flatpak_ref_install_flatref_path_file_dialog,
+                    move |_| {
+                        flatpak_ref_install_flatref_path_file_dialog.set_visible(true);
+                    }
+                ));
+
+                flatpak_ref_install_flatref_path_entry_box.append(&flatpak_ref_install_flatref_path_entry);
+                flatpak_ref_install_flatref_path_entry_box.append(&flatpak_ref_install_flatref_path_entry_open_file_dialog);
+
+                let flatpak_ref_install_flatref_path_prefrencesgroup = adw::PreferencesGroup::builder()
+                    .title(t!("flatpak_ref_install_flatref_path_prefrencesgroup_title"))
                     .build();
 
-                flatpak_ref_install_name_prefrencesgroup.add(&flatpak_ref_install_name_entry);
+                #[allow(deprecated)]
+                flatpak_ref_install_flatref_path_file_dialog.connect_response(
+                    clone!(
+                        #[weak]
+                        flatpak_ref_install_flatref_path_entry,
+                        move |dialog, response| 
+                        {
+                            if response == gtk::ResponseType::Accept {
+                                match dialog.file() {
+                                    Some(f) => {
+                                        match f.path() {
+                                            Some(p) => flatpak_ref_install_flatref_path_entry.set_text(p.to_str().unwrap()),
+                                            None => {}
+                                        }
+                                        
+                                    }
+                                    None => {}
+                                }
+                            }
+                        }
+                    )
+                );   
 
-                let flatpak_ref_install_url_entry = gtk::Entry::builder()
-                    .placeholder_text("https://dl.flathub.org/repo/flathub.flatpakrepo")
-                    .build();
-
-                let flatpak_ref_install_url_prefrencesgroup = adw::PreferencesGroup::builder()
-                    .title(t!("flatpak_ref_install_url_prefrencesgroup_title"))
-                    .build();
-
-                flatpak_ref_install_url_prefrencesgroup.add(&flatpak_ref_install_url_entry);
+                flatpak_ref_install_flatref_path_prefrencesgroup.add(&flatpak_ref_install_flatref_path_entry_box);
 
                 let flatpak_ref_install_box2 = gtk::Box::builder()
                     .margin_top(10)
@@ -97,6 +146,8 @@ pub fn install_ref_dialog_fn(
                     .height_request(400)
                     .build();
 
+                flatpak_ref_install_flatref_path_file_dialog.set_transient_for(Some(&flatpak_ref_install_dialog));
+
                 flatpak_ref_install_dialog.add_response(
                     "flatpak_ref_install_dialog_add",
                     &t!("flatpak_ref_install_dialog_add_label").to_string(),
@@ -122,14 +173,12 @@ pub fn install_ref_dialog_fn(
                 //
 
                 let flatpak_ref_install_dialog_clone0 = flatpak_ref_install_dialog.clone();
-                let flatpak_ref_install_name_entry_clone0 = flatpak_ref_install_name_entry.clone();
-                let flatpak_ref_install_url_entry_clone0 = flatpak_ref_install_url_entry.clone();
+                let flatpak_ref_install_flatref_path_entry_clone0 = flatpak_ref_install_flatref_path_entry.clone();
 
 
                 let add_button_update_state = move || {
                     if
-                        !flatpak_ref_install_name_entry_clone0.text().is_empty() &&
-                        !flatpak_ref_install_url_entry_clone0.text().is_empty()
+                        !flatpak_ref_install_flatref_path_entry_clone0.text().is_empty()
                     {
                         flatpak_ref_install_dialog_clone0.set_response_enabled("flatpak_ref_install_dialog_add", true);
                     } else {
@@ -140,8 +189,7 @@ pub fn install_ref_dialog_fn(
                 //
 
                 for entry in [
-                    &flatpak_ref_install_name_entry,
-                    &flatpak_ref_install_url_entry,
+                    &flatpak_ref_install_flatref_path_entry,
                 ] {
                     entry.connect_text_notify(clone!(
                         #[strong]
@@ -159,12 +207,11 @@ pub fn install_ref_dialog_fn(
                 flatpak_ref_install_box2.append(&flatpak_remote_user_togglebutton);
                 flatpak_ref_install_box2.append(&flatpak_remote_system_togglebutton);
 
-                flatpak_ref_install_dialog_child_box.append(&flatpak_ref_install_name_prefrencesgroup);
-                flatpak_ref_install_dialog_child_box.append(&flatpak_ref_install_url_prefrencesgroup);
+                flatpak_ref_install_dialog_child_box.append(&flatpak_ref_install_flatref_path_prefrencesgroup);
                 flatpak_ref_install_dialog_child_box.append(&flatpak_ref_install_box2);
 
                 let reload_action_clone0 = reload_action.clone();
-                let flatpak_retry_signal_action_clone0 = flatpak_retry_signal_action.clone();
+                //let flatpak_retry_signal_action_clone0 = flatpak_retry_signal_action.clone();
 
                 flatpak_ref_install_dialog.clone()
                     .choose(None::<&gio::Cancellable>, move |choice| {
@@ -177,7 +224,7 @@ pub fn install_ref_dialog_fn(
                                     false => libflatpak::Installation::new_user(cancellable_no).unwrap(),
                                 };
 
-                                match libflatpak::Remote::from_file(&flatpak_ref_install_name_entry.text(), &get_data_from_url(&flatpak_ref_install_url_entry.text()).unwrap()) {
+                                match libflatpak::Remote::from_file(&flatpak_ref_install_name_entry.text(), &get_data_from_flatref_path(&flatpak_ref_install_flatref_path_entry.text()).unwrap()) {
                                     Ok(remote) => {
                                         match libflatpak::Installation::add_remote(&flatpak_installation, &remote, true, cancellable_no) {
                                             Ok(_) => {
@@ -213,7 +260,7 @@ pub fn install_ref_dialog_fn(
                                     false => "--user"
                                 };    
 
-                                match duct::cmd!("flatpak", "remote-add",  "--if-not-exists", &flatpak_installation, &flatpak_ref_install_name_entry.text(), &flatpak_ref_install_url_entry.text()).run() {
+                                match duct::cmd!("flatpak", "remote-add",  "--if-not-exists", &flatpak_installation, &flatpak_ref_install_name_entry.text(), &flatpak_ref_install_flatref_path_entry.text()).run() {
                                     Ok(_) => {
                                         reload_action_clone0.activate(None);
                                         flatpak_retry_signal_action_clone0.activate(None);
