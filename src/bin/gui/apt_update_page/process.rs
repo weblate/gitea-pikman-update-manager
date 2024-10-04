@@ -412,9 +412,7 @@ fn apt_full_upgrade_from_socket(
 
     thread::spawn(move || {
         let apt_upgrade_command = Command::new("pkexec")
-            .args([
-                "/usr/lib/pika/pikman-update-manager/scripts/apt_full_upgrade",
-            ])
+            .args(["/usr/lib/pika/pikman-update-manager/scripts/apt_full_upgrade"])
             .status()
             .unwrap();
         match apt_upgrade_command.code().unwrap() {

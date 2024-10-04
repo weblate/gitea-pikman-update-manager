@@ -66,9 +66,7 @@ pub fn apt_update_page(
 
     thread::spawn(move || {
         let apt_update_command = Command::new("pkexec")
-            .args([
-                "/usr/lib/pika/pikman-update-manager/scripts/apt_update",
-            ])
+            .args(["/usr/lib/pika/pikman-update-manager/scripts/apt_update"])
             .status()
             .unwrap();
         match apt_update_command.code().unwrap() {
@@ -134,7 +132,7 @@ pub fn apt_update_page(
         .title(t!("apt_ignored_viewport_page_title"))
         .hexpand(true)
         .vexpand(true)
-        .build();    
+        .build();
 
     let viewport_bin = adw::Bin::builder()
         .child(&packages_no_viewport_page)
@@ -181,8 +179,6 @@ pub fn apt_update_page(
 
     apt_update_dialog.set_response_enabled("apt_update_dialog_retry", false);
     apt_update_dialog.set_response_enabled("apt_update_dialog_ignore", false);
-
-    
 
     if window.is_visible() {
         let retry_signal_action0 = retry_signal_action.clone();
@@ -455,7 +451,10 @@ pub fn apt_update_page(
                 (*apt_update_count.borrow_mut() += 1);
                 if state.is_last {
                     packages_boxedlist.set_sensitive(true);
-                    update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(&[*apt_update_count.borrow(),*flatpak_update_count.borrow()])));
+                    update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(&[
+                        *apt_update_count.borrow(),
+                        *flatpak_update_count.borrow(),
+                    ])));
                 }
             }
         }

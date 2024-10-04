@@ -1,34 +1,19 @@
-use crate::apt_package_row::AptPackageRow;
-use add_dialog::add_dialog_fn;
 use adw::gio::SimpleAction;
 use adw::prelude::*;
-use apt_deb822_tools::Deb822Repository;
-use gtk::glib::{property::PropertyGet, clone, BoxedAnyObject};
-use gtk::*;
-use std::cell::Ref;
-use std::ops::Deref;
-use pika_unixsocket_tools::pika_unixsocket_tools::*;
-use rust_apt::cache::*;
-use rust_apt::new_cache;
-use rust_apt::records::RecordField;
-use std::cell::RefCell;
-use std::process::Command;
-use std::rc::Rc;
-use std::thread;
-use tokio::runtime::Runtime;
-use crate::flatpak_ref_row::FlatpakRefRow;
-use adw::prelude::*;
-use gtk::glib::*;
+use gtk::glib::{clone, BoxedAnyObject};
 use gtk::*;
 use libflatpak::prelude::*;
-use libflatpak::InstalledRef;
+use std::cell::Ref;
+use std::cell::RefCell;
+use std::ops::Deref;
+use std::rc::Rc;
 
 mod add_dialog;
 mod install_ref_dialog;
 
 enum FlatpakRemote {
     System(libflatpak::Remote),
-    User(libflatpak::Remote)
+    User(libflatpak::Remote),
 }
 
 pub fn flatpak_manage_page(
@@ -69,194 +54,185 @@ pub fn flatpak_manage_page(
         .margin_end(15)
         .build();
 
-    let flatpak_remotes_selection_model_rc: Rc<RefCell<gtk::SingleSelection>> = Rc::new(RefCell::default());
+    let flatpak_remotes_selection_model_rc: Rc<RefCell<gtk::SingleSelection>> =
+        Rc::new(RefCell::default());
 
     let flatpak_remotes_selection_model_rc_clone0 = Rc::clone(&flatpak_remotes_selection_model_rc);
 
     let flatpak_remotes_columnview_bin = adw::Bin::new();
 
     let flatpak_remotes_columnview_bin_clone0 = flatpak_remotes_columnview_bin.clone();
-    
+
     retry_signal_action.connect_activate(clone!(
         #[weak]
         flatpak_remotes_columnview_bin_clone0,
         #[strong]
         cancellable_no,
         move |_, _| {
-        
             let flatpak_system_installation =
-            libflatpak::Installation::new_system(cancellable_no).unwrap();
+                libflatpak::Installation::new_system(cancellable_no).unwrap();
             let flatpak_user_installation =
-            libflatpak::Installation::new_user(cancellable_no).unwrap();
-        
-            let system_remotes = match libflatpak::Installation::list_remotes(&flatpak_system_installation, cancellable_no) {
+                libflatpak::Installation::new_user(cancellable_no).unwrap();
+
+            let system_remotes = match libflatpak::Installation::list_remotes(
+                &flatpak_system_installation,
+                cancellable_no,
+            ) {
                 Ok(t) => t,
-                Err(_) => Vec::new()
+                Err(_) => Vec::new(),
             };
-        
-            let user_remotes = match libflatpak::Installation::list_remotes(&flatpak_user_installation, cancellable_no) {
+
+            let user_remotes = match libflatpak::Installation::list_remotes(
+                &flatpak_user_installation,
+                cancellable_no,
+            ) {
                 Ok(t) => t,
-                Err(_) => Vec::new()
+                Err(_) => Vec::new(),
             };
 
-        let flatpak_remotes_list_store = gio::ListStore::new::<BoxedAnyObject>();
+            let flatpak_remotes_list_store = gio::ListStore::new::<BoxedAnyObject>();
 
-        for remote in system_remotes {
-            flatpak_remotes_list_store.append(&BoxedAnyObject::new(FlatpakRemote::System(remote)));
-        };
+            for remote in system_remotes {
+                flatpak_remotes_list_store
+                    .append(&BoxedAnyObject::new(FlatpakRemote::System(remote)));
+            }
 
-        for remote in user_remotes {
-            flatpak_remotes_list_store.append(&BoxedAnyObject::new(FlatpakRemote::User(remote)));
-        };
+            for remote in user_remotes {
+                flatpak_remotes_list_store
+                    .append(&BoxedAnyObject::new(FlatpakRemote::User(remote)));
+            }
 
-        let flatpak_remotes_selection_model = SingleSelection::new(Some(flatpak_remotes_list_store));
+            let flatpak_remotes_selection_model =
+                SingleSelection::new(Some(flatpak_remotes_list_store));
 
-        (*flatpak_remotes_selection_model_rc_clone0.borrow_mut() = flatpak_remotes_selection_model.clone());
+            (*flatpak_remotes_selection_model_rc_clone0.borrow_mut() =
+                flatpak_remotes_selection_model.clone());
 
-        let flatpak_remotes_columnview = ColumnView::builder()
-            .vexpand(true)
-            .model(&flatpak_remotes_selection_model)
-            .build();
-
-        //
-
-        let flatpak_remotes_columnview_factory0 = gtk::SignalListItemFactory::new();
-        
-        flatpak_remotes_columnview_factory0.connect_setup(move |_factory, item| {
-            let item = item.downcast_ref::<gtk::ListItem>().unwrap();
-            let row = Label::builder()
-                .halign(Align::Start)
+            let flatpak_remotes_columnview = ColumnView::builder()
+                .vexpand(true)
+                .model(&flatpak_remotes_selection_model)
                 .build();
-            item.set_child(Some(&row));
-        });
 
-        flatpak_remotes_columnview_factory0.connect_bind(move |_factory, item| {
-            let item: &ListItem = item.downcast_ref::<gtk::ListItem>().unwrap();
-            let child = item.child().and_downcast::<Label>().unwrap();
-            let entry: BoxedAnyObject = item.item().and_downcast::<BoxedAnyObject>().unwrap();
-            let entry_borrow = entry.borrow::<FlatpakRemote>();
-            let remote_name = match entry_borrow.deref() {
-                FlatpakRemote::System(remote) => {
-                    remote.name().unwrap_or_default()
-                }
-                FlatpakRemote::User(remote) => {
-                    remote.name().unwrap_or_default()
-                }
-            };
-            child.set_label(&remote_name);
-        });
-        
-        let flatpak_remotes_columnview_col1 = gtk::ColumnViewColumn::builder()
-            .title(t!("flatpak_remotes_columnview_col0_title"))
-            .factory(&flatpak_remotes_columnview_factory0)
-            .build();
+            //
 
-        //
+            let flatpak_remotes_columnview_factory0 = gtk::SignalListItemFactory::new();
 
-        let flatpak_remotes_columnview_factory1 = gtk::SignalListItemFactory::new();
-        
-        flatpak_remotes_columnview_factory1.connect_setup(move |_factory, item| {
-            let item = item.downcast_ref::<gtk::ListItem>().unwrap();
-            let row = Label::builder()
-                .halign(Align::Start)
+            flatpak_remotes_columnview_factory0.connect_setup(move |_factory, item| {
+                let item = item.downcast_ref::<gtk::ListItem>().unwrap();
+                let row = Label::builder().halign(Align::Start).build();
+                item.set_child(Some(&row));
+            });
+
+            flatpak_remotes_columnview_factory0.connect_bind(move |_factory, item| {
+                let item: &ListItem = item.downcast_ref::<gtk::ListItem>().unwrap();
+                let child = item.child().and_downcast::<Label>().unwrap();
+                let entry: BoxedAnyObject = item.item().and_downcast::<BoxedAnyObject>().unwrap();
+                let entry_borrow = entry.borrow::<FlatpakRemote>();
+                let remote_name = match entry_borrow.deref() {
+                    FlatpakRemote::System(remote) => remote.name().unwrap_or_default(),
+                    FlatpakRemote::User(remote) => remote.name().unwrap_or_default(),
+                };
+                child.set_label(&remote_name);
+            });
+
+            let flatpak_remotes_columnview_col1 = gtk::ColumnViewColumn::builder()
+                .title(t!("flatpak_remotes_columnview_col0_title"))
+                .factory(&flatpak_remotes_columnview_factory0)
                 .build();
-            item.set_child(Some(&row));
-        });
 
-        flatpak_remotes_columnview_factory1.connect_bind(move |_factory, item| {
-            let item: &ListItem = item.downcast_ref::<gtk::ListItem>().unwrap();
-            let child = item.child().and_downcast::<Label>().unwrap();
-            let entry: BoxedAnyObject = item.item().and_downcast::<BoxedAnyObject>().unwrap();
-            let entry_borrow = entry.borrow::<FlatpakRemote>();
-            let remote_title = match entry_borrow.deref() {
-                FlatpakRemote::System(remote) => {
-                    remote.title().unwrap_or_default()
-                }
-                FlatpakRemote::User(remote) => {
-                    remote.title().unwrap_or_default()
-                }
-            };
-            child.set_label(&remote_title);
-        });
-        
-        let flatpak_remotes_columnview_col0 = gtk::ColumnViewColumn::builder()
-            .title(t!("flatpak_remotes_columnview_col1_title"))
-            .factory(&flatpak_remotes_columnview_factory1)
-            .build();
+            //
 
-        //
+            let flatpak_remotes_columnview_factory1 = gtk::SignalListItemFactory::new();
 
-        let flatpak_remotes_columnview_factory2 = gtk::SignalListItemFactory::new();
-        
-        flatpak_remotes_columnview_factory2.connect_setup(move |_factory, item| {
-            let item = item.downcast_ref::<gtk::ListItem>().unwrap();
-            let row = Label::builder()
-                .halign(Align::Start)
+            flatpak_remotes_columnview_factory1.connect_setup(move |_factory, item| {
+                let item = item.downcast_ref::<gtk::ListItem>().unwrap();
+                let row = Label::builder().halign(Align::Start).build();
+                item.set_child(Some(&row));
+            });
+
+            flatpak_remotes_columnview_factory1.connect_bind(move |_factory, item| {
+                let item: &ListItem = item.downcast_ref::<gtk::ListItem>().unwrap();
+                let child = item.child().and_downcast::<Label>().unwrap();
+                let entry: BoxedAnyObject = item.item().and_downcast::<BoxedAnyObject>().unwrap();
+                let entry_borrow = entry.borrow::<FlatpakRemote>();
+                let remote_title = match entry_borrow.deref() {
+                    FlatpakRemote::System(remote) => remote.title().unwrap_or_default(),
+                    FlatpakRemote::User(remote) => remote.title().unwrap_or_default(),
+                };
+                child.set_label(&remote_title);
+            });
+
+            let flatpak_remotes_columnview_col0 = gtk::ColumnViewColumn::builder()
+                .title(t!("flatpak_remotes_columnview_col1_title"))
+                .factory(&flatpak_remotes_columnview_factory1)
                 .build();
-            item.set_child(Some(&row));
-        });
 
-        flatpak_remotes_columnview_factory2.connect_bind(move |_factory, item| {
-            let item: &ListItem = item.downcast_ref::<gtk::ListItem>().unwrap();
-            let child = item.child().and_downcast::<Label>().unwrap();
-            let entry: BoxedAnyObject = item.item().and_downcast::<BoxedAnyObject>().unwrap();
-            let entry_borrow = entry.borrow::<FlatpakRemote>();
-            let remote_url = match entry_borrow.deref() {
-                FlatpakRemote::System(remote) => {
-                    remote.url().unwrap_or_default()
-                }
-                FlatpakRemote::User(remote) => {
-                    remote.url().unwrap_or_default()
-                }
-            };
-            child.set_label(&remote_url);
-        });
-        
-        let flatpak_remotes_columnview_col2 = gtk::ColumnViewColumn::builder()
-            .title(t!("flatpak_remotes_columnview_col2_title"))
-            .factory(&flatpak_remotes_columnview_factory2)
-            .expand(true)
-            .build();
+            //
 
-        //
+            let flatpak_remotes_columnview_factory2 = gtk::SignalListItemFactory::new();
 
-        let flatpak_remotes_columnview_factory3 = gtk::SignalListItemFactory::new();
-        
-        flatpak_remotes_columnview_factory3.connect_setup(move |_factory, item| {
-            let item = item.downcast_ref::<gtk::ListItem>().unwrap();
-            let row = Label::builder()
-                .halign(Align::Start)
+            flatpak_remotes_columnview_factory2.connect_setup(move |_factory, item| {
+                let item = item.downcast_ref::<gtk::ListItem>().unwrap();
+                let row = Label::builder().halign(Align::Start).build();
+                item.set_child(Some(&row));
+            });
+
+            flatpak_remotes_columnview_factory2.connect_bind(move |_factory, item| {
+                let item: &ListItem = item.downcast_ref::<gtk::ListItem>().unwrap();
+                let child = item.child().and_downcast::<Label>().unwrap();
+                let entry: BoxedAnyObject = item.item().and_downcast::<BoxedAnyObject>().unwrap();
+                let entry_borrow = entry.borrow::<FlatpakRemote>();
+                let remote_url = match entry_borrow.deref() {
+                    FlatpakRemote::System(remote) => remote.url().unwrap_or_default(),
+                    FlatpakRemote::User(remote) => remote.url().unwrap_or_default(),
+                };
+                child.set_label(&remote_url);
+            });
+
+            let flatpak_remotes_columnview_col2 = gtk::ColumnViewColumn::builder()
+                .title(t!("flatpak_remotes_columnview_col2_title"))
+                .factory(&flatpak_remotes_columnview_factory2)
+                .expand(true)
                 .build();
-            item.set_child(Some(&row));
-        });
 
-        flatpak_remotes_columnview_factory3.connect_bind(move |_factory, item| {
-            let item: &ListItem = item.downcast_ref::<gtk::ListItem>().unwrap();
-            let child = item.child().and_downcast::<Label>().unwrap();
-            let entry: BoxedAnyObject = item.item().and_downcast::<BoxedAnyObject>().unwrap();
-            let entry_borrow = entry.borrow::<FlatpakRemote>();
-            match entry_borrow.deref() {
-                FlatpakRemote::System(remote) => {
-                    child.set_label(&t!("flatpak_remotes_columnview_system").to_string());
-                }
-                FlatpakRemote::User(remote) => {
-                    child.set_label(&t!("flatpak_remotes_columnview_user").to_string());
-                }
-            };
-        });
-        
-        let flatpak_remotes_columnview_col3 = gtk::ColumnViewColumn::builder()
-            .title(t!("flatpak_remotes_columnview_col3_title"))
-            .factory(&flatpak_remotes_columnview_factory3)
-            .build();
+            //
 
-        //
-        flatpak_remotes_columnview.append_column(&flatpak_remotes_columnview_col0);
-        flatpak_remotes_columnview.append_column(&flatpak_remotes_columnview_col1);
-        flatpak_remotes_columnview.append_column(&flatpak_remotes_columnview_col2);
-        flatpak_remotes_columnview.append_column(&flatpak_remotes_columnview_col3);
-        flatpak_remotes_columnview_bin_clone0.set_child(Some(&flatpak_remotes_columnview));
-    }));
+            let flatpak_remotes_columnview_factory3 = gtk::SignalListItemFactory::new();
+
+            flatpak_remotes_columnview_factory3.connect_setup(move |_factory, item| {
+                let item = item.downcast_ref::<gtk::ListItem>().unwrap();
+                let row = Label::builder().halign(Align::Start).build();
+                item.set_child(Some(&row));
+            });
+
+            flatpak_remotes_columnview_factory3.connect_bind(move |_factory, item| {
+                let item: &ListItem = item.downcast_ref::<gtk::ListItem>().unwrap();
+                let child = item.child().and_downcast::<Label>().unwrap();
+                let entry: BoxedAnyObject = item.item().and_downcast::<BoxedAnyObject>().unwrap();
+                let entry_borrow = entry.borrow::<FlatpakRemote>();
+                match entry_borrow.deref() {
+                    FlatpakRemote::System(_) => {
+                        child.set_label(&t!("flatpak_remotes_columnview_system").to_string());
+                    }
+                    FlatpakRemote::User(_) => {
+                        child.set_label(&t!("flatpak_remotes_columnview_user").to_string());
+                    }
+                };
+            });
+
+            let flatpak_remotes_columnview_col3 = gtk::ColumnViewColumn::builder()
+                .title(t!("flatpak_remotes_columnview_col3_title"))
+                .factory(&flatpak_remotes_columnview_factory3)
+                .build();
+
+            //
+            flatpak_remotes_columnview.append_column(&flatpak_remotes_columnview_col0);
+            flatpak_remotes_columnview.append_column(&flatpak_remotes_columnview_col1);
+            flatpak_remotes_columnview.append_column(&flatpak_remotes_columnview_col2);
+            flatpak_remotes_columnview.append_column(&flatpak_remotes_columnview_col3);
+            flatpak_remotes_columnview_bin_clone0.set_child(Some(&flatpak_remotes_columnview));
+        }
+    ));
 
     retry_signal_action.activate(None);
 
@@ -310,17 +286,14 @@ pub fn flatpak_manage_page(
         retry_signal_action,
         #[strong]
         flatpak_retry_signal_action,
-            move
-            |_|
-            {
-                add_dialog::add_dialog_fn(
-                    window.clone(),
-                    &retry_signal_action,
-                    &flatpak_retry_signal_action,
-                );
-            }
-        )
-    );
+        move |_| {
+            add_dialog::add_dialog_fn(
+                window.clone(),
+                &retry_signal_action,
+                &flatpak_retry_signal_action,
+            );
+        }
+    ));
 
     flatpak_flatref_install_button.connect_clicked(clone!(
         #[strong]
@@ -331,18 +304,15 @@ pub fn flatpak_manage_page(
         flatpak_retry_signal_action,
         #[strong]
         flatpak_ref_entry_action,
-            move
-            |_|
-            {
-                install_ref_dialog::install_ref_dialog_fn(
-                    window.clone(),
-                    &retry_signal_action,
-                    &flatpak_retry_signal_action,
-                    &flatpak_ref_entry_action
-                );
-            }
-        )
-    );
+        move |_| {
+            install_ref_dialog::install_ref_dialog_fn(
+                window.clone(),
+                &retry_signal_action,
+                &flatpak_retry_signal_action,
+                &flatpak_ref_entry_action,
+            );
+        }
+    ));
 
     flatpak_remote_remove_button.connect_clicked(clone!(
         #[strong]
@@ -357,7 +327,7 @@ pub fn flatpak_manage_page(
             |_|
             {
                 {
-                    let (mut installation, mut remote_name, mut cmd_installation): (libflatpak::Installation, libflatpak::glib::GString, String);
+                    let (installation, remote_name, cmd_installation): (libflatpak::Installation, libflatpak::glib::GString, String);
                     {
                         let flatpak_remotes_selection_model = flatpak_remotes_selection_model_rc.borrow();
                         let selection = flatpak_remotes_selection_model.selected_item().unwrap();

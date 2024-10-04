@@ -1,22 +1,17 @@
 use crate::apt_manage_page::apt_manage_page;
-use crate::flatpak_manage_page::flatpak_manage_page;
 use crate::apt_update_page;
 use crate::config::{APP_GITHUB, APP_ICON, APP_ID, VERSION};
+use crate::flatpak_manage_page::flatpak_manage_page;
 use crate::flatpak_update_page;
 use adw::prelude::*;
 use adw::*;
-use async_channel::Sender;
-use futures::task::SpawnExt;
 use gtk::glib::{clone, MainContext};
 use gtk::{License, WindowControls};
+use ksni;
 use std::cell::RefCell;
-use std::ops::Index;
 use std::process::Command;
 use std::rc::Rc;
-use std::sync::atomic::AtomicBool;
 use std::thread;
-use std::sync::Arc;
-use ksni;
 
 #[derive(Debug)]
 struct PikmanTray {
@@ -30,11 +25,11 @@ impl ksni::Tray for PikmanTray {
     fn icon_name(&self) -> String {
         match &self.icon_name {
             Some(t) => t.into(),
-            None => "help-about".into()
+            None => "help-about".into(),
         }
     }
     fn title(&self) -> String {
-       t!("application_name").to_string()
+        t!("application_name").to_string()
     }
     // NOTE: On some system trays, `id` is a required property to avoid unexpected behaviors
     fn id(&self) -> String {
@@ -46,8 +41,9 @@ impl ksni::Tray for PikmanTray {
             StandardItem {
                 label: match &self.apt_item_label {
                     Some(t) => t,
-                    None => "?"
-                }.into(),
+                    None => "?",
+                }
+                .into(),
                 icon_name: "application-vnd.debian.binary-package".into(),
                 enabled: false,
                 ..Default::default()
@@ -56,8 +52,9 @@ impl ksni::Tray for PikmanTray {
             StandardItem {
                 label: match &self.flatpak_item_label {
                     Some(t) => t,
-                    None => "?"
-                }.into(),
+                    None => "?",
+                }
+                .into(),
                 icon_name: "application-vnd.flatpak".into(),
                 enabled: false,
                 ..Default::default()
@@ -68,7 +65,9 @@ impl ksni::Tray for PikmanTray {
                 label: t!("pikman_indicator_open_item_label").into(),
                 icon_name: "view-paged-symbolic".into(),
                 activate: Box::new(|_| {
-                    self.action_sender.send_blocking(String::from("open")).unwrap()
+                    self.action_sender
+                        .send_blocking(String::from("open"))
+                        .unwrap()
                 }),
                 ..Default::default()
             }
@@ -111,13 +110,13 @@ pub fn build_ui(app: &Application) {
         flatpak_item_label: None,
     });
     let tray_handle = tray_service.handle();
-    
+
     tray_service.spawn();
 
     update_sys_tray.connect_activate(clone!(
         #[strong]
         tray_handle,
-        move |_,param| {
+        move |_, param| {
             let array: &[i32] = param.unwrap().fixed_array().unwrap();
             let vec = array.to_vec();
             let apt_update_count = vec[0];
@@ -129,35 +128,36 @@ pub fn build_ui(app: &Application) {
             };
             tray_handle.update(|tray: &mut PikmanTray| {
                 tray.icon_name = tray_icon;
-                tray.apt_item_label = Some(strfmt::strfmt(
-                    &t!("pikman_indicator_apt_count_item_label").to_string(),
-                    &std::collections::HashMap::from([
-                        (
+                tray.apt_item_label = Some(
+                    strfmt::strfmt(
+                        &t!("pikman_indicator_apt_count_item_label").to_string(),
+                        &std::collections::HashMap::from([(
                             "NUM".to_string(),
                             match apt_update_count {
                                 -1 => t!("pikman_indicator_flatpak_item_label_calculating").into(),
                                 _ => apt_update_count.to_string(),
                             },
-                        ),
-                    ]),
-                )
-                .unwrap());
-                tray.flatpak_item_label = Some(strfmt::strfmt(
-                    &t!("pikman_indicator_flatpak_count_item_label").to_string(),
-                    &std::collections::HashMap::from([
-                        (
+                        )]),
+                    )
+                    .unwrap(),
+                );
+                tray.flatpak_item_label = Some(
+                    strfmt::strfmt(
+                        &t!("pikman_indicator_flatpak_count_item_label").to_string(),
+                        &std::collections::HashMap::from([(
                             "NUM".to_string(),
                             match flatpak_update_count {
                                 -1 => t!("pikman_indicator_flatpak_item_label_calculating").into(),
                                 _ => flatpak_update_count.to_string(),
                             },
-                        ),
-                    ]),
-                )
-                .unwrap());
+                        )]),
+                    )
+                    .unwrap(),
+                );
             });
-    }));
-    update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(&[-1,-1])));
+        }
+    ));
+    update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(&[-1, -1])));
 
     thread::spawn(move || loop {
         match Command::new("ping").arg("google.com").arg("-c 1").output() {
@@ -228,16 +228,27 @@ pub fn build_ui(app: &Application) {
         .margin_end(5)
         .hexpand(true)
         .build();
-    window_adw_view_switcher_sidebar_control_box.append(&WindowControls::builder().halign(gtk::Align::Start).valign(gtk::Align::Center).build());
-    window_adw_view_switcher_sidebar_control_box.append(&WindowTitle::builder().halign(gtk::Align::Center).margin_top(10).margin_bottom(20).valign(gtk::Align::Center).hexpand(true).title(t!("application_name")).build());
-    
+    window_adw_view_switcher_sidebar_control_box.append(
+        &WindowControls::builder()
+            .halign(gtk::Align::Start)
+            .valign(gtk::Align::Center)
+            .build(),
+    );
+    window_adw_view_switcher_sidebar_control_box.append(
+        &WindowTitle::builder()
+            .halign(gtk::Align::Center)
+            .margin_top(10)
+            .margin_bottom(20)
+            .valign(gtk::Align::Center)
+            .hexpand(true)
+            .title(t!("application_name"))
+            .build(),
+    );
+
     let window_adw_view_switcher_sidebar_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
     window_adw_view_switcher_sidebar_box.append(&window_adw_view_switcher_sidebar_control_box);
-    
-    let null_toggle_button: gtk::ToggleButton = gtk::ToggleButton::new();
 
-    let window_adw_stack_clone0 = window_adw_stack.clone();
-    let window_adw_view_switcher_sidebar_box_clone0 = window_adw_view_switcher_sidebar_box.clone();
+    let null_toggle_button: gtk::ToggleButton = gtk::ToggleButton::new();
 
     let sidebar_toggle_button = gtk::ToggleButton::builder()
         .icon_name("view-right-pane-symbolic")
@@ -266,16 +277,8 @@ pub fn build_ui(app: &Application) {
         "collapsed",
         Some(&true.to_value()),
     );
-    window_breakpoint.add_setter(
-        &sidebar_toggle_button,
-        "visible",
-        Some(&true.to_value()),
-    );
-    window_breakpoint.add_setter(
-        &window_headerbar,
-        "show_title",
-        Some(&true.to_value()),
-    );
+    window_breakpoint.add_setter(&sidebar_toggle_button, "visible", Some(&true.to_value()));
+    window_breakpoint.add_setter(&window_headerbar, "show_title", Some(&true.to_value()));
 
     window_headerbar.pack_end(&sidebar_toggle_button);
 
@@ -312,12 +315,10 @@ pub fn build_ui(app: &Application) {
     }
 
     window.connect_close_request(move |window| {
-        if let Some(application) = window.application() {
-            let size = window.default_size();
-            let _ = glib_settings.set_int("window-width", size.0);
-            let _ = glib_settings.set_int("window-height", size.1);
-            let _ = glib_settings.set_boolean("is-maximized", window.is_maximized());
-        }
+        let size = window.default_size();
+        let _ = glib_settings.set_int("window-width", size.0);
+        let _ = glib_settings.set_int("window-height", size.1);
+        let _ = glib_settings.set_boolean("is-maximized", window.is_maximized());
         glib::Propagation::Proceed
     });
 
@@ -353,8 +354,7 @@ pub fn build_ui(app: &Application) {
 
     let flatpak_retry_signal_action = gio::SimpleAction::new("retry", None);
 
-    let flatpak_update_view_stack_bin = Bin::builder()
-        .build();
+    let flatpak_update_view_stack_bin = Bin::builder().build();
 
     flatpak_retry_signal_action.connect_activate(clone!(
         #[weak]
@@ -370,13 +370,15 @@ pub fn build_ui(app: &Application) {
         #[strong]
         flatpak_update_count,
         move |_, _| {
-            flatpak_update_view_stack_bin.set_child(Some(&flatpak_update_page::flatpak_update_page(
-                window,
-                &flatpak_retry_signal_action,
-                &update_sys_tray,
-                &apt_update_count,
-                &flatpak_update_count,
-            )));
+            flatpak_update_view_stack_bin.set_child(Some(
+                &flatpak_update_page::flatpak_update_page(
+                    window,
+                    &flatpak_retry_signal_action,
+                    &update_sys_tray,
+                    &apt_update_count,
+                    &flatpak_update_count,
+                ),
+            ));
         }
     ));
 
@@ -388,34 +390,34 @@ pub fn build_ui(app: &Application) {
     let apt_update_view_stack_bin = Bin::builder().build();
 
     apt_retry_signal_action.connect_activate(clone!(
-            #[weak]
-            window,
-            #[strong]
-            apt_retry_signal_action,
-            #[strong]
-            flatpak_retry_signal_action,
-            #[strong]
-            apt_update_view_stack_bin,
-            #[weak]
-            flatpak_ran_once,
-            #[strong]
-            update_sys_tray,
-            #[strong]
-            apt_update_count,
-            #[strong]
-            flatpak_update_count,
-            move |_, _| {
-               apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(
-                    window,
-                    &apt_retry_signal_action,
-                    &flatpak_retry_signal_action,
-                    flatpak_ran_once,
-                    &update_sys_tray,
-                    &apt_update_count,
-                    &flatpak_update_count,
-                )));
-            }
-        ));
+        #[weak]
+        window,
+        #[strong]
+        apt_retry_signal_action,
+        #[strong]
+        flatpak_retry_signal_action,
+        #[strong]
+        apt_update_view_stack_bin,
+        #[weak]
+        flatpak_ran_once,
+        #[strong]
+        update_sys_tray,
+        #[strong]
+        apt_update_count,
+        #[strong]
+        flatpak_update_count,
+        move |_, _| {
+            apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(
+                window,
+                &apt_retry_signal_action,
+                &flatpak_retry_signal_action,
+                flatpak_ran_once,
+                &update_sys_tray,
+                &apt_update_count,
+                &flatpak_update_count,
+            )));
+        }
+    ));
 
     apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(
         window.clone(),
@@ -435,7 +437,13 @@ pub fn build_ui(app: &Application) {
         &t!("apt_update_page_title"),
     );
 
-    let apt_update_page_toggle_button = add_content_button(&window_adw_stack, true, "apt_update_page".to_string(), t!("apt_update_page_title").to_string(), &null_toggle_button);
+    let apt_update_page_toggle_button = add_content_button(
+        &window_adw_stack,
+        true,
+        "apt_update_page".to_string(),
+        t!("apt_update_page_title").to_string(),
+        &null_toggle_button,
+    );
     window_adw_view_switcher_sidebar_box.append(&apt_update_page_toggle_button);
 
     window_adw_stack.add_titled(
@@ -444,7 +452,13 @@ pub fn build_ui(app: &Application) {
         &t!("flatpak_update_page_title"),
     );
 
-    let flatpak_update_page_toggle_button = add_content_button(&window_adw_stack, false, "flatpak_update_page".to_string(), t!("flatpak_update_page_title").to_string(), &null_toggle_button);
+    let flatpak_update_page_toggle_button = add_content_button(
+        &window_adw_stack,
+        false,
+        "flatpak_update_page".to_string(),
+        t!("flatpak_update_page_title").to_string(),
+        &null_toggle_button,
+    );
     window_adw_view_switcher_sidebar_box.append(&flatpak_update_page_toggle_button);
 
     window_adw_stack.add_titled(
@@ -453,10 +467,17 @@ pub fn build_ui(app: &Application) {
         &t!("apt_manage_page_title"),
     );
 
-    let apt_manage_page_toggle_button = add_content_button(&window_adw_stack, false, "apt_manage_page".to_string(), t!("apt_manage_page_title").to_string(), &null_toggle_button);
+    let apt_manage_page_toggle_button = add_content_button(
+        &window_adw_stack,
+        false,
+        "apt_manage_page".to_string(),
+        t!("apt_manage_page_title").to_string(),
+        &null_toggle_button,
+    );
     window_adw_view_switcher_sidebar_box.append(&apt_manage_page_toggle_button);
 
-    let flatpak_entry_signal_action = gio::SimpleAction::new("entry-change", Some(glib::VariantTy::STRING));
+    let flatpak_entry_signal_action =
+        gio::SimpleAction::new("entry-change", Some(glib::VariantTy::STRING));
 
     let flatpak_flatref_install_button = gtk::Button::builder()
         .icon_name("document-open-symbolic")
@@ -466,12 +487,23 @@ pub fn build_ui(app: &Application) {
         .build();
 
     window_adw_stack.add_titled(
-        &flatpak_manage_page(window.clone(), &flatpak_retry_signal_action, &flatpak_entry_signal_action, &flatpak_flatref_install_button),
+        &flatpak_manage_page(
+            window.clone(),
+            &flatpak_retry_signal_action,
+            &flatpak_entry_signal_action,
+            &flatpak_flatref_install_button,
+        ),
         Some("flatpak_manage_page"),
         &t!("flatpak_manage_page_title"),
     );
 
-    let flatpak_manage_page_toggle_button = add_content_button(&window_adw_stack, false, "flatpak_manage_page".to_string(), t!("flatpak_manage_page_title").to_string(), &null_toggle_button);
+    let flatpak_manage_page_toggle_button = add_content_button(
+        &window_adw_stack,
+        false,
+        "flatpak_manage_page".to_string(),
+        t!("flatpak_manage_page_title").to_string(),
+        &null_toggle_button,
+    );
     window_adw_view_switcher_sidebar_box.append(&flatpak_manage_page_toggle_button);
 
     app.connect_command_line(clone!(
@@ -486,37 +518,45 @@ pub fn build_ui(app: &Application) {
         #[strong]
         flatpak_entry_signal_action,
         move |_, cmdline| {
-        // Create Vec from cmdline
-        let mut gtk_application_args = Vec::new();
-        for arg in cmdline.arguments() {
-            match arg.to_str() {
-                Some(a) => gtk_application_args.push(a.to_string()),
-                None => {}
+            // Create Vec from cmdline
+            let mut gtk_application_args = Vec::new();
+            for arg in cmdline.arguments() {
+                match arg.to_str() {
+                    Some(a) => gtk_application_args.push(a.to_string()),
+                    None => {}
+                }
             }
-        }
 
-        // Check for cmd lines
-        if !(gtk_application_args.contains(&"--hidden".to_string())) && !(gtk_application_args.contains(&"--flatpak-installer".to_string())) && !window.is_visible() {
-            window.present();
-        }
+            // Check for cmd lines
+            if !(gtk_application_args.contains(&"--hidden".to_string()))
+                && !(gtk_application_args.contains(&"--flatpak-installer".to_string()))
+                && !window.is_visible()
+            {
+                window.present();
+            }
 
-        if gtk_application_args.contains(&"--software-properties".to_string()) {
-            apt_manage_page_toggle_button.set_active(true);
-            apt_manage_page_toggle_button.emit_clicked();
-        }
-        if gtk_application_args.contains(&"--flatpak-settings".to_string()) {
-            flatpak_manage_page_toggle_button.set_active(true);
-            flatpak_manage_page_toggle_button.emit_clicked();
-        }
-        if gtk_application_args.contains(&"--flatpak-installer".to_string()) {
-            flatpak_flatref_install_button.emit_clicked();
-            let index = ((gtk_application_args.iter().position(|r| r == "--flatpak-installer").unwrap() as i32) +1) as usize;
-            flatpak_entry_signal_action.activate(Some(&glib::Variant::from(&gtk_application_args[index])));
-        }
+            if gtk_application_args.contains(&"--software-properties".to_string()) {
+                apt_manage_page_toggle_button.set_active(true);
+                apt_manage_page_toggle_button.emit_clicked();
+            }
+            if gtk_application_args.contains(&"--flatpak-settings".to_string()) {
+                flatpak_manage_page_toggle_button.set_active(true);
+                flatpak_manage_page_toggle_button.emit_clicked();
+            }
+            if gtk_application_args.contains(&"--flatpak-installer".to_string()) {
+                flatpak_flatref_install_button.emit_clicked();
+                let index = ((gtk_application_args
+                    .iter()
+                    .position(|r| r == "--flatpak-installer")
+                    .unwrap() as i32)
+                    + 1) as usize;
+                flatpak_entry_signal_action
+                    .activate(Some(&glib::Variant::from(&gtk_application_args[index])));
+            }
 
-        0
-    }));
-
+            0
+        }
+    ));
 
     // Refresh button
 
@@ -551,15 +591,20 @@ pub fn build_ui(app: &Application) {
                             window.present();
                         }
                     }
-                    _ => todo!()
+                    _ => todo!(),
                 }
             }
         }
     ));
-
 }
 
-fn add_content_button(window_adw_stack: &gtk::Stack, active: bool, name: String, title: String, null_toggle_button: &gtk::ToggleButton) -> gtk::ToggleButton {
+fn add_content_button(
+    window_adw_stack: &gtk::Stack,
+    active: bool,
+    name: String,
+    title: String,
+    null_toggle_button: &gtk::ToggleButton,
+) -> gtk::ToggleButton {
     let toggle_button = gtk::ToggleButton::builder()
         .group(null_toggle_button)
         .label(&title)
@@ -571,10 +616,14 @@ fn add_content_button(window_adw_stack: &gtk::Stack, active: bool, name: String,
         .valign(gtk::Align::Start)
         .build();
     toggle_button.add_css_class("flat");
-    toggle_button.connect_clicked(clone!(#[weak] window_adw_stack,move |toggle_button| {
-        if toggle_button.is_active() {
-            window_adw_stack.set_visible_child_name(&name);
+    toggle_button.connect_clicked(clone!(
+        #[weak]
+        window_adw_stack,
+        move |toggle_button| {
+            if toggle_button.is_active() {
+                window_adw_stack.set_visible_child_name(&name);
+            }
         }
-    }));
+    ));
     toggle_button
 }

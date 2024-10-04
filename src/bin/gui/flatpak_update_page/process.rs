@@ -4,19 +4,12 @@ use adw::prelude::*;
 use gtk::glib::*;
 use gtk::*;
 use libflatpak::prelude::*;
-use libflatpak::Transaction;
 use pretty_bytes::converter::convert;
-use serde::Serialize;
-use serde_json::Value;
-use std::cell::RefCell;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
-use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 use std::{fs, thread};
-use tokio::runtime::Runtime;
 
 struct FlatpakChangesInfo {
     system_flatref_count: u64,
@@ -58,7 +51,6 @@ pub fn flatpak_process_update(
     window: adw::ApplicationWindow,
     retry_signal_action: &SimpleAction,
 ) {
-    let cancellable = libflatpak::gio::Cancellable::NONE;
     // Emulate Flatpak Full Upgrade to get transaction info
     let mut flatpak_changes_struct = FlatpakChangesInfo {
         system_flatref_count: 0,
@@ -248,16 +240,45 @@ fn flatpak_run_transactions(
         let transaction_percent_sender0 = transaction_percent_sender.clone();
 
         let transaction_run_closure =
-            move |transaction: &libflatpak::Transaction,
+            move |_: &libflatpak::Transaction,
                   transaction_operation: &libflatpak::TransactionOperation,
                   transaction_progress: &libflatpak::TransactionProgress| {
                 let transaction_status_sender = transaction_status_sender0.clone();
                 let transaction_percent_sender = transaction_percent_sender0.clone();
-                transaction_progress.connect_changed(clone!(@strong transaction_progress, @strong transaction_operation => move |_| {
-                let status_message = format!("{}: {}\n{}: {}\n{}: {}/{}\n{}: {}", t!("flatpak_ref"), transaction_operation.get_ref().unwrap_or(libflatpak::glib::GString::from_string_unchecked("Unknown".to_owned())), t!("flatpak_status") ,transaction_progress.status().unwrap_or(libflatpak::glib::GString::from_string_unchecked("Unknown".to_owned())), t!("flatpak_transaction_bytes_transferred"), convert(transaction_progress.bytes_transferred() as f64), convert(transaction_operation.download_size() as f64), t!("flatpak_transaction_installed_size"), convert(transaction_operation.installed_size() as f64));
-                transaction_status_sender.send_blocking(status_message).expect("transaction_status_receiver closed!");
-                transaction_percent_sender.send_blocking(transaction_progress.progress().try_into().unwrap_or(0)).expect("transaction_percent_receiver closed!");
-            }));
+                transaction_progress.connect_changed(clone!(
+                    #[strong]
+                    transaction_progress,
+                    #[strong]
+                    transaction_operation,
+                    move |_| {
+                        let status_message = format!(
+                            "{}: {}\n{}: {}\n{}: {}/{}\n{}: {}",
+                            t!("flatpak_ref"),
+                            transaction_operation.get_ref().unwrap_or(
+                                libflatpak::glib::GString::from_string_unchecked(
+                                    "Unknown".to_owned()
+                                )
+                            ),
+                            t!("flatpak_status"),
+                            transaction_progress.status().unwrap_or(
+                                libflatpak::glib::GString::from_string_unchecked(
+                                    "Unknown".to_owned()
+                                )
+                            ),
+                            t!("flatpak_transaction_bytes_transferred"),
+                            convert(transaction_progress.bytes_transferred() as f64),
+                            convert(transaction_operation.download_size() as f64),
+                            t!("flatpak_transaction_installed_size"),
+                            convert(transaction_operation.installed_size() as f64)
+                        );
+                        transaction_status_sender
+                            .send_blocking(status_message)
+                            .expect("transaction_status_receiver closed!");
+                        transaction_percent_sender
+                            .send_blocking(transaction_progress.progress().try_into().unwrap_or(0))
+                            .expect("transaction_percent_receiver closed!");
+                    }
+                ));
             };
 
         //

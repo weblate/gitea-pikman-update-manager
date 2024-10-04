@@ -1,15 +1,12 @@
 mod process;
 
-use crate::apt_package_row::AptPackageRow;
 use crate::flatpak_ref_row::FlatpakRefRow;
 use adw::gio::SimpleAction;
 use adw::prelude::*;
 use gtk::glib::*;
 use gtk::*;
 use libflatpak::prelude::*;
-use libflatpak::InstalledRef;
 use std::cell::RefCell;
-use std::process::Command;
 use std::rc::Rc;
 use std::thread;
 
@@ -42,7 +39,6 @@ pub fn flatpak_update_page(
     let (appstream_sync_status_sender, appstream_sync_status_receiver) =
         async_channel::unbounded::<String>();
     let appstream_sync_status_sender = appstream_sync_status_sender.clone();
-    let appstream_sync_status_sender_clone0 = appstream_sync_status_sender.clone();
 
     let system_refs_for_upgrade_vec: Rc<RefCell<Vec<FlatpakRefRow>>> =
         Rc::new(RefCell::new(Vec::new()));
@@ -201,7 +197,7 @@ pub fn flatpak_update_page(
         .title(t!("flatpak_ignored_viewport_page_title"))
         .hexpand(true)
         .vexpand(true)
-        .build();    
+        .build();
 
     let viewport_bin = adw::Bin::builder()
         .child(&packages_no_viewport_page)
@@ -252,7 +248,7 @@ pub fn flatpak_update_page(
     if window.is_visible() {
         let retry_signal_action0 = retry_signal_action.clone();
         let viewport_bin = viewport_bin.clone();
-    
+
         flatpak_update_dialog
             .clone()
             .choose(None::<&gio::Cancellable>, move |choice| {
@@ -400,8 +396,8 @@ pub fn flatpak_update_page(
                         let mut user_last_triggered = false;
                         //
                         if !flatpak_system_updates.is_empty() || !flatpak_user_updates.is_empty() {
-                          update_button.set_sensitive(true);
-                          viewport_bin.set_child(Some(&packages_viewport));  
+                            update_button.set_sensitive(true);
+                            viewport_bin.set_child(Some(&packages_viewport));
                         }
                         //
                         if !flatpak_system_updates.is_empty() {
@@ -551,8 +547,7 @@ pub fn flatpak_update_page(
 
                                 packages_boxedlist.append(&flatpak_row);
                                 (*flatpak_update_count.borrow_mut() += 1);
-                                if flatref_struct.is_system && flatref_struct.is_last
-                                {
+                                if flatref_struct.is_system && flatref_struct.is_last {
                                     system_last_triggered = true
                                 }
                             }
@@ -705,8 +700,7 @@ pub fn flatpak_update_page(
                                 );
                                 packages_boxedlist.append(&flatpak_row);
                                 (*flatpak_update_count.borrow_mut() += 1);
-                                if !flatref_struct.is_system && flatref_struct.is_last
-                                {
+                                if !flatref_struct.is_system && flatref_struct.is_last {
                                     user_last_triggered = true
                                 }
                             }
@@ -715,7 +709,9 @@ pub fn flatpak_update_page(
                         }
                         if user_last_triggered && system_last_triggered {
                             packages_boxedlist.set_sensitive(true);
-                            update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(&[*apt_update_count.borrow(),*flatpak_update_count.borrow()])));
+                            update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(
+                                &[*apt_update_count.borrow(), *flatpak_update_count.borrow()],
+                            )));
                         }
                         flatpak_update_dialog.close();
                     }
@@ -733,7 +729,8 @@ pub fn flatpak_update_page(
                         ));
                         flatpak_update_dialog
                             .set_response_enabled("flatpak_update_dialog_retry", true);
-                        flatpak_update_dialog.set_response_enabled("flatpak_update_dialog_ignore", true);
+                        flatpak_update_dialog
+                            .set_response_enabled("flatpak_update_dialog_ignore", true);
                     }
                     _ => flatpak_update_dialog.set_body(&state),
                 }

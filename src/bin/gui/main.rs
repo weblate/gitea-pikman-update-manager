@@ -1,11 +1,11 @@
+mod apt_manage_page;
 mod apt_package_row;
 mod apt_update_page;
-mod apt_manage_page;
 mod build_ui;
 mod config;
+mod flatpak_manage_page;
 mod flatpak_ref_row;
 mod flatpak_update_page;
-mod flatpak_manage_page;
 
 use crate::config::APP_ID;
 use adw::prelude::*;
@@ -33,7 +33,8 @@ fn main() {
         None => panic!("$LANG is not set"),
     };
     rust_i18n::set_locale(&current_locale);
-    let application = adw::Application::new(Some(APP_ID), gio::ApplicationFlags::HANDLES_COMMAND_LINE);
+    let application =
+        adw::Application::new(Some(APP_ID), gio::ApplicationFlags::HANDLES_COMMAND_LINE);
     application.connect_startup(|app| {
         // The CSS "magic" happens here.
         let provider = CssProvider::new();

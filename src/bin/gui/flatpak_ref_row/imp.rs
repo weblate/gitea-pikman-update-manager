@@ -96,12 +96,12 @@ impl ObjectImpl for FlatpakRefRow {
                 let flatref_ref_name = obj.flatref_ref_name();
                 let flatref_summary = obj.flatref_summary();
                 let flatref_remote_name = obj.flatref_remote_name();
-                let flatref_installed_size_installed = obj.flatref_installed_size_installed();
+                //let flatref_installed_size_installed = obj.flatref_installed_size_installed();
                 let flatref_installed_size_remote = obj.flatref_installed_size_remote();
                 let flatref_download_size = obj.flatref_download_size();
-                let flatref_ref_format = obj.flatref_download_size();
+                //let flatref_ref_format = obj.flatref_download_size();
                 let flatref_is_system = obj.flatref_is_system();
-                let flatref_marked = obj.flatref_marked();
+                //let flatref_marked = obj.flatref_marked();
                 //
                 create_prefix_content(
                     &prefix_box,
