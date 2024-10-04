@@ -96,6 +96,9 @@ pub fn build_ui(app: &Application) {
 
     // Systray
 
+    let apt_update_count = Rc::new(RefCell::new(0));
+    let flatpak_update_count = Rc::new(RefCell::new(0));
+
     let update_sys_tray = gio::SimpleAction::new("sys_tray", Some(glib::VariantTy::ARRAY));
 
     let (tray_service_sender, tray_service_receiver) = async_channel::unbounded();
@@ -110,6 +113,51 @@ pub fn build_ui(app: &Application) {
     let tray_handle = tray_service.handle();
     
     tray_service.spawn();
+
+    update_sys_tray.connect_activate(clone!(
+        #[strong]
+        tray_handle,
+        move |_,param| {
+            let array: &[i32] = param.unwrap().fixed_array().unwrap();
+            let vec = array.to_vec();
+            let apt_update_count = vec[0];
+            let flatpak_update_count = vec[1];
+            let tray_icon = if apt_update_count + flatpak_update_count > 1 {
+                Some("update-high".into())
+            } else {
+                Some("update-none".into())
+            };
+            tray_handle.update(|tray: &mut PikmanTray| {
+                tray.icon_name = tray_icon;
+                tray.apt_item_label = Some(strfmt::strfmt(
+                    &t!("pikman_indicator_apt_count_item_label").to_string(),
+                    &std::collections::HashMap::from([
+                        (
+                            "NUM".to_string(),
+                            match apt_update_count {
+                                -1 => t!("pikman_indicator_flatpak_item_label_calculating").into(),
+                                _ => apt_update_count.to_string(),
+                            },
+                        ),
+                    ]),
+                )
+                .unwrap());
+                tray.flatpak_item_label = Some(strfmt::strfmt(
+                    &t!("pikman_indicator_flatpak_count_item_label").to_string(),
+                    &std::collections::HashMap::from([
+                        (
+                            "NUM".to_string(),
+                            match flatpak_update_count {
+                                -1 => t!("pikman_indicator_flatpak_item_label_calculating").into(),
+                                _ => flatpak_update_count.to_string(),
+                            },
+                        ),
+                    ]),
+                )
+                .unwrap());
+            });
+    }));
+    update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(&[-1,-1])));
 
     thread::spawn(move || loop {
         match Command::new("ping").arg("google.com").arg("-c 1").output() {
@@ -315,10 +363,19 @@ pub fn build_ui(app: &Application) {
         flatpak_retry_signal_action,
         #[strong]
         flatpak_update_view_stack_bin,
+        #[strong]
+        update_sys_tray,
+        #[strong]
+        apt_update_count,
+        #[strong]
+        flatpak_update_count,
         move |_, _| {
             flatpak_update_view_stack_bin.set_child(Some(&flatpak_update_page::flatpak_update_page(
                 window,
                 &flatpak_retry_signal_action,
+                &update_sys_tray,
+                &apt_update_count,
+                &flatpak_update_count,
             )));
         }
     ));
@@ -341,12 +398,21 @@ pub fn build_ui(app: &Application) {
             apt_update_view_stack_bin,
             #[weak]
             flatpak_ran_once,
+            #[strong]
+            update_sys_tray,
+            #[strong]
+            apt_update_count,
+            #[strong]
+            flatpak_update_count,
             move |_, _| {
                apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(
                     window,
                     &apt_retry_signal_action,
                     &flatpak_retry_signal_action,
                     flatpak_ran_once,
+                    &update_sys_tray,
+                    &apt_update_count,
+                    &flatpak_update_count,
                 )));
             }
         ));
@@ -356,6 +422,9 @@ pub fn build_ui(app: &Application) {
         &apt_retry_signal_action,
         &flatpak_retry_signal_action,
         flatpak_ran_once,
+        &update_sys_tray,
+        &apt_update_count,
+        &flatpak_update_count,
     )));
 
     // Add to stack switcher
@@ -404,44 +473,6 @@ pub fn build_ui(app: &Application) {
 
     let flatpak_manage_page_toggle_button = add_content_button(&window_adw_stack, false, "flatpak_manage_page".to_string(), t!("flatpak_manage_page_title").to_string(), &null_toggle_button);
     window_adw_view_switcher_sidebar_box.append(&flatpak_manage_page_toggle_button);
-
-    update_sys_tray.connect_activate(clone!(
-        #[strong]
-        tray_handle,
-        move |_,param| {
-            let array: &[i32] = param.unwrap().fixed_array().unwrap();
-            let vec = array.to_vec();
-            let apt_update_count = vec[0];
-            let flatpak_update_count = vec[1];
-            let tray_icon = if apt_update_count + flatpak_update_count > 1 {
-                Some("update-high".into())
-            } else {
-                Some("update-none".into())
-            };
-            tray_handle.update(|tray: &mut PikmanTray| {
-                tray.icon_name = tray_icon;
-                tray.apt_item_label = Some(strfmt::strfmt(
-                    &t!("pikman_indicator_apt_count_item_label").to_string(),
-                    &std::collections::HashMap::from([
-                        (
-                            "NUM".to_string(),
-                            apt_update_count.to_string(),
-                        ),
-                    ]),
-                )
-                .unwrap());
-                tray.flatpak_item_label = Some(strfmt::strfmt(
-                    &t!("pikman_indicator_flatpak_count_item_label").to_string(),
-                    &std::collections::HashMap::from([
-                        (
-                            "NUM".to_string(),
-                            flatpak_update_count.to_string(),
-                        ),
-                    ]),
-                )
-                .unwrap());
-            });
-    }));
 
     app.connect_command_line(clone!(
         #[strong]
@@ -506,6 +537,26 @@ pub fn build_ui(app: &Application) {
             }
         }
     ));
+
+    let tray_service_context = MainContext::default();
+    // The main loop executes the asynchronous block
+    tray_service_context.spawn_local(clone!(
+        #[strong]
+        window,
+        async move {
+            while let Ok(state) = tray_service_receiver.recv().await {
+                match state.as_str() {
+                    "open" => {
+                        if !window.is_visible() {
+                            window.present();
+                        }
+                    }
+                    _ => todo!()
+                }
+            }
+        }
+    ));
+
 }
 
 fn add_content_button(window_adw_stack: &gtk::Stack, active: bool, name: String, title: String, null_toggle_button: &gtk::ToggleButton) -> gtk::ToggleButton {

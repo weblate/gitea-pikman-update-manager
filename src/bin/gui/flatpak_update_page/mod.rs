@@ -30,7 +30,12 @@ pub struct FlatpakRefStruct {
 pub fn flatpak_update_page(
     window: adw::ApplicationWindow,
     retry_signal_action: &SimpleAction,
+    update_sys_tray: &SimpleAction,
+    apt_update_count: &Rc<RefCell<i32>>,
+    flatpak_update_count: &Rc<RefCell<i32>>,
 ) -> gtk::Box {
+    (*flatpak_update_count.borrow_mut() = 0);
+
     let (appstream_sync_percent_sender, appstream_sync_percent_receiver) =
         async_channel::unbounded::<u32>();
     let appstream_sync_percent_sender = appstream_sync_percent_sender.clone();
@@ -369,6 +374,12 @@ pub fn flatpak_update_page(
         viewport_bin,
         #[strong]
         packages_viewport,
+        #[strong]
+        update_sys_tray,
+        #[strong]
+        apt_update_count,
+        #[strong]
+        flatpak_update_count,
         async move {
             while let Ok(state) = appstream_sync_status_receiver.recv().await {
                 match state.as_ref() {
@@ -539,6 +550,7 @@ pub fn flatpak_update_page(
                                 );
 
                                 packages_boxedlist.append(&flatpak_row);
+                                (*flatpak_update_count.borrow_mut() += 1);
                                 if flatref_struct.is_system && flatref_struct.is_last
                                 {
                                     system_last_triggered = true
@@ -692,6 +704,7 @@ pub fn flatpak_update_page(
                                     ),
                                 );
                                 packages_boxedlist.append(&flatpak_row);
+                                (*flatpak_update_count.borrow_mut() += 1);
                                 if !flatref_struct.is_system && flatref_struct.is_last
                                 {
                                     user_last_triggered = true
@@ -702,6 +715,7 @@ pub fn flatpak_update_page(
                         }
                         if user_last_triggered && system_last_triggered {
                             packages_boxedlist.set_sensitive(true);
+                            update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(&[*apt_update_count.borrow(),*flatpak_update_count.borrow()])));
                         }
                         flatpak_update_dialog.close();
                     }

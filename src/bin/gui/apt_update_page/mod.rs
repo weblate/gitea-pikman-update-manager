@@ -32,7 +32,10 @@ pub fn apt_update_page(
     window: adw::ApplicationWindow,
     retry_signal_action: &SimpleAction,
     flatpak_retry_signal_action: &SimpleAction,
-    flatpak_ran_once: Rc<RefCell<bool>>
+    flatpak_ran_once: Rc<RefCell<bool>>,
+    update_sys_tray: &SimpleAction,
+    apt_update_count: &Rc<RefCell<i32>>,
+    flatpak_update_count: &Rc<RefCell<i32>>,
 ) -> gtk::Box {
     let (update_percent_sender, update_percent_receiver) = async_channel::unbounded::<String>();
     let update_percent_sender = update_percent_sender.clone();
@@ -41,6 +44,8 @@ pub fn apt_update_page(
     let update_status_sender_clone0 = update_status_sender.clone();
     let (get_upgradable_sender, get_upgradable_receiver) = async_channel::unbounded();
     let get_upgradable_sender = get_upgradable_sender.clone();
+
+    (*apt_update_count.borrow_mut() = 0);
 
     let excluded_updates_vec: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
 
@@ -385,6 +390,12 @@ pub fn apt_update_page(
         viewport_bin,
         #[strong]
         excluded_updates_vec,
+        #[strong]
+        update_sys_tray,
+        #[strong]
+        apt_update_count,
+        #[strong]
+        flatpak_update_count,
         async move {
             while let Ok(state) = get_upgradable_receiver.recv().await {
                 viewport_bin.set_child(Some(&packages_viewport));
@@ -441,8 +452,10 @@ pub fn apt_update_page(
                     ),
                 );
                 packages_boxedlist.append(&apt_row);
+                (*apt_update_count.borrow_mut() += 1);
                 if state.is_last {
                     packages_boxedlist.set_sensitive(true);
+                    update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(&[*apt_update_count.borrow(),*flatpak_update_count.borrow()])));
                 }
             }
         }
