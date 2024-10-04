@@ -1,0 +1,28 @@
+Source: pikman-update-manager
+Section: admin
+Priority: optional
+Maintainer: Pika <root@pika.com>
+Build-Depends: debhelper (>= 9),
+            build-essential,
+            debhelper,
+            python3,
+#   cargo,
+            libadwaita-1-dev,
+            libgtk-4-dev,
+            gettext,
+            desktop-file-utils,
+            make,
+            libjpeg-dev,
+            libapt-pkg-dev,
+Standards-Version: 3.9.5
+
+Package: pikman-update-manager
+Architecture: linux-any
+Pre-Depends: apt
+Depends: libadwaita-1-0,
+         libgtk4-1,
+         zenity,
+         inxi,
+         coreutils,
+         ${shlibs:Depends}
+Description: An GTK4/Libadwairta Update Frontend for pikman

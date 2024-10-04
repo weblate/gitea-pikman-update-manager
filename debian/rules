@@ -1,0 +1,38 @@
+#!/usr/bin/make -f
+
+export PIKA_BUILD_ARCH = $(shell cat ../pika-build-arch)
+export PATH := $(PATH):/root/.cargo/bin
+
+override_dh_prep:
+# amd64 build prep
+ifeq (amd64-v3,$(PIKA_BUILD_ARCH))
+# Does not support LTO due to dylib-lto
+#export RUSTFLAGS = -C target-cpu=x86-64-v3 -C lto=fat -C embed-bitcode -C codegen-units=1 -C opt-level=3 -Zdylib-lto
+export RUSTFLAGS = -C target-cpu=x86-64-v3 -C opt-level=3
+endif
+
+%:
+	dh ${@}
+
+override_dh_auto_install:
+	cargo fetch
+	cargo build --release
+	mkdir -p $(DESTDIR)/usr/bin/
+	mkdir -p $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
+	mkdir -p $(DESTDIR)/usr/share/glib-2.0/schemas/
+	mkdir -p $(DESTDIR)/usr/share/applications
+	mkdir -p $(DESTDIR)/usr/share/icons/hicolor/scalable/apps
+	cp -vf target/debug/pikman-update-manager $(DESTDIR)/usr/bin/
+	cp -vf data/flatpak-installer $(DESTDIR)/usr/bin/
+	cp -vf data/software-properties-gtk $(DESTDIR)/usr/bin/
+	cp -vf target/debug/apt_update $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
+	cp -vf target/debug/apt_full_upgrade $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
+	cp -vf data/modify_repo.sh $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
+	cp -vf data/*.gschema.xml $(DESTDIR)/usr/share/glib-2.0/schemas/
+	cp -vf data/com.github.pikaos-linux.pikmanupdatemanager.svg $(DESTDIR)/usr/share/icons/hicolor/scalable/apps/
+	cp -vf data/*.desktop $(DESTDIR)/usr/share/applications/
+	cp -vfr data/polkit-1 $(DESTDIR)/usr/share/
+	chmod 755 $(DESTDIR)/usr/bin/pikman-update-manager
+	chmod 755 $(DESTDIR)/usr/bin/flatpak-installer
+	chmod 755 $(DESTDIR)/usr/bin/software-properties-gtk
+	chmod 755 $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/*
