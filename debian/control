@@ -22,9 +22,7 @@ Package: pikman-update-manager
 Architecture: linux-any
 Pre-Depends: apt
 Depends: libadwaita-1-0,
-         libgtk4-1,
-         zenity,
-         inxi,
+         libgtk-4-1,
          coreutils,
          ${shlibs:Depends}
 Provides: software-properties-gtk (= ${binary:Version})
