@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=Flatpak Installer
+GenericName=Flatpak Installer
+Comment=Easily install Flatpaks
+Categories=GNOME;GTK;Settings;X-GNOME-SystemSettings;X-GNOME-Settings-Panel;X-Unity-Settings-Panel;
+Exec=flatpak-installer %s
+Icon=com.github.pikaos-linux.pikmanupdatemanager
+MimeType=application/vnd.flatpak.ref;
+Terminal=false
+Type=Application
+X-GNOME-Gettext-Domain=com.github.pikaos-linux.pikmanupdatemanager
+Keywords=Python;
+NoDisplay=true

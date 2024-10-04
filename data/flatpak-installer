@@ -1,0 +1,2 @@
+#! /bin/bash
+pikman-update-manager --flatpak-installer "$@"

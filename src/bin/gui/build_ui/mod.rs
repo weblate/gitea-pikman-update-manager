@@ -550,8 +550,13 @@ pub fn build_ui(app: &Application) {
                     .position(|r| r == "--flatpak-installer")
                     .unwrap() as i32)
                     + 1) as usize;
-                flatpak_entry_signal_action
+                if index > gtk_application_args.len() -1 {
+                    flatpak_entry_signal_action
+                    .activate(Some(&glib::Variant::from("")));
+                } else {
+                    flatpak_entry_signal_action
                     .activate(Some(&glib::Variant::from(&gtk_application_args[index])));
+                }
             }
 
             0
