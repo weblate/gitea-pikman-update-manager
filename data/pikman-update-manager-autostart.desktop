@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Pikman Update Manager
+Exec=pikman-update-manager-autostart
+Icon=com.github.pikaos-linux.pikmanupdatemanager
+Terminal=false
+Type=Application
+Encoding=UTF-8
+Categories=GNOME;GTK;Settings;X-GNOME-SystemSettings;X-GNOME-Settings-Panel;X-Unity-Settings-Panel;
+NoDisplay=true

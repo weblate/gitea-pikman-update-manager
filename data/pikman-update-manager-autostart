@@ -1,0 +1,6 @@
+#! /bin/bash
+DISPLAY_CHECK=$(echo $DISPLAY)
+WHO=$(whoami)
+if [[ $DISPLAY_CHECK ]] && [[ $WHO != "pikaos" ]] && [[ $WHO != "gnome-initial-setup" ]] ; then
+	pikman-update-manager --hidden
+fi
