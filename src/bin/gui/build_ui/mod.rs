@@ -5,14 +5,84 @@ use crate::config::{APP_GITHUB, APP_ICON, APP_ID, VERSION};
 use crate::flatpak_update_page;
 use adw::prelude::*;
 use adw::*;
+use async_channel::Sender;
+use futures::task::SpawnExt;
 use gtk::glib::{clone, MainContext};
 use gtk::{License, WindowControls};
-use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::ops::Index;
 use std::process::Command;
 use std::rc::Rc;
+use std::sync::atomic::AtomicBool;
 use std::thread;
+use std::sync::Arc;
+use ksni;
+
+#[derive(Debug)]
+struct PikmanTray {
+    icon_name: Option<String>,
+    apt_item_label: Option<String>,
+    flatpak_item_label: Option<String>,
+    action_sender: &'static async_channel::Sender<String>,
+}
+
+impl ksni::Tray for PikmanTray {
+    fn icon_name(&self) -> String {
+        match &self.icon_name {
+            Some(t) => t.into(),
+            None => "help-about".into()
+        }
+    }
+    fn title(&self) -> String {
+       t!("application_name").to_string()
+    }
+    // NOTE: On some system trays, `id` is a required property to avoid unexpected behaviors
+    fn id(&self) -> String {
+        env!("CARGO_PKG_NAME").into()
+    }
+    fn menu(&self) -> Vec<ksni::MenuItem<Self>> {
+        use ksni::menu::*;
+        vec![
+            StandardItem {
+                label: match &self.apt_item_label {
+                    Some(t) => t,
+                    None => "?"
+                }.into(),
+                icon_name: "application-vnd.debian.binary-package".into(),
+                enabled: false,
+                ..Default::default()
+            }
+            .into(),
+            StandardItem {
+                label: match &self.flatpak_item_label {
+                    Some(t) => t,
+                    None => "?"
+                }.into(),
+                icon_name: "application-vnd.flatpak".into(),
+                enabled: false,
+                ..Default::default()
+            }
+            .into(),
+            MenuItem::Separator,
+            StandardItem {
+                label: t!("pikman_indicator_open_item_label").into(),
+                icon_name: "view-paged-symbolic".into(),
+                activate: Box::new(|_| {
+                    self.action_sender.send_blocking(String::from("open")).unwrap()
+                }),
+                ..Default::default()
+            }
+            .into(),
+            StandardItem {
+                label: t!("pikman_indicator_exit_item_label").into(),
+                icon_name: "application-exit-symbolic".into(),
+                activate: Box::new(|_| std::process::exit(0)),
+                ..Default::default()
+            }
+            .into(),
+        ]
+    }
+}
 
 pub fn build_ui(app: &Application) {
     // setup glib
@@ -23,6 +93,23 @@ pub fn build_ui(app: &Application) {
     let internet_connected = Rc::new(RefCell::new(false));
     let (internet_loop_sender, internet_loop_receiver) = async_channel::unbounded();
     let internet_loop_sender = internet_loop_sender.clone();
+
+    // Systray
+
+    let update_sys_tray = gio::SimpleAction::new("sys_tray", Some(glib::VariantTy::ARRAY));
+
+    let (tray_service_sender, tray_service_receiver) = async_channel::unbounded();
+    let tray_service_sender = tray_service_sender.clone();
+
+    let tray_service = ksni::TrayService::new(PikmanTray {
+        action_sender: Box::leak(Box::new(tray_service_sender)),
+        icon_name: None,
+        apt_item_label: None,
+        flatpak_item_label: None,
+    });
+    let tray_handle = tray_service.handle();
+    
+    tray_service.spawn();
 
     thread::spawn(move || loop {
         match Command::new("ping").arg("google.com").arg("-c 1").output() {
@@ -317,6 +404,44 @@ pub fn build_ui(app: &Application) {
 
     let flatpak_manage_page_toggle_button = add_content_button(&window_adw_stack, false, "flatpak_manage_page".to_string(), t!("flatpak_manage_page_title").to_string(), &null_toggle_button);
     window_adw_view_switcher_sidebar_box.append(&flatpak_manage_page_toggle_button);
+
+    update_sys_tray.connect_activate(clone!(
+        #[strong]
+        tray_handle,
+        move |_,param| {
+            let array: &[i32] = param.unwrap().fixed_array().unwrap();
+            let vec = array.to_vec();
+            let apt_update_count = vec[0];
+            let flatpak_update_count = vec[1];
+            let tray_icon = if apt_update_count + flatpak_update_count > 1 {
+                Some("update-high".into())
+            } else {
+                Some("update-none".into())
+            };
+            tray_handle.update(|tray: &mut PikmanTray| {
+                tray.icon_name = tray_icon;
+                tray.apt_item_label = Some(strfmt::strfmt(
+                    &t!("pikman_indicator_apt_count_item_label").to_string(),
+                    &std::collections::HashMap::from([
+                        (
+                            "NUM".to_string(),
+                            apt_update_count.to_string(),
+                        ),
+                    ]),
+                )
+                .unwrap());
+                tray.flatpak_item_label = Some(strfmt::strfmt(
+                    &t!("pikman_indicator_flatpak_count_item_label").to_string(),
+                    &std::collections::HashMap::from([
+                        (
+                            "NUM".to_string(),
+                            flatpak_update_count.to_string(),
+                        ),
+                    ]),
+                )
+                .unwrap());
+            });
+    }));
 
     app.connect_command_line(clone!(
         #[strong]
