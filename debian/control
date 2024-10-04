@@ -8,6 +8,7 @@ Build-Depends: debhelper (>= 9),
             python3,
 #   cargo,
             libadwaita-1-dev,
+            libdbus-1-dev,
             libgtk-4-dev,
             gettext,
             desktop-file-utils,
@@ -25,4 +26,7 @@ Depends: libadwaita-1-0,
          inxi,
          coreutils,
          ${shlibs:Depends}
-Description: An GTK4/Libadwairta Update Frontend for pikman
+Provides: software-properties-gtk (= ${binary:Version})
+Replaces: software-properties-gtk
+Conflicts: software-properties-gtk
+Description: A GTK4/Libadwaita Update Frontend for Pikman
