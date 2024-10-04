@@ -157,7 +157,7 @@
   "flatpak_ref_install_dialog_cancel_label": "Cancel",
   "pikman_indicator_apt_count_item_label": "APT Updates: {NUM}",
   "pikman_indicator_flatpak_count_item_label": "Flatpak Updates: {NUM}",
-  "pikman_indicator_flatpak_item_label_calculating": "calculating",
+  "pikman_indicator_flatpak_item_label_calculating": "calculating...",
   "pikman_indicator_open_item_label": "Open",
   "pikman_indicator_exit_item_label": "Exit"
 } 
