@@ -17,26 +17,26 @@ endif
 override_dh_auto_install:
 	cargo fetch
 	cargo build --release
-	mkdir -p $(DESTDIR)/usr/bin/
-	mkdir -p $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
-	mkdir -p $(DESTDIR)/usr/share/glib-2.0/schemas/
-	mkdir -p $(DESTDIR)/usr/share/applications
-	mkdir -p $(DESTDIR)/usr/share/icons/hicolor/scalable/apps
-	mkdir -p $(DESTDIR)/etc/xdg/autostart
-	cp -vf target/release/pikman-update-manager $(DESTDIR)/usr/bin/
-	cp -vf data/pikman-update-manager-autostart $(DESTDIR)/usr/bin/
-	cp -vf data/flatpak-installer $(DESTDIR)/usr/bin/
-	cp -vf data/software-properties-gtk $(DESTDIR)/usr/bin/
-	cp -vf target/release/apt_update $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
-	cp -vf target/release/apt_full_upgrade $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
-	cp -vf data/modify_repo.sh $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
-	cp -vf data/*.gschema.xml $(DESTDIR)/usr/share/glib-2.0/schemas/
-	cp -vf data/com.github.pikaos-linux.pikmanupdatemanager.svg $(DESTDIR)/usr/share/icons/hicolor/scalable/apps/
-	cp -vf data/*.desktop $(DESTDIR)/usr/share/applications/
-	cp -vfr data/polkit-1 $(DESTDIR)/usr/share/
-	cp -vf data/pikman-update-manager-autostart.desktop  $(DESTDIR)/etc/xdg/autostart/
-	chmod 755 $(DESTDIR)/usr/bin/pikman-update-manager
-	chmod 755 $(DESTDIR)/usr/bin/pikman-update-manager-autostart
-	chmod 755 $(DESTDIR)/usr/bin/flatpak-installer
-	chmod 755 $(DESTDIR)/usr/bin/software-properties-gtk
-	chmod 755 $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/*
+	mkdir -p debian/pikman-update-manager/usr/bin/
+	mkdir -p debian/pikman-update-manager/usr/lib/pika/pikman-update-manager/scripts/
+	mkdir -p debian/pikman-update-manager/usr/share/glib-2.0/schemas/
+	mkdir -p debian/pikman-update-manager/usr/share/applications
+	mkdir -p debian/pikman-update-manager/usr/share/icons/hicolor/scalable/apps
+	mkdir -p debian/pikman-update-manager/etc/xdg/autostart
+	cp -vf target/release/pikman-update-manager debian/pikman-update-manager/usr/bin/
+	cp -vf data/pikman-update-manager-autostart debian/pikman-update-manager/usr/bin/
+	cp -vf data/flatpak-installer debian/pikman-update-manager/usr/bin/
+	cp -vf data/software-properties-gtk debian/pikman-update-manager/usr/bin/
+	cp -vf target/release/apt_update debian/pikman-update-manager/usr/lib/pika/pikman-update-manager/scripts/
+	cp -vf target/release/apt_full_upgrade debian/pikman-update-manager/usr/lib/pika/pikman-update-manager/scripts/
+	cp -vf data/modify_repo.sh debian/pikman-update-manager/usr/lib/pika/pikman-update-manager/scripts/
+	cp -vf data/*.gschema.xml debian/pikman-update-manager/usr/share/glib-2.0/schemas/
+	cp -vf data/com.github.pikaos-linux.pikmanupdatemanager.svg debian/pikman-update-manager/usr/share/icons/hicolor/scalable/apps/
+	cp -vf data/*.desktop debian/pikman-update-manager/usr/share/applications/
+	cp -vfr data/polkit-1 debian/pikman-update-manager/usr/share/
+	cp -vf data/pikman-update-manager-autostart.desktop  debian/pikman-update-manager/etc/xdg/autostart/
+	chmod 755 debian/pikman-update-manager/usr/bin/pikman-update-manager
+	chmod 755 debian/pikman-update-manager/usr/bin/pikman-update-manager-autostart
+	chmod 755 debian/pikman-update-manager/usr/bin/flatpak-installer
+	chmod 755 debian/pikman-update-manager/usr/bin/software-properties-gtk
+	chmod 755 debian/pikman-update-manager/usr/lib/pika/pikman-update-manager/scripts/*
