@@ -13,12 +13,13 @@
             <default>false</default>
             <summary>Default window maximized behaviour</summary>
         </key>
-        <key type="b" name="startup-show">
+        <key name="check-for-updates" type="b">
             <default>true</default>
-            <summary>Show PikaOS Welcome on startup.</summary>
-            <description>
-                Show PikaOS Welcome on startup.
-            </description>
+            <summary>Default window maximized behaviour</summary>
+        </key>
+        <key name="update-interval" type="i">
+            <default>22000000</default>
+            <summary>Update intervals in ms</summary>
         </key>
     </schema>
 </schemalist>

@@ -457,23 +457,25 @@ pub fn apt_manage_page(
                     let item = selection.downcast_ref::<BoxedAnyObject>().unwrap();
                     let apt_src: Ref<AptSourceConfig> = item.borrow();
                     match apt_src.deref() {
-                        AptSourceConfig::DEB822(src) => {
-                            match &src.signed_by {
-                                Some(t) => _command = duct::cmd!(
+                        AptSourceConfig::DEB822(src) => match &src.signed_by {
+                            Some(t) => {
+                                _command = duct::cmd!(
                                     "pkexec",
                                     "/usr/lib/pika/pikman-update-manager/scripts/modify_repo.sh",
                                     "delete_deb822",
                                     &src.filepath,
                                     t
-                                ),
-                                None => _command = duct::cmd!(
+                                )
+                            }
+                            None => {
+                                _command = duct::cmd!(
                                     "pkexec",
                                     "/usr/lib/pika/pikman-update-manager/scripts/modify_repo.sh",
                                     "delete_legacy",
                                     &src.filepath
-                                ),
+                                )
                             }
-                        }
+                        },
                         AptSourceConfig::Legacy(list) => {
                             _command = duct::cmd!(
                                 "pkexec",

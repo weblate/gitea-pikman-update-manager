@@ -11,6 +11,9 @@ use ksni;
 use std::cell::RefCell;
 use std::process::Command;
 use std::rc::Rc;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+use std::sync::Mutex;
 use std::thread;
 
 #[derive(Debug)]
@@ -83,15 +86,30 @@ impl ksni::Tray for PikmanTray {
     }
 }
 
+enum ConstantLoopMessage {
+    InternetStatus(bool),
+    RefreshRequest,
+}
+
 pub fn build_ui(app: &Application) {
     // setup glib
     glib::set_prgname(Some(t!("application_name").to_string()));
     glib::set_application_name(&t!("application_name").to_string());
     let glib_settings = gio::Settings::new(APP_ID);
 
+    let automatically_check_for_updates_arc =
+        Arc::new(AtomicBool::new(glib_settings.boolean("check-for-updates")));
+    let update_interval_arc = Arc::new(Mutex::new(glib_settings.int("update-interval")));
     let internet_connected = Rc::new(RefCell::new(false));
-    let (internet_loop_sender, internet_loop_receiver) = async_channel::unbounded();
-    let internet_loop_sender = internet_loop_sender.clone();
+
+    let (constant_loop_sender, constant_loop_receiver) = async_channel::unbounded();
+    let constant_loop_sender_clone0 = constant_loop_sender.clone();
+    let constant_loop_sender_clone1 = constant_loop_sender.clone();
+
+    let refresh_button = gtk::Button::builder()
+        .icon_name("view-refresh-symbolic")
+        .tooltip_text(t!("refresh_button_tooltip_text"))
+        .build();
 
     // Systray
 
@@ -116,6 +134,8 @@ pub fn build_ui(app: &Application) {
     update_sys_tray.connect_activate(clone!(
         #[strong]
         tray_handle,
+        #[strong]
+        refresh_button,
         move |_, param| {
             let array: &[i32] = param.unwrap().fixed_array().unwrap();
             let vec = array.to_vec();
@@ -155,43 +175,94 @@ pub fn build_ui(app: &Application) {
                     .unwrap(),
                 );
             });
+            if apt_update_count == -1 || flatpak_update_count == -1 {
+                refresh_button.set_sensitive(false);
+                refresh_button.set_tooltip_text(Some(
+                    &t!("pikman_indicator_flatpak_item_label_calculating").to_string(),
+                ));
+            } else {
+                refresh_button.set_sensitive(true);
+                refresh_button
+                    .set_tooltip_text(Some(&t!("refresh_button_tooltip_text").to_string()));
+            }
         }
     ));
     update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(&[-1, -1])));
 
+    // internet check loop
+    thread::spawn(move || {
+        let mut last_result = false;
+        loop {
+            if last_result == true {
+                std::thread::sleep(std::time::Duration::from_secs(60));
+            }
+
+            let check_internet_connection_cli = Command::new("ping")
+                .arg("iso.pika-os.com")
+                .arg("-c 1")
+                .output()
+                .expect("failed to execute process");
+            if check_internet_connection_cli.status.success() {
+                constant_loop_sender_clone0
+                    .send_blocking(ConstantLoopMessage::InternetStatus(true))
+                    .expect("The channel needs to be open.");
+                last_result = true
+            } else {
+                constant_loop_sender_clone0
+                    .send_blocking(ConstantLoopMessage::InternetStatus(false))
+                    .expect("The channel needs to be open.");
+                last_result = false
+            }
+        }
+    });
+
+    // update interval loop
     thread::spawn(move || loop {
-        match Command::new("ping").arg("google.com").arg("-c 1").output() {
-            Ok(t) if t.status.success() => internet_loop_sender
-                .send_blocking(true)
-                .expect("The channel needs to be open"),
-            _ => internet_loop_sender
-                .send_blocking(false)
-                .expect("The channel needs to be open"),
-        };
-        thread::sleep(std::time::Duration::from_secs(5));
+        let automatically_check_for_updates =
+            automatically_check_for_updates_arc.load(std::sync::atomic::Ordering::Relaxed);
+        if automatically_check_for_updates {
+            match update_interval_arc.lock() {
+                Ok(update_interval) => {
+                    std::thread::sleep(std::time::Duration::from_millis(*update_interval as u64));
+                    constant_loop_sender_clone1
+                        .send_blocking(ConstantLoopMessage::RefreshRequest)
+                        .expect("The channel needs to be open.");
+                }
+                Err(_) => {}
+            }
+        }
     });
 
     let window_banner = Banner::builder().revealed(false).build();
 
     let internet_connected_status = internet_connected.clone();
 
-    let internet_loop_context = MainContext::default();
+    let constant_loop_context = MainContext::default();
     // The main loop executes the asynchronous block
-    internet_loop_context.spawn_local(clone!(
+    constant_loop_context.spawn_local(clone!(
         #[weak]
         window_banner,
+        #[weak]
+        refresh_button,
         async move {
-            while let Ok(state) = internet_loop_receiver.recv().await {
+            while let Ok(message) = constant_loop_receiver.recv().await {
                 let banner_text = t!("banner_text_no_internet").to_string();
-                if state == true {
-                    *internet_connected_status.borrow_mut() = true;
-                    if window_banner.title() == banner_text {
-                        window_banner.set_revealed(false)
+                match message {
+                    ConstantLoopMessage::InternetStatus(state) => {
+                        if state == true {
+                            *internet_connected_status.borrow_mut() = true;
+                            if window_banner.title() == banner_text {
+                                window_banner.set_revealed(false)
+                            }
+                        } else {
+                            *internet_connected_status.borrow_mut() = false;
+                            window_banner.set_title(&banner_text);
+                            window_banner.set_revealed(true)
+                        }
                     }
-                } else {
-                    *internet_connected_status.borrow_mut() = false;
-                    window_banner.set_title(&banner_text);
-                    window_banner.set_revealed(true)
+                    ConstantLoopMessage::RefreshRequest => {
+                        refresh_button.emit_clicked();
+                    }
                 }
             }
         }
@@ -204,8 +275,8 @@ pub fn build_ui(app: &Application) {
 
     let window_breakpoint = adw::Breakpoint::new(BreakpointCondition::new_length(
         BreakpointConditionLengthType::MaxWidth,
-        1100.0,
-        LengthUnit::Px,
+        1140.0,
+        LengthUnit::Sp,
     ));
 
     let window_adw_stack = gtk::Stack::builder()
@@ -298,7 +369,7 @@ pub fn build_ui(app: &Application) {
         .default_width(glib_settings.int("window-width"))
         .default_height(glib_settings.int("window-height"))
         //
-        .width_request(1000)
+        .width_request(900)
         .height_request(700)
         .content(&window_content_page_split_view)
         // Startup
@@ -324,11 +395,6 @@ pub fn build_ui(app: &Application) {
 
     let credits_button = gtk::Button::builder()
         .icon_name("dialog-information-symbolic")
-        .build();
-
-    let refresh_button = gtk::Button::builder()
-        .icon_name("view-refresh-symbolic")
-        .tooltip_text(t!("refresh_button_tooltip_text"))
         .build();
 
     let credits_window = AboutWindow::builder()
@@ -550,12 +616,11 @@ pub fn build_ui(app: &Application) {
                     .position(|r| r == "--flatpak-installer")
                     .unwrap() as i32)
                     + 1) as usize;
-                if index > gtk_application_args.len() -1 {
-                    flatpak_entry_signal_action
-                    .activate(Some(&glib::Variant::from("")));
+                if index > gtk_application_args.len() - 1 {
+                    flatpak_entry_signal_action.activate(Some(&glib::Variant::from("")));
                 } else {
                     flatpak_entry_signal_action
-                    .activate(Some(&glib::Variant::from(&gtk_application_args[index])));
+                        .activate(Some(&glib::Variant::from(&gtk_application_args[index])));
                 }
             }
 
