@@ -237,37 +237,6 @@ pub fn build_ui(app: &Application) {
 
     let internet_connected_status = internet_connected.clone();
 
-    let constant_loop_context = MainContext::default();
-    // The main loop executes the asynchronous block
-    constant_loop_context.spawn_local(clone!(
-        #[weak]
-        window_banner,
-        #[weak]
-        refresh_button,
-        async move {
-            while let Ok(message) = constant_loop_receiver.recv().await {
-                let banner_text = t!("banner_text_no_internet").to_string();
-                match message {
-                    ConstantLoopMessage::InternetStatus(state) => {
-                        if state == true {
-                            *internet_connected_status.borrow_mut() = true;
-                            if window_banner.title() == banner_text {
-                                window_banner.set_revealed(false)
-                            }
-                        } else {
-                            *internet_connected_status.borrow_mut() = false;
-                            window_banner.set_title(&banner_text);
-                            window_banner.set_revealed(true)
-                        }
-                    }
-                    ConstantLoopMessage::RefreshRequest => {
-                        refresh_button.emit_clicked();
-                    }
-                }
-            }
-        }
-    ));
-
     let window_headerbar = HeaderBar::builder()
         .title_widget(&WindowTitle::builder().title(t!("application_name")).build())
         .show_title(false)
@@ -662,6 +631,43 @@ pub fn build_ui(app: &Application) {
                         }
                     }
                     _ => todo!(),
+                }
+            }
+        }
+    ));
+
+    let constant_loop_context = MainContext::default();
+    // The main loop executes the asynchronous block
+    constant_loop_context.spawn_local(clone!(
+        #[weak]
+        window_banner,
+        #[strong]
+        update_sys_tray,
+        #[strong]
+        apt_retry_signal_action,
+        #[strong]
+        flatpak_retry_signal_action,
+        async move {
+            while let Ok(message) = constant_loop_receiver.recv().await {
+                let banner_text = t!("banner_text_no_internet").to_string();
+                match message {
+                    ConstantLoopMessage::InternetStatus(state) => {
+                        if state == true {
+                            *internet_connected_status.borrow_mut() = true;
+                            if window_banner.title() == banner_text {
+                                window_banner.set_revealed(false)
+                            }
+                        } else {
+                            *internet_connected_status.borrow_mut() = false;
+                            window_banner.set_title(&banner_text);
+                            window_banner.set_revealed(true)
+                        }
+                    }
+                    ConstantLoopMessage::RefreshRequest => {
+                        update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(&[-1, -1])));
+                        apt_retry_signal_action.activate(None);
+                        flatpak_retry_signal_action.activate(None);
+                    }
                 }
             }
         }
