@@ -13,6 +13,10 @@ i18n!("locales", fallback = "en_US");
 fn main() {
     let args: Vec<String> = env::args().collect();
     rust_i18n::set_locale(&args[1]);
+    let instance = single_instance::SingleInstance::new(
+        "com.github.pikaos-linux.pikmanupdatemanager.update.manager",
+    )
+    .unwrap();
 
     let hit_strfmt_trans_str = t!("apt_update_str_hit").to_string();
     let fetch_strfmt_trans_str = t!("apt_update_str_fetch").to_string();
@@ -41,4 +45,6 @@ fn main() {
             panic!("{}", e.to_string())
         }
     };
+
+    assert!(!instance.is_single());
 }

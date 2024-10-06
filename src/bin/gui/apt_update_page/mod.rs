@@ -65,27 +65,42 @@ pub fn apt_update_page(
     });
 
     thread::spawn(move || {
-        let apt_update_command = Command::new("pkexec")
-            .args([
-                "/usr/lib/pika/pikman-update-manager/scripts/apt_update",
-                "fr_FR",
-            ])
-            .status()
-            .unwrap();
-        match apt_update_command.code().unwrap() {
-            0 => update_status_sender_clone0
-                .send_blocking("FN_OVERRIDE_SUCCESSFUL".to_owned())
-                .unwrap(),
-            53 => {}
-            _ => {
-                update_status_sender_clone0
-                    .send_blocking(t!("update_status_error_perms").to_string())
-                    .unwrap();
-                update_status_sender_clone0
-                    .send_blocking("FN_OVERRIDE_FAILED".to_owned())
+        let instance = single_instance::SingleInstance::new(
+            "com.github.pikaos-linux.pikmanupdatemanager.update.manager",
+        )
+        .unwrap();
+        if instance.is_single() {
+            let current_locale = match std::env::var_os("LANG") {
+                Some(v) => v
+                    .into_string()
                     .unwrap()
+                    .chars()
+                    .take_while(|&ch| ch != '.')
+                    .collect::<String>(),
+                None => panic!("$LANG is not set"),
+            };
+            let apt_update_command = Command::new("pkexec")
+                .args([
+                    "/usr/lib/pika/pikman-update-manager/scripts/apt_update",
+                    &current_locale,
+                ])
+                .status()
+                .unwrap();
+            match apt_update_command.code().unwrap() {
+                0 => update_status_sender_clone0
+                    .send_blocking("FN_OVERRIDE_SUCCESSFUL".to_owned())
+                    .unwrap(),
+                53 => {}
+                _ => {
+                    update_status_sender_clone0
+                        .send_blocking(t!("update_status_error_perms").to_string())
+                        .unwrap();
+                    update_status_sender_clone0
+                        .send_blocking("FN_OVERRIDE_FAILED".to_owned())
+                        .unwrap()
+                }
             }
-        }
+        };
     });
 
     let main_box = Box::builder()

@@ -411,8 +411,20 @@ fn apt_full_upgrade_from_socket(
     });
 
     thread::spawn(move || {
+        let current_locale = match std::env::var_os("LANG") {
+            Some(v) => v
+                .into_string()
+                .unwrap()
+                .chars()
+                .take_while(|&ch| ch != '.')
+                .collect::<String>(),
+            None => panic!("$LANG is not set"),
+        };
         let apt_upgrade_command = Command::new("pkexec")
-            .args(["/usr/lib/pika/pikman-update-manager/scripts/apt_full_upgrade"])
+            .args([
+                "/usr/lib/pika/pikman-update-manager/scripts/apt_full_upgrade",
+                &current_locale,
+            ])
             .status()
             .unwrap();
         match apt_upgrade_command.code().unwrap() {

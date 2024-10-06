@@ -134,8 +134,8 @@ pub fn build_ui(app: &Application) {
     update_sys_tray.connect_activate(clone!(
         #[strong]
         tray_handle,
-        #[strong]
-        refresh_button,
+        /*#[strong]
+        refresh_button,*/
         move |_, param| {
             let array: &[i32] = param.unwrap().fixed_array().unwrap();
             let vec = array.to_vec();
@@ -175,7 +175,7 @@ pub fn build_ui(app: &Application) {
                     .unwrap(),
                 );
             });
-            if apt_update_count == -1 || flatpak_update_count == -1 {
+            /*if apt_update_count == -1 || flatpak_update_count == -1 {
                 refresh_button.set_sensitive(false);
                 refresh_button.set_tooltip_text(Some(
                     &t!("pikman_indicator_flatpak_item_label_calculating").to_string(),
@@ -184,7 +184,7 @@ pub fn build_ui(app: &Application) {
                 refresh_button.set_sensitive(true);
                 refresh_button
                     .set_tooltip_text(Some(&t!("refresh_button_tooltip_text").to_string()));
-            }
+            }*/
         }
     ));
     update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(&[-1, -1])));
