@@ -159,5 +159,10 @@
   "pikman_indicator_flatpak_count_item_label": "Flatpak Updates: {NUM}",
   "pikman_indicator_flatpak_item_label_calculating": "calculating...",
   "pikman_indicator_open_item_label": "Open",
-  "pikman_indicator_exit_item_label": "Exit"
+  "pikman_indicator_exit_item_label": "Exit",
+  "apt_install_str_error": "DPKG error in {PKGNAME}: {ERROR}",
+  "apt_update_str_hit": "Up-to-date: {DESC} {SHORT_DESC}",
+  "apt_update_str_fetch": "Fetching: {DESC} {SHORT_DESC}",
+  "apt_update_str_done": "Downloading: {DESC} {SHORT_DESC}",
+  "apt_update_str_fail": "Download Failed: {DESC} {SHORT_DESC}"
 } 

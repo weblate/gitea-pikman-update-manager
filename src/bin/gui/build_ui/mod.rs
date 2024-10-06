@@ -244,7 +244,7 @@ pub fn build_ui(app: &Application) {
 
     let window_breakpoint = adw::Breakpoint::new(BreakpointCondition::new_length(
         BreakpointConditionLengthType::MaxWidth,
-        1140.0,
+        1000.0,
         LengthUnit::Sp,
     ));
 

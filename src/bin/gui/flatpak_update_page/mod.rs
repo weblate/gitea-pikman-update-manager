@@ -192,12 +192,12 @@ pub fn flatpak_update_page(
         .vexpand(true)
         .build();
 
-    let packages_ignored_viewport_page = adw::StatusPage::builder()
+    /*let packages_ignored_viewport_page = adw::StatusPage::builder()
         .icon_name("dialog-warning-symbolic")
         .title(t!("flatpak_ignored_viewport_page_title"))
         .hexpand(true)
         .vexpand(true)
-        .build();
+        .build();*/
 
     let viewport_bin = adw::Bin::builder()
         .child(&packages_no_viewport_page)
@@ -247,7 +247,7 @@ pub fn flatpak_update_page(
 
     if window.is_visible() {
         let retry_signal_action0 = retry_signal_action.clone();
-        let viewport_bin = viewport_bin.clone();
+        //let viewport_bin = viewport_bin.clone();
 
         flatpak_update_dialog
             .clone()
@@ -256,9 +256,9 @@ pub fn flatpak_update_page(
                     "flatpak_update_dialog_retry" => {
                         retry_signal_action0.activate(None);
                     }
-                    "flatpak_update_dialog_ignore" => {
-                        viewport_bin.set_child(Some(&packages_ignored_viewport_page));
-                    }
+                    //"flatpak_update_dialog_ignore" => {
+                    //    viewport_bin.set_child(Some(&packages_ignored_viewport_page));
+                    //}
                     _ => {}
                 }
             });
@@ -380,7 +380,156 @@ pub fn flatpak_update_page(
             while let Ok(state) = appstream_sync_status_receiver.recv().await {
                 match state.as_ref() {
                     "FN_OVERRIDE_SUCCESSFUL" => {
-                        let flatpak_system_installation =
+                        get_flatpak_updates(
+                            cancellable_no,
+                            &viewport_bin,
+                            &update_button,
+                            &select_button,
+                            &packages_viewport,
+                            &packages_boxedlist,
+                            &system_refs_for_upgrade_vec,
+                            &system_refs_for_upgrade_vec_all,
+                            &user_refs_for_upgrade_vec,
+                            &user_refs_for_upgrade_vec_all,
+                            &update_sys_tray,
+                            &apt_update_count,
+                            &flatpak_update_count,
+                        );
+                        flatpak_update_dialog.close();
+                    }
+                    "FN_OVERRIDE_FAILED" => {
+                        get_flatpak_updates(
+                            cancellable_no,
+                            &viewport_bin,
+                            &update_button,
+                            &select_button,
+                            &packages_viewport,
+                            &packages_boxedlist,
+                            &system_refs_for_upgrade_vec,
+                            &system_refs_for_upgrade_vec_all,
+                            &user_refs_for_upgrade_vec,
+                            &user_refs_for_upgrade_vec_all,
+                            &update_sys_tray,
+                            &apt_update_count,
+                            &flatpak_update_count,
+                        );
+                        flatpak_update_dialog_child_box.set_visible(false);
+                        flatpak_update_dialog.set_extra_child(Some(
+                            &Image::builder()
+                                .pixel_size(128)
+                                .icon_name("dialog-error-symbolic")
+                                .halign(Align::Center)
+                                .build(),
+                        ));
+                        flatpak_update_dialog.set_title(Some(
+                            &t!("flatpak_update_dialog_status_failed").to_string(),
+                        ));
+                        flatpak_update_dialog
+                            .set_response_enabled("flatpak_update_dialog_retry", true);
+                        flatpak_update_dialog
+                            .set_response_enabled("flatpak_update_dialog_ignore", true);
+                    }
+                    _ => flatpak_update_dialog.set_body(&state),
+                }
+            }
+        }
+    ));
+
+    searchbar.connect_search_changed(clone!(
+        #[weak]
+        searchbar,
+        #[weak]
+        packages_boxedlist,
+        move |_| {
+            let mut counter = packages_boxedlist.first_child();
+            while let Some(row) = counter {
+                if row.widget_name() == "FlatpakRefRow" {
+                    if !searchbar.text().is_empty() {
+                        if row
+                            .property::<String>("flatref-name")
+                            .to_lowercase()
+                            .contains(&searchbar.text().to_string().to_lowercase())
+                            || row
+                                .property::<String>("flatref-ref-name")
+                                .to_lowercase()
+                                .contains(&searchbar.text().to_string().to_lowercase())
+                        {
+                            row.set_property("visible", true);
+                            searchbar.grab_focus();
+                        } else {
+                            row.set_property("visible", false);
+                        }
+                    } else {
+                        row.set_property("visible", true);
+                    }
+                }
+                counter = row.next_sibling();
+            }
+        }
+    ));
+
+    main_box.append(&searchbar);
+    main_box.append(&viewport_bin);
+    main_box.append(&bottom_bar);
+
+    main_box
+}
+
+fn is_widget_select_all_ready(parent_listbox: &impl adw::prelude::IsA<ListBox>) -> bool {
+    let mut is_ready = false;
+    let mut child_counter = parent_listbox.borrow().first_child();
+    while let Some(child) = child_counter {
+        let next_child = child.next_sibling();
+        let downcast = child.downcast::<FlatpakRefRow>().unwrap();
+        if !downcast.flatref_marked() {
+            is_ready = true;
+            break;
+        }
+        child_counter = next_child
+    }
+    is_ready
+}
+
+fn is_all_children_unmarked(parent_listbox: &impl adw::prelude::IsA<ListBox>) -> bool {
+    let mut is_all_unmarked = true;
+    let mut child_counter = parent_listbox.borrow().first_child();
+    while let Some(child) = child_counter {
+        let next_child = child.next_sibling();
+        let downcast = child.downcast::<FlatpakRefRow>().unwrap();
+        if downcast.flatref_marked() {
+            is_all_unmarked = false;
+            break;
+        }
+        child_counter = next_child
+    }
+    is_all_unmarked
+}
+
+fn set_all_flatpak_row_marks_to(parent_listbox: &impl adw::prelude::IsA<ListBox>, value: bool) {
+    let mut child_counter = parent_listbox.borrow().first_child();
+    while let Some(child) = child_counter {
+        let next_child = child.next_sibling();
+        let downcast = child.downcast::<FlatpakRefRow>().unwrap();
+        downcast.set_flatref_marked(value);
+        child_counter = next_child
+    }
+}
+fn get_flatpak_updates(
+    cancellable_no: Option<&libflatpak::gio::Cancellable>,
+    viewport_bin: &adw::Bin,
+    update_button: &gtk::Button,
+    select_button: &gtk::Button,
+    packages_viewport: &gtk::ScrolledWindow,
+    packages_boxedlist: &gtk::ListBox,
+    system_refs_for_upgrade_vec: &Rc<RefCell<Vec<FlatpakRefRow>>>,
+    system_refs_for_upgrade_vec_all: &Rc<RefCell<Vec<FlatpakRefRow>>>,
+    user_refs_for_upgrade_vec: &Rc<RefCell<Vec<FlatpakRefRow>>>,
+    user_refs_for_upgrade_vec_all: &Rc<RefCell<Vec<FlatpakRefRow>>>,
+    update_sys_tray: &SimpleAction,
+    apt_update_count: &Rc<RefCell<i32>>,
+    flatpak_update_count: &Rc<RefCell<i32>>,
+) {
+                            let flatpak_system_installation =
                             libflatpak::Installation::new_system(cancellable_no).unwrap();
                         let flatpak_system_updates = flatpak_system_installation
                             .list_installed_refs_for_update(cancellable_no)
@@ -397,7 +546,7 @@ pub fn flatpak_update_page(
                         //
                         if !flatpak_system_updates.is_empty() || !flatpak_user_updates.is_empty() {
                             update_button.set_sensitive(true);
-                            viewport_bin.set_child(Some(&packages_viewport));
+                            viewport_bin.set_child(Some(packages_viewport));
                         }
                         //
                         if !flatpak_system_updates.is_empty() {
@@ -713,107 +862,4 @@ pub fn flatpak_update_page(
                                 &[*apt_update_count.borrow(), *flatpak_update_count.borrow()],
                             )));
                         }
-                        flatpak_update_dialog.close();
-                    }
-                    "FN_OVERRIDE_FAILED" => {
-                        flatpak_update_dialog_child_box.set_visible(false);
-                        flatpak_update_dialog.set_extra_child(Some(
-                            &Image::builder()
-                                .pixel_size(128)
-                                .icon_name("dialog-error-symbolic")
-                                .halign(Align::Center)
-                                .build(),
-                        ));
-                        flatpak_update_dialog.set_title(Some(
-                            &t!("flatpak_update_dialog_status_failed").to_string(),
-                        ));
-                        flatpak_update_dialog
-                            .set_response_enabled("flatpak_update_dialog_retry", true);
-                        flatpak_update_dialog
-                            .set_response_enabled("flatpak_update_dialog_ignore", true);
-                    }
-                    _ => flatpak_update_dialog.set_body(&state),
-                }
-            }
-        }
-    ));
-
-    searchbar.connect_search_changed(clone!(
-        #[weak]
-        searchbar,
-        #[weak]
-        packages_boxedlist,
-        move |_| {
-            let mut counter = packages_boxedlist.first_child();
-            while let Some(row) = counter {
-                if row.widget_name() == "FlatpakRefRow" {
-                    if !searchbar.text().is_empty() {
-                        if row
-                            .property::<String>("flatref-name")
-                            .to_lowercase()
-                            .contains(&searchbar.text().to_string().to_lowercase())
-                            || row
-                                .property::<String>("flatref-ref-name")
-                                .to_lowercase()
-                                .contains(&searchbar.text().to_string().to_lowercase())
-                        {
-                            row.set_property("visible", true);
-                            searchbar.grab_focus();
-                        } else {
-                            row.set_property("visible", false);
-                        }
-                    } else {
-                        row.set_property("visible", true);
-                    }
-                }
-                counter = row.next_sibling();
-            }
-        }
-    ));
-
-    main_box.append(&searchbar);
-    main_box.append(&viewport_bin);
-    main_box.append(&bottom_bar);
-
-    main_box
-}
-
-fn is_widget_select_all_ready(parent_listbox: &impl adw::prelude::IsA<ListBox>) -> bool {
-    let mut is_ready = false;
-    let mut child_counter = parent_listbox.borrow().first_child();
-    while let Some(child) = child_counter {
-        let next_child = child.next_sibling();
-        let downcast = child.downcast::<FlatpakRefRow>().unwrap();
-        if !downcast.flatref_marked() {
-            is_ready = true;
-            break;
-        }
-        child_counter = next_child
-    }
-    is_ready
-}
-
-fn is_all_children_unmarked(parent_listbox: &impl adw::prelude::IsA<ListBox>) -> bool {
-    let mut is_all_unmarked = true;
-    let mut child_counter = parent_listbox.borrow().first_child();
-    while let Some(child) = child_counter {
-        let next_child = child.next_sibling();
-        let downcast = child.downcast::<FlatpakRefRow>().unwrap();
-        if downcast.flatref_marked() {
-            is_all_unmarked = false;
-            break;
-        }
-        child_counter = next_child
-    }
-    is_all_unmarked
-}
-
-fn set_all_flatpak_row_marks_to(parent_listbox: &impl adw::prelude::IsA<ListBox>, value: bool) {
-    let mut child_counter = parent_listbox.borrow().first_child();
-    while let Some(child) = child_counter {
-        let next_child = child.next_sibling();
-        let downcast = child.downcast::<FlatpakRefRow>().unwrap();
-        downcast.set_flatref_marked(value);
-        child_counter = next_child
-    }
 }

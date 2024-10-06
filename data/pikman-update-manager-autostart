@@ -2,5 +2,6 @@
 DISPLAY_CHECK=$(echo $DISPLAY)
 WHO=$(whoami)
 if [[ $DISPLAY_CHECK ]] && [[ $WHO != "pikaos" ]] && [[ $WHO != "gnome-initial-setup" ]] ; then
+	sleep 30
 	pikman-update-manager --hidden
 fi

@@ -10,15 +10,23 @@ pub struct AptUpdateProgressSocket<'a> {
     pulse_interval: usize,
     percent_socket_path: &'a str,
     status_socket_path: &'a str,
+    hit_strfmt_trans_str: &'a str,
+    fetch_strfmt_trans_str: &'a str,
+    done_strfmt_trans_str: &'a str,
+    fail_strfmt_trans_str: &'a str,
 }
 
 impl<'a> AptUpdateProgressSocket<'a> {
     /// Returns a new default progress instance.
-    pub fn new(percent_socket_path: &'a str, status_socket_path: &'a str) -> Self {
+    pub fn new(percent_socket_path: &'a str, status_socket_path: &'a str, hit_strfmt_trans_str: &'a str, fetch_strfmt_trans_str: &'a str, done_strfmt_trans_str: &'a str, fail_strfmt_trans_str: &'a str) -> Self {
         let progress = Self {
             pulse_interval: 0,
             percent_socket_path: percent_socket_path,
             status_socket_path: status_socket_path,
+            hit_strfmt_trans_str: hit_strfmt_trans_str,
+            fetch_strfmt_trans_str: fetch_strfmt_trans_str,
+            done_strfmt_trans_str: done_strfmt_trans_str,
+            fail_strfmt_trans_str: fail_strfmt_trans_str,
         };
         progress
     }
@@ -44,7 +52,14 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
     ///
     /// Prints out the short description and the expected size.
     fn hit(&mut self, item: &ItemDesc) {
-        let message = format!("Up-to-date: {} {}", item.description(), item.short_desc());
+        let message = &strfmt::strfmt(
+            &self.hit_strfmt_trans_str,
+            &std::collections::HashMap::from([
+                ("DESC".to_string(), item.description()),
+                ("SHORT_DESC".to_string(), item.short_desc()),
+            ]),
+        )
+        .unwrap();
         println!("{}", message);
         Runtime::new()
             .unwrap()
@@ -55,7 +70,14 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
     ///
     /// Prints out the short description and the expected size.
     fn fetch(&mut self, item: &ItemDesc) {
-        let message = format!("Fetching: {} {}", item.description(), item.short_desc());
+        let message = &strfmt::strfmt(
+            &self.fetch_strfmt_trans_str,
+            &std::collections::HashMap::from([
+                ("DESC".to_string(), item.description()),
+                ("SHORT_DESC".to_string(), item.short_desc()),
+            ]),
+        )
+        .unwrap();
         println!("{}", message);
         Runtime::new()
             .unwrap()
@@ -66,7 +88,14 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
     ///
     /// We don't print anything here to remain consistent with apt.
     fn done(&mut self, item: &ItemDesc) {
-        let message = format!("Downloading: {} {}", item.description(), item.short_desc());
+        let message = &strfmt::strfmt(
+            &self.done_strfmt_trans_str,
+            &std::collections::HashMap::from([
+                ("DESC".to_string(), item.description()),
+                ("SHORT_DESC".to_string(), item.short_desc()),
+            ]),
+        )
+        .unwrap();
         println!("{}", message);
         Runtime::new()
             .unwrap()
@@ -91,11 +120,14 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
     ///
     /// Print out the ErrorText for the Item.
     fn fail(&mut self, item: &ItemDesc) {
-        let message = format!(
-            "Download Failed: {} {}",
-            item.description(),
-            item.short_desc()
-        );
+        let message = &strfmt::strfmt(
+            &self.fail_strfmt_trans_str,
+            &std::collections::HashMap::from([
+                ("DESC".to_string(), item.description()),
+                ("SHORT_DESC".to_string(), item.short_desc()),
+            ]),
+        )
+        .unwrap();
         eprintln!("{}", &message);
         Runtime::new()
             .unwrap()

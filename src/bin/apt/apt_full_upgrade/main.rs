@@ -5,8 +5,17 @@ use rust_apt::cache::Upgrade;
 use rust_apt::new_cache;
 use rust_apt::progress::{AcquireProgress, InstallProgress};
 use tokio::runtime::Runtime;
+use std::env;
+
+// Init translations for current crate.
+#[macro_use]
+extern crate rust_i18n;
+i18n!("locales", fallback = "en_US");
 
 fn main() {
+    let args: Vec<String> = env::args().collect();
+    rust_i18n::set_locale(&args[1]);
+
     let percent_socket_path = "/tmp/pika_apt_upgrade_percent.sock";
     let status_socket_path = "/tmp/pika_apt_upgrade_status.sock";
     let json_file_path = "/tmp/pika-apt-exclusions.json";
@@ -56,13 +65,24 @@ fn main() {
 
     apt_upgrade_cache.resolve(true).unwrap();
 
+    let hit_strfmt_trans_str = t!("apt_update_str_hit").to_string();
+    let fetch_strfmt_trans_str = t!("apt_update_str_fetch").to_string();
+    let done_strfmt_trans_str = t!("apt_update_str_done").to_string();
+    let fail_strfmt_trans_str = t!("apt_update_str_fail").to_string();
+    let error_strfmt_trans_str = t!("apt_install_str_error").to_string();
+
     let mut acquire_progress = AcquireProgress::new(AptUpdateProgressSocket::new(
         percent_socket_path,
         status_socket_path,
+        &hit_strfmt_trans_str,
+        &fetch_strfmt_trans_str,
+        &done_strfmt_trans_str,
+        &fail_strfmt_trans_str,
     ));
     let mut install_progress = InstallProgress::new(AptInstallProgressSocket::new(
         percent_socket_path,
         status_socket_path,
+        &error_strfmt_trans_str,
     ));
 
     apt_upgrade_cache.resolve(true).unwrap();

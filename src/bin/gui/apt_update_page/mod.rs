@@ -66,7 +66,7 @@ pub fn apt_update_page(
 
     thread::spawn(move || {
         let apt_update_command = Command::new("pkexec")
-            .args(["/usr/lib/pika/pikman-update-manager/scripts/apt_update"])
+            .args(["/usr/lib/pika/pikman-update-manager/scripts/apt_update", "fr_FR"])
             .status()
             .unwrap();
         match apt_update_command.code().unwrap() {
@@ -127,12 +127,12 @@ pub fn apt_update_page(
         .vexpand(true)
         .build();
 
-    let packages_ignored_viewport_page = adw::StatusPage::builder()
+    /*let packages_ignored_viewport_page = adw::StatusPage::builder()
         .icon_name("dialog-warning-symbolic")
         .title(t!("apt_ignored_viewport_page_title"))
         .hexpand(true)
         .vexpand(true)
-        .build();
+        .build();*/
 
     let viewport_bin = adw::Bin::builder()
         .child(&packages_no_viewport_page)
@@ -182,7 +182,6 @@ pub fn apt_update_page(
 
     if window.is_visible() {
         let retry_signal_action0 = retry_signal_action.clone();
-        let viewport_bin = viewport_bin.clone();
         let flatpak_retry_signal_action = flatpak_retry_signal_action.clone();
         let flatpak_ran_once = flatpak_ran_once.clone();
 
@@ -194,7 +193,7 @@ pub fn apt_update_page(
                         retry_signal_action0.activate(None);
                     }
                     "apt_update_dialog_ignore" => {
-                        viewport_bin.set_child(Some(&packages_ignored_viewport_page));
+                        //viewport_bin.set_child(Some(&packages_ignored_viewport_page));
                         let mut flatpak_ran_once_borrow = flatpak_ran_once.borrow_mut();
                         if *flatpak_ran_once_borrow != true {
                             flatpak_retry_signal_action.activate(None);
@@ -292,66 +291,30 @@ pub fn apt_update_page(
         apt_update_dialog_child_box,
         #[weak]
         flatpak_retry_signal_action,
+        #[strong]
+        apt_update_count,
+        #[strong]
+        flatpak_update_count,
+        #[strong]
+        update_sys_tray,
         async move {
             while let Ok(state) = update_status_receiver.recv().await {
                 match state.as_ref() {
                     "FN_OVERRIDE_SUCCESSFUL" => {
-                        let get_upgradable_sender = get_upgradable_sender.clone();
-                        thread::spawn(move || {
-                            // Create upgradable list cache
-                            let upgradable_cache = new_cache!().unwrap();
-                            //
-                            upgradable_cache.upgrade(Upgrade::FullUpgrade).unwrap();
-
-                            upgradable_cache.resolve(true).unwrap();
-
-                            let mut upgradeable_iter =
-                                upgradable_cache.get_changes(false).peekable();
-                            while let Some(pkg) = upgradeable_iter.next() {
-                                if !pkg.marked_delete() {
-                                    let candidate_version_pkg = pkg.candidate().unwrap();
-                                    let package_struct = AptPackageSocket {
-                                        name: pkg.name().to_string(),
-                                        arch: pkg.arch().to_string(),
-                                        installed_version: match pkg.installed() {
-                                            Some(t) => t.version().to_string(),
-                                            _ => {
-                                                t!("installed_version_to_be_installed").to_string()
-                                            }
-                                        },
-                                        candidate_version: candidate_version_pkg
-                                            .version()
-                                            .to_string(),
-                                        description: match candidate_version_pkg.description() {
-                                            Some(s) => s,
-                                            _ => t!("apt_pkg_property_unknown").to_string(),
-                                        },
-                                        source_uri: candidate_version_pkg
-                                            .uris()
-                                            .collect::<Vec<String>>()
-                                            .join("\n"),
-                                        maintainer: match candidate_version_pkg
-                                            .get_record(RecordField::Maintainer)
-                                        {
-                                            Some(s) => s,
-                                            _ => t!("apt_pkg_property_unknown").to_string(),
-                                        },
-                                        size: candidate_version_pkg.size(),
-                                        installed_size: candidate_version_pkg.installed_size(),
-                                        is_last: upgradeable_iter.peek().is_none(),
-                                    };
-                                    get_upgradable_sender.send_blocking(package_struct).unwrap()
-                                }
-                            }
-                        });
+                        get_apt_upgrades(&get_upgradable_sender);
                         apt_update_dialog.close();
                         let mut flatpak_ran_once_borrow = flatpak_ran_once.borrow_mut();
                         if *flatpak_ran_once_borrow != true {
                             flatpak_retry_signal_action.activate(None);
                             *flatpak_ran_once_borrow = true;
                         }
+                        update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(&[
+                            *apt_update_count.borrow(),
+                            *flatpak_update_count.borrow(),
+                        ])));
                     }
                     "FN_OVERRIDE_FAILED" => {
+                        get_apt_upgrades(&get_upgradable_sender);
                         apt_update_dialog_child_box.set_visible(false);
                         apt_update_dialog.set_extra_child(Some(
                             &Image::builder()
@@ -364,6 +327,15 @@ pub fn apt_update_page(
                             .set_title(Some(&t!("apt_update_dialog_status_failed").to_string()));
                         apt_update_dialog.set_response_enabled("apt_update_dialog_retry", true);
                         apt_update_dialog.set_response_enabled("apt_update_dialog_ignore", true);
+                        let mut flatpak_ran_once_borrow = flatpak_ran_once.borrow_mut();
+                        if *flatpak_ran_once_borrow != true {
+                            flatpak_retry_signal_action.activate(None);
+                            *flatpak_ran_once_borrow = true;
+                        }
+                        update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(&[
+                            *apt_update_count.borrow(),
+                            *flatpak_update_count.borrow(),
+                        ])));
                     }
                     _ => apt_update_dialog.set_body(&state),
                 }
@@ -534,4 +506,55 @@ fn set_all_apt_row_marks_to(parent_listbox: &impl IsA<ListBox>, value: bool) {
         downcast.set_package_marked(value);
         child_counter = next_child
     }
+}
+
+fn get_apt_upgrades(get_upgradable_sender: &async_channel::Sender<AptPackageSocket>) {
+    let get_upgradable_sender = get_upgradable_sender.clone();
+                        thread::spawn(move || {
+                            // Create upgradable list cache
+                            let upgradable_cache = new_cache!().unwrap();
+                            //
+                            upgradable_cache.upgrade(Upgrade::FullUpgrade).unwrap();
+
+                            upgradable_cache.resolve(true).unwrap();
+
+                            let mut upgradeable_iter =
+                                upgradable_cache.get_changes(false).peekable();
+                            while let Some(pkg) = upgradeable_iter.next() {
+                                if !pkg.marked_delete() {
+                                    let candidate_version_pkg = pkg.candidate().unwrap();
+                                    let package_struct = AptPackageSocket {
+                                        name: pkg.name().to_string(),
+                                        arch: pkg.arch().to_string(),
+                                        installed_version: match pkg.installed() {
+                                            Some(t) => t.version().to_string(),
+                                            _ => {
+                                                t!("installed_version_to_be_installed").to_string()
+                                            }
+                                        },
+                                        candidate_version: candidate_version_pkg
+                                            .version()
+                                            .to_string(),
+                                        description: match candidate_version_pkg.description() {
+                                            Some(s) => s,
+                                            _ => t!("apt_pkg_property_unknown").to_string(),
+                                        },
+                                        source_uri: candidate_version_pkg
+                                            .uris()
+                                            .collect::<Vec<String>>()
+                                            .join("\n"),
+                                        maintainer: match candidate_version_pkg
+                                            .get_record(RecordField::Maintainer)
+                                        {
+                                            Some(s) => s,
+                                            _ => t!("apt_pkg_property_unknown").to_string(),
+                                        },
+                                        size: candidate_version_pkg.size(),
+                                        installed_size: candidate_version_pkg.installed_size(),
+                                        is_last: upgradeable_iter.peek().is_none(),
+                                    };
+                                    get_upgradable_sender.send_blocking(package_struct).unwrap()
+                                }
+                            }
+                        });
 }

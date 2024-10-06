@@ -8,14 +8,16 @@ use tokio::runtime::Runtime;
 pub struct AptInstallProgressSocket<'a> {
     percent_socket_path: &'a str,
     status_socket_path: &'a str,
+    error_strfmt_trans_str: &'a str,
 }
 
 impl<'a> AptInstallProgressSocket<'a> {
     /// Returns a new default progress instance.
-    pub fn new(percent_socket_path: &'a str, status_socket_path: &'a str) -> Self {
+    pub fn new(percent_socket_path: &'a str, status_socket_path: &'a str, error_strfmt_trans_str: &'a str) -> Self {
         let progress = Self {
             percent_socket_path: percent_socket_path,
             status_socket_path: status_socket_path,
+            error_strfmt_trans_str: error_strfmt_trans_str,
         };
         progress
     }
@@ -40,7 +42,14 @@ impl<'a> DynInstallProgress for AptInstallProgressSocket<'a> {
     }
 
     fn error(&mut self, pkgname: String, _steps_done: u64, _total_steps: u64, error: String) {
-        let message = format!("dpkg failure on {}: {}", pkgname, error);
+        let message = &strfmt::strfmt(
+            &self.error_strfmt_trans_str,
+            &std::collections::HashMap::from([
+                ("PKGNAME".to_string(), pkgname),
+                ("ERROR".to_string(), error),
+            ]),
+        )
+        .unwrap();
         eprintln!("{}", &message);
         Runtime::new()
             .unwrap()

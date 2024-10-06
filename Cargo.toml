@@ -25,7 +25,7 @@ adw = { version = "0.7.0", package = "libadwaita", features = ["v1_4"] }
 gtk = { version = "0.9.0", package = "gtk4", features = ["v4_12"] }
 async-channel = "2.1.1"
 rust-i18n = "3.0.1"
-rust-apt = { git = "https://gitlab.com/volian/rust-apt" }
+rust-apt = "0.8.0"
 apt-deb822-tools = { package = "deb822-tools", git = "https://github.com/CosmicFusion/deb822-tools" }
 apt-legacy-tools = { version = "0.1.3", package = "legacy-apt-list-tools-rs", git = "https://github.com/CosmicFusion/legacy-apt-list-tools-rs" }
 tokio = { version = "1", features = ["full"] }
