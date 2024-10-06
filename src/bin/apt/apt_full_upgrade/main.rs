@@ -4,8 +4,8 @@ use pika_unixsocket_tools::pika_unixsocket_tools::*;
 use rust_apt::cache::Upgrade;
 use rust_apt::new_cache;
 use rust_apt::progress::{AcquireProgress, InstallProgress};
-use tokio::runtime::Runtime;
 use std::env;
+use tokio::runtime::Runtime;
 
 // Init translations for current crate.
 #[macro_use]
@@ -82,7 +82,7 @@ fn main() {
     let mut install_progress = InstallProgress::new(AptInstallProgressSocket::new(
         percent_socket_path,
         status_socket_path,
-        &error_strfmt_trans_str,
+        error_strfmt_trans_str,
     ));
 
     apt_upgrade_cache.resolve(true).unwrap();

@@ -18,7 +18,14 @@ pub struct AptUpdateProgressSocket<'a> {
 
 impl<'a> AptUpdateProgressSocket<'a> {
     /// Returns a new default progress instance.
-    pub fn new(percent_socket_path: &'a str, status_socket_path: &'a str, hit_strfmt_trans_str: &'a str, fetch_strfmt_trans_str: &'a str, done_strfmt_trans_str: &'a str, fail_strfmt_trans_str: &'a str) -> Self {
+    pub fn new(
+        percent_socket_path: &'a str,
+        status_socket_path: &'a str,
+        hit_strfmt_trans_str: &'a str,
+        fetch_strfmt_trans_str: &'a str,
+        done_strfmt_trans_str: &'a str,
+        fail_strfmt_trans_str: &'a str,
+    ) -> Self {
         let progress = Self {
             pulse_interval: 0,
             percent_socket_path: percent_socket_path,

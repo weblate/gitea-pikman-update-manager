@@ -66,7 +66,10 @@ pub fn apt_update_page(
 
     thread::spawn(move || {
         let apt_update_command = Command::new("pkexec")
-            .args(["/usr/lib/pika/pikman-update-manager/scripts/apt_update", "fr_FR"])
+            .args([
+                "/usr/lib/pika/pikman-update-manager/scripts/apt_update",
+                "fr_FR",
+            ])
             .status()
             .unwrap();
         match apt_update_command.code().unwrap() {
@@ -128,11 +131,11 @@ pub fn apt_update_page(
         .build();
 
     /*let packages_ignored_viewport_page = adw::StatusPage::builder()
-        .icon_name("dialog-warning-symbolic")
-        .title(t!("apt_ignored_viewport_page_title"))
-        .hexpand(true)
-        .vexpand(true)
-        .build();*/
+    .icon_name("dialog-warning-symbolic")
+    .title(t!("apt_ignored_viewport_page_title"))
+    .hexpand(true)
+    .vexpand(true)
+    .build();*/
 
     let viewport_bin = adw::Bin::builder()
         .child(&packages_no_viewport_page)
@@ -510,51 +513,44 @@ fn set_all_apt_row_marks_to(parent_listbox: &impl IsA<ListBox>, value: bool) {
 
 fn get_apt_upgrades(get_upgradable_sender: &async_channel::Sender<AptPackageSocket>) {
     let get_upgradable_sender = get_upgradable_sender.clone();
-                        thread::spawn(move || {
-                            // Create upgradable list cache
-                            let upgradable_cache = new_cache!().unwrap();
-                            //
-                            upgradable_cache.upgrade(Upgrade::FullUpgrade).unwrap();
+    thread::spawn(move || {
+        // Create upgradable list cache
+        let upgradable_cache = new_cache!().unwrap();
+        //
+        upgradable_cache.upgrade(Upgrade::FullUpgrade).unwrap();
 
-                            upgradable_cache.resolve(true).unwrap();
+        upgradable_cache.resolve(true).unwrap();
 
-                            let mut upgradeable_iter =
-                                upgradable_cache.get_changes(false).peekable();
-                            while let Some(pkg) = upgradeable_iter.next() {
-                                if !pkg.marked_delete() {
-                                    let candidate_version_pkg = pkg.candidate().unwrap();
-                                    let package_struct = AptPackageSocket {
-                                        name: pkg.name().to_string(),
-                                        arch: pkg.arch().to_string(),
-                                        installed_version: match pkg.installed() {
-                                            Some(t) => t.version().to_string(),
-                                            _ => {
-                                                t!("installed_version_to_be_installed").to_string()
-                                            }
-                                        },
-                                        candidate_version: candidate_version_pkg
-                                            .version()
-                                            .to_string(),
-                                        description: match candidate_version_pkg.description() {
-                                            Some(s) => s,
-                                            _ => t!("apt_pkg_property_unknown").to_string(),
-                                        },
-                                        source_uri: candidate_version_pkg
-                                            .uris()
-                                            .collect::<Vec<String>>()
-                                            .join("\n"),
-                                        maintainer: match candidate_version_pkg
-                                            .get_record(RecordField::Maintainer)
-                                        {
-                                            Some(s) => s,
-                                            _ => t!("apt_pkg_property_unknown").to_string(),
-                                        },
-                                        size: candidate_version_pkg.size(),
-                                        installed_size: candidate_version_pkg.installed_size(),
-                                        is_last: upgradeable_iter.peek().is_none(),
-                                    };
-                                    get_upgradable_sender.send_blocking(package_struct).unwrap()
-                                }
-                            }
-                        });
+        let mut upgradeable_iter = upgradable_cache.get_changes(false).peekable();
+        while let Some(pkg) = upgradeable_iter.next() {
+            if !pkg.marked_delete() {
+                let candidate_version_pkg = pkg.candidate().unwrap();
+                let package_struct = AptPackageSocket {
+                    name: pkg.name().to_string(),
+                    arch: pkg.arch().to_string(),
+                    installed_version: match pkg.installed() {
+                        Some(t) => t.version().to_string(),
+                        _ => t!("installed_version_to_be_installed").to_string(),
+                    },
+                    candidate_version: candidate_version_pkg.version().to_string(),
+                    description: match candidate_version_pkg.description() {
+                        Some(s) => s,
+                        _ => t!("apt_pkg_property_unknown").to_string(),
+                    },
+                    source_uri: candidate_version_pkg
+                        .uris()
+                        .collect::<Vec<String>>()
+                        .join("\n"),
+                    maintainer: match candidate_version_pkg.get_record(RecordField::Maintainer) {
+                        Some(s) => s,
+                        _ => t!("apt_pkg_property_unknown").to_string(),
+                    },
+                    size: candidate_version_pkg.size(),
+                    installed_size: candidate_version_pkg.installed_size(),
+                    is_last: upgradeable_iter.peek().is_none(),
+                };
+                get_upgradable_sender.send_blocking(package_struct).unwrap()
+            }
+        }
+    });
 }

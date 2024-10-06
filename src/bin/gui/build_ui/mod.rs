@@ -244,7 +244,7 @@ pub fn build_ui(app: &Application) {
 
     let window_breakpoint = adw::Breakpoint::new(BreakpointCondition::new_length(
         BreakpointConditionLengthType::MaxWidth,
-        1000.0,
+        1200.0,
         LengthUnit::Sp,
     ));
 
@@ -296,12 +296,12 @@ pub fn build_ui(app: &Application) {
         .build();
 
     let window_content_page_split_view = adw::OverlaySplitView::builder()
-        .vexpand(true)
-        .hexpand(true)
         .content(&window_toolbar)
         .sidebar(&window_adw_view_switcher_sidebar_box)
         .max_sidebar_width(300.0)
-        .min_sidebar_width(300.0)
+        .min_sidebar_width(290.0)
+        .sidebar_width_unit(adw::LengthUnit::Px)
+        .sidebar_width_fraction(0.2)
         .enable_hide_gesture(true)
         .enable_show_gesture(true)
         .build();
@@ -338,7 +338,7 @@ pub fn build_ui(app: &Application) {
         .default_width(glib_settings.int("window-width"))
         .default_height(glib_settings.int("window-height"))
         //
-        .width_request(900)
+        .width_request(1000)
         .height_request(700)
         .content(&window_content_page_split_view)
         // Startup
@@ -664,7 +664,8 @@ pub fn build_ui(app: &Application) {
                         }
                     }
                     ConstantLoopMessage::RefreshRequest => {
-                        update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(&[-1, -1])));
+                        update_sys_tray
+                            .activate(Some(&glib::Variant::array_from_fixed_array(&[-1, -1])));
                         apt_retry_signal_action.activate(None);
                         flatpak_retry_signal_action.activate(None);
                     }

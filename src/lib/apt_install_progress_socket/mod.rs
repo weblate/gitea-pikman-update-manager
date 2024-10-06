@@ -8,12 +8,16 @@ use tokio::runtime::Runtime;
 pub struct AptInstallProgressSocket<'a> {
     percent_socket_path: &'a str,
     status_socket_path: &'a str,
-    error_strfmt_trans_str: &'a str,
+    error_strfmt_trans_str: String,
 }
 
 impl<'a> AptInstallProgressSocket<'a> {
     /// Returns a new default progress instance.
-    pub fn new(percent_socket_path: &'a str, status_socket_path: &'a str, error_strfmt_trans_str: &'a str) -> Self {
+    pub fn new(
+        percent_socket_path: &'a str,
+        status_socket_path: &'a str,
+        error_strfmt_trans_str: String,
+    ) -> Self {
         let progress = Self {
             percent_socket_path: percent_socket_path,
             status_socket_path: status_socket_path,

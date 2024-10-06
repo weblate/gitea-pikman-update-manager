@@ -193,11 +193,11 @@ pub fn flatpak_update_page(
         .build();
 
     /*let packages_ignored_viewport_page = adw::StatusPage::builder()
-        .icon_name("dialog-warning-symbolic")
-        .title(t!("flatpak_ignored_viewport_page_title"))
-        .hexpand(true)
-        .vexpand(true)
-        .build();*/
+    .icon_name("dialog-warning-symbolic")
+    .title(t!("flatpak_ignored_viewport_page_title"))
+    .hexpand(true)
+    .vexpand(true)
+    .build();*/
 
     let viewport_bin = adw::Bin::builder()
         .child(&packages_no_viewport_page)
@@ -529,337 +529,296 @@ fn get_flatpak_updates(
     apt_update_count: &Rc<RefCell<i32>>,
     flatpak_update_count: &Rc<RefCell<i32>>,
 ) {
-                            let flatpak_system_installation =
-                            libflatpak::Installation::new_system(cancellable_no).unwrap();
-                        let flatpak_system_updates = flatpak_system_installation
-                            .list_installed_refs_for_update(cancellable_no)
-                            .unwrap();
-                        //
-                        let flatpak_user_installation =
-                            libflatpak::Installation::new_user(cancellable_no).unwrap();
-                        let flatpak_user_updates = flatpak_user_installation
-                            .list_installed_refs_for_update(cancellable_no)
-                            .unwrap();
-                        //
-                        let mut system_last_triggered = false;
-                        let mut user_last_triggered = false;
-                        //
-                        if !flatpak_system_updates.is_empty() || !flatpak_user_updates.is_empty() {
-                            update_button.set_sensitive(true);
-                            viewport_bin.set_child(Some(packages_viewport));
+    let flatpak_system_installation = libflatpak::Installation::new_system(cancellable_no).unwrap();
+    let flatpak_system_updates = flatpak_system_installation
+        .list_installed_refs_for_update(cancellable_no)
+        .unwrap();
+    //
+    let flatpak_user_installation = libflatpak::Installation::new_user(cancellable_no).unwrap();
+    let flatpak_user_updates = flatpak_user_installation
+        .list_installed_refs_for_update(cancellable_no)
+        .unwrap();
+    //
+    let mut system_last_triggered = false;
+    let mut user_last_triggered = false;
+    //
+    if !flatpak_system_updates.is_empty() || !flatpak_user_updates.is_empty() {
+        update_button.set_sensitive(true);
+        viewport_bin.set_child(Some(packages_viewport));
+    }
+    //
+    if !flatpak_system_updates.is_empty() {
+        let flatpak_system_updates_iter = &mut flatpak_system_updates.iter().peekable();
+        //
+        while let Some(flatpak_ref) = flatpak_system_updates_iter.next() {
+            let mut remote_flatpak_ref: Option<libflatpak::RemoteRef> = None;
+            while let Ok(remotes) =
+                libflatpak::Installation::list_remotes(&flatpak_system_installation, cancellable_no)
+            {
+                for remote in remotes {
+                    if remote.is_disabled() {
+                        continue;
+                    };
+                    match libflatpak::Installation::fetch_remote_ref_sync(
+                        &flatpak_system_installation,
+                        &match remote.name() {
+                            Some(t) => t,
+                            None => continue,
+                        },
+                        flatpak_ref.kind(),
+                        &match flatpak_ref.name() {
+                            Some(t) => t,
+                            None => continue,
+                        },
+                        flatpak_ref.arch().as_deref(),
+                        flatpak_ref.branch().as_deref(),
+                        cancellable_no,
+                    ) {
+                        Ok(t) => {
+                            remote_flatpak_ref = Some(t);
+                            break;
                         }
-                        //
-                        if !flatpak_system_updates.is_empty() {
-                            let flatpak_system_updates_iter =
-                                &mut flatpak_system_updates.iter().peekable();
-                            //
-                            while let Some(flatpak_ref) = flatpak_system_updates_iter.next() {
-                                let mut remote_flatpak_ref: Option<libflatpak::RemoteRef> = None;
-                                while let Ok(remotes) = libflatpak::Installation::list_remotes(
-                                    &flatpak_system_installation,
-                                    cancellable_no,
-                                ) {
-                                    for remote in remotes {
-                                        if remote.is_disabled() {
-                                            continue;
-                                        };
-                                        match libflatpak::Installation::fetch_remote_ref_sync(
-                                            &flatpak_system_installation,
-                                            &match remote.name() {
-                                                Some(t) => t,
-                                                None => continue,
-                                            },
-                                            flatpak_ref.kind(),
-                                            &match flatpak_ref.name() {
-                                                Some(t) => t,
-                                                None => continue,
-                                            },
-                                            flatpak_ref.arch().as_deref(),
-                                            flatpak_ref.branch().as_deref(),
-                                            cancellable_no,
-                                        ) {
-                                            Ok(t) => {
-                                                remote_flatpak_ref = Some(t);
-                                                break;
-                                            }
-                                            Err(_) => continue,
-                                        }
-                                    }
-                                    if remote_flatpak_ref.is_some() {
-                                        break;
-                                    }
-                                }
-                                let flatref_struct = FlatpakRefStruct {
-                                    ref_name: flatpak_ref
-                                        .name()
-                                        .unwrap_or("Unknown".into())
-                                        .to_string(),
-                                    name: flatpak_ref
-                                        .appdata_name()
-                                        .unwrap_or(flatpak_ref.name().unwrap_or("Unknown".into()))
-                                        .to_string(),
-                                    arch: flatpak_ref
-                                        .arch()
-                                        .unwrap_or("Unknown Arch".into())
-                                        .to_string(),
-                                    summary: flatpak_ref
-                                        .appdata_summary()
-                                        .unwrap_or("No Summary".into())
-                                        .to_string(),
-                                    remote_name: match remote_flatpak_ref {
-                                        Some(ref t) => {
-                                            t.remote_name().unwrap_or("Unknown".into()).to_string()
-                                        }
-                                        None => "Unknown".into(),
-                                    },
-                                    installed_size_installed: flatpak_ref.installed_size(),
-                                    installed_size_remote: match remote_flatpak_ref {
-                                        Some(ref t) => t.installed_size(),
-                                        None => 0,
-                                    },
-                                    download_size: match remote_flatpak_ref {
-                                        Some(t) => t.download_size(),
-                                        None => 0,
-                                    },
-                                    ref_format: flatpak_ref.format_ref().unwrap().into(),
-                                    is_system: true,
-                                    is_last: flatpak_system_updates_iter.peek().is_none(),
-                                };
+                        Err(_) => continue,
+                    }
+                }
+                if remote_flatpak_ref.is_some() {
+                    break;
+                }
+            }
+            let flatref_struct = FlatpakRefStruct {
+                ref_name: flatpak_ref.name().unwrap_or("Unknown".into()).to_string(),
+                name: flatpak_ref
+                    .appdata_name()
+                    .unwrap_or(flatpak_ref.name().unwrap_or("Unknown".into()))
+                    .to_string(),
+                arch: flatpak_ref
+                    .arch()
+                    .unwrap_or("Unknown Arch".into())
+                    .to_string(),
+                summary: flatpak_ref
+                    .appdata_summary()
+                    .unwrap_or("No Summary".into())
+                    .to_string(),
+                remote_name: match remote_flatpak_ref {
+                    Some(ref t) => t.remote_name().unwrap_or("Unknown".into()).to_string(),
+                    None => "Unknown".into(),
+                },
+                installed_size_installed: flatpak_ref.installed_size(),
+                installed_size_remote: match remote_flatpak_ref {
+                    Some(ref t) => t.installed_size(),
+                    None => 0,
+                },
+                download_size: match remote_flatpak_ref {
+                    Some(t) => t.download_size(),
+                    None => 0,
+                },
+                ref_format: flatpak_ref.format_ref().unwrap().into(),
+                is_system: true,
+                is_last: flatpak_system_updates_iter.peek().is_none(),
+            };
 
-                                let flatpak_row = FlatpakRefRow::new(&flatref_struct);
+            let flatpak_row = FlatpakRefRow::new(&flatref_struct);
 
-                                system_refs_for_upgrade_vec
-                                    .borrow_mut()
-                                    .push(flatpak_row.clone());
+            system_refs_for_upgrade_vec
+                .borrow_mut()
+                .push(flatpak_row.clone());
 
-                                system_refs_for_upgrade_vec_all
-                                    .borrow_mut()
-                                    .push(flatpak_row.clone());
+            system_refs_for_upgrade_vec_all
+                .borrow_mut()
+                .push(flatpak_row.clone());
 
-                                flatpak_row.connect_closure(
-                                    "checkbutton-toggled",
-                                    false,
-                                    closure_local!(
-                                        #[strong]
-                                        select_button,
-                                        #[strong]
-                                        update_button,
-                                        #[strong]
-                                        packages_boxedlist,
-                                        #[strong]
-                                        system_refs_for_upgrade_vec,
-                                        move |flatpak_row: FlatpakRefRow| {
-                                            if is_widget_select_all_ready(&packages_boxedlist) {
-                                                select_button.set_label(
-                                                    &t!("select_button_select_all").to_string(),
-                                                );
-                                            } else {
-                                                select_button.set_label(
-                                                    &t!("select_button_deselect_all").to_string(),
-                                                );
-                                            }
-                                            update_button.set_sensitive(!is_all_children_unmarked(
-                                                &packages_boxedlist,
-                                            ));
-                                            system_refs_for_upgrade_vec
-                                                .borrow_mut()
-                                                .push(flatpak_row);
-                                        }
-                                    ),
-                                );
-                                flatpak_row.connect_closure(
-                                    "checkbutton-untoggled",
-                                    false,
-                                    closure_local!(
-                                        #[strong]
-                                        select_button,
-                                        #[strong]
-                                        update_button,
-                                        #[strong]
-                                        packages_boxedlist,
-                                        #[strong]
-                                        system_refs_for_upgrade_vec,
-                                        move |flatpak_row: FlatpakRefRow| {
-                                            select_button.set_label(
-                                                &t!("select_button_select_all").to_string(),
-                                            );
-                                            update_button.set_sensitive(!is_all_children_unmarked(
-                                                &packages_boxedlist,
-                                            ));
-                                            system_refs_for_upgrade_vec.borrow_mut().retain(|x| {
-                                                x.flatref_ref_format()
-                                                    != flatpak_row.flatref_ref_format()
-                                            });
-                                        }
-                                    ),
-                                );
-
-                                packages_boxedlist.append(&flatpak_row);
-                                (*flatpak_update_count.borrow_mut() += 1);
-                                if flatref_struct.is_system && flatref_struct.is_last {
-                                    system_last_triggered = true
-                                }
-                            }
+            flatpak_row.connect_closure(
+                "checkbutton-toggled",
+                false,
+                closure_local!(
+                    #[strong]
+                    select_button,
+                    #[strong]
+                    update_button,
+                    #[strong]
+                    packages_boxedlist,
+                    #[strong]
+                    system_refs_for_upgrade_vec,
+                    move |flatpak_row: FlatpakRefRow| {
+                        if is_widget_select_all_ready(&packages_boxedlist) {
+                            select_button.set_label(&t!("select_button_select_all").to_string());
                         } else {
-                            system_last_triggered = true
+                            select_button.set_label(&t!("select_button_deselect_all").to_string());
                         }
-                        if !flatpak_user_updates.is_empty() {
-                            let flatpak_user_updates_iter =
-                                &mut flatpak_user_updates.iter().peekable();
-                            //
-                            while let Some(flatpak_ref) = flatpak_user_updates_iter.next() {
-                                let mut remote_flatpak_ref: Option<libflatpak::RemoteRef> = None;
-                                while let Ok(remotes) = libflatpak::Installation::list_remotes(
-                                    &flatpak_user_installation,
-                                    cancellable_no,
-                                ) {
-                                    for remote in remotes {
-                                        if remote.is_disabled() {
-                                            continue;
-                                        };
-                                        match libflatpak::Installation::fetch_remote_ref_sync(
-                                            &flatpak_user_installation,
-                                            &match remote.name() {
-                                                Some(t) => t,
-                                                None => continue,
-                                            },
-                                            flatpak_ref.kind(),
-                                            &match flatpak_ref.name() {
-                                                Some(t) => t,
-                                                None => continue,
-                                            },
-                                            flatpak_ref.arch().as_deref(),
-                                            flatpak_ref.branch().as_deref(),
-                                            cancellable_no,
-                                        ) {
-                                            Ok(t) => {
-                                                remote_flatpak_ref = Some(t);
-                                                break;
-                                            }
-                                            Err(_) => continue,
-                                        }
-                                    }
-                                    if remote_flatpak_ref.is_some() {
-                                        break;
-                                    }
-                                }
-                                let flatref_struct = FlatpakRefStruct {
-                                    ref_name: flatpak_ref
-                                        .name()
-                                        .unwrap_or("Unknown".into())
-                                        .to_string(),
-                                    name: flatpak_ref
-                                        .appdata_name()
-                                        .unwrap_or(flatpak_ref.name().unwrap_or("Unknown".into()))
-                                        .to_string(),
-                                    arch: flatpak_ref
-                                        .arch()
-                                        .unwrap_or("Unknown Arch".into())
-                                        .to_string(),
-                                    summary: flatpak_ref
-                                        .appdata_summary()
-                                        .unwrap_or("No Summary".into())
-                                        .to_string(),
-                                    remote_name: match remote_flatpak_ref {
-                                        Some(ref t) => {
-                                            t.remote_name().unwrap_or("Unknown".into()).to_string()
-                                        }
-                                        None => "Unknown".into(),
-                                    },
-                                    installed_size_installed: flatpak_ref.installed_size(),
-                                    installed_size_remote: match remote_flatpak_ref {
-                                        Some(ref t) => t.installed_size(),
-                                        None => 0,
-                                    },
-                                    download_size: match remote_flatpak_ref {
-                                        Some(t) => t.download_size(),
-                                        None => 0,
-                                    },
-                                    ref_format: flatpak_ref.format_ref().unwrap().into(),
-                                    is_system: false,
-                                    is_last: flatpak_user_updates_iter.peek().is_none(),
-                                };
+                        update_button.set_sensitive(!is_all_children_unmarked(&packages_boxedlist));
+                        system_refs_for_upgrade_vec.borrow_mut().push(flatpak_row);
+                    }
+                ),
+            );
+            flatpak_row.connect_closure(
+                "checkbutton-untoggled",
+                false,
+                closure_local!(
+                    #[strong]
+                    select_button,
+                    #[strong]
+                    update_button,
+                    #[strong]
+                    packages_boxedlist,
+                    #[strong]
+                    system_refs_for_upgrade_vec,
+                    move |flatpak_row: FlatpakRefRow| {
+                        select_button.set_label(&t!("select_button_select_all").to_string());
+                        update_button.set_sensitive(!is_all_children_unmarked(&packages_boxedlist));
+                        system_refs_for_upgrade_vec
+                            .borrow_mut()
+                            .retain(|x| x.flatref_ref_format() != flatpak_row.flatref_ref_format());
+                    }
+                ),
+            );
 
-                                let flatpak_row = FlatpakRefRow::new(&flatref_struct);
+            packages_boxedlist.append(&flatpak_row);
+            (*flatpak_update_count.borrow_mut() += 1);
+            if flatref_struct.is_system && flatref_struct.is_last {
+                system_last_triggered = true
+            }
+        }
+    } else {
+        system_last_triggered = true
+    }
+    if !flatpak_user_updates.is_empty() {
+        let flatpak_user_updates_iter = &mut flatpak_user_updates.iter().peekable();
+        //
+        while let Some(flatpak_ref) = flatpak_user_updates_iter.next() {
+            let mut remote_flatpak_ref: Option<libflatpak::RemoteRef> = None;
+            while let Ok(remotes) =
+                libflatpak::Installation::list_remotes(&flatpak_user_installation, cancellable_no)
+            {
+                for remote in remotes {
+                    if remote.is_disabled() {
+                        continue;
+                    };
+                    match libflatpak::Installation::fetch_remote_ref_sync(
+                        &flatpak_user_installation,
+                        &match remote.name() {
+                            Some(t) => t,
+                            None => continue,
+                        },
+                        flatpak_ref.kind(),
+                        &match flatpak_ref.name() {
+                            Some(t) => t,
+                            None => continue,
+                        },
+                        flatpak_ref.arch().as_deref(),
+                        flatpak_ref.branch().as_deref(),
+                        cancellable_no,
+                    ) {
+                        Ok(t) => {
+                            remote_flatpak_ref = Some(t);
+                            break;
+                        }
+                        Err(_) => continue,
+                    }
+                }
+                if remote_flatpak_ref.is_some() {
+                    break;
+                }
+            }
+            let flatref_struct = FlatpakRefStruct {
+                ref_name: flatpak_ref.name().unwrap_or("Unknown".into()).to_string(),
+                name: flatpak_ref
+                    .appdata_name()
+                    .unwrap_or(flatpak_ref.name().unwrap_or("Unknown".into()))
+                    .to_string(),
+                arch: flatpak_ref
+                    .arch()
+                    .unwrap_or("Unknown Arch".into())
+                    .to_string(),
+                summary: flatpak_ref
+                    .appdata_summary()
+                    .unwrap_or("No Summary".into())
+                    .to_string(),
+                remote_name: match remote_flatpak_ref {
+                    Some(ref t) => t.remote_name().unwrap_or("Unknown".into()).to_string(),
+                    None => "Unknown".into(),
+                },
+                installed_size_installed: flatpak_ref.installed_size(),
+                installed_size_remote: match remote_flatpak_ref {
+                    Some(ref t) => t.installed_size(),
+                    None => 0,
+                },
+                download_size: match remote_flatpak_ref {
+                    Some(t) => t.download_size(),
+                    None => 0,
+                },
+                ref_format: flatpak_ref.format_ref().unwrap().into(),
+                is_system: false,
+                is_last: flatpak_user_updates_iter.peek().is_none(),
+            };
 
-                                user_refs_for_upgrade_vec
-                                    .borrow_mut()
-                                    .push(flatpak_row.clone());
+            let flatpak_row = FlatpakRefRow::new(&flatref_struct);
 
-                                user_refs_for_upgrade_vec_all
-                                    .borrow_mut()
-                                    .push(flatpak_row.clone());
+            user_refs_for_upgrade_vec
+                .borrow_mut()
+                .push(flatpak_row.clone());
 
-                                flatpak_row.connect_closure(
-                                    "checkbutton-toggled",
-                                    false,
-                                    closure_local!(
-                                        #[strong]
-                                        select_button,
-                                        #[strong]
-                                        update_button,
-                                        #[strong]
-                                        packages_boxedlist,
-                                        #[strong]
-                                        user_refs_for_upgrade_vec,
-                                        move |flatpak_row: FlatpakRefRow| {
-                                            if is_widget_select_all_ready(&packages_boxedlist) {
-                                                select_button.set_label(
-                                                    &t!("select_button_select_all").to_string(),
-                                                );
-                                            } else {
-                                                select_button.set_label(
-                                                    &t!("select_button_deselect_all").to_string(),
-                                                );
-                                            }
-                                            update_button.set_sensitive(!is_all_children_unmarked(
-                                                &packages_boxedlist,
-                                            ));
-                                            user_refs_for_upgrade_vec
-                                                .borrow_mut()
-                                                .push(flatpak_row);
-                                        }
-                                    ),
-                                );
-                                flatpak_row.connect_closure(
-                                    "checkbutton-untoggled",
-                                    false,
-                                    closure_local!(
-                                        #[strong]
-                                        select_button,
-                                        #[strong]
-                                        update_button,
-                                        #[strong]
-                                        packages_boxedlist,
-                                        #[strong]
-                                        user_refs_for_upgrade_vec,
-                                        move |flatpak_row: FlatpakRefRow| {
-                                            select_button.set_label(
-                                                &t!("select_button_select_all").to_string(),
-                                            );
-                                            update_button.set_sensitive(!is_all_children_unmarked(
-                                                &packages_boxedlist,
-                                            ));
-                                            user_refs_for_upgrade_vec.borrow_mut().retain(|x| {
-                                                x.flatref_ref_format()
-                                                    != flatpak_row.flatref_ref_format()
-                                            });
-                                        }
-                                    ),
-                                );
-                                packages_boxedlist.append(&flatpak_row);
-                                (*flatpak_update_count.borrow_mut() += 1);
-                                if !flatref_struct.is_system && flatref_struct.is_last {
-                                    user_last_triggered = true
-                                }
-                            }
+            user_refs_for_upgrade_vec_all
+                .borrow_mut()
+                .push(flatpak_row.clone());
+
+            flatpak_row.connect_closure(
+                "checkbutton-toggled",
+                false,
+                closure_local!(
+                    #[strong]
+                    select_button,
+                    #[strong]
+                    update_button,
+                    #[strong]
+                    packages_boxedlist,
+                    #[strong]
+                    user_refs_for_upgrade_vec,
+                    move |flatpak_row: FlatpakRefRow| {
+                        if is_widget_select_all_ready(&packages_boxedlist) {
+                            select_button.set_label(&t!("select_button_select_all").to_string());
                         } else {
-                            user_last_triggered = true
+                            select_button.set_label(&t!("select_button_deselect_all").to_string());
                         }
-                        if user_last_triggered && system_last_triggered {
-                            packages_boxedlist.set_sensitive(true);
-                            update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(
-                                &[*apt_update_count.borrow(), *flatpak_update_count.borrow()],
-                            )));
-                        }
+                        update_button.set_sensitive(!is_all_children_unmarked(&packages_boxedlist));
+                        user_refs_for_upgrade_vec.borrow_mut().push(flatpak_row);
+                    }
+                ),
+            );
+            flatpak_row.connect_closure(
+                "checkbutton-untoggled",
+                false,
+                closure_local!(
+                    #[strong]
+                    select_button,
+                    #[strong]
+                    update_button,
+                    #[strong]
+                    packages_boxedlist,
+                    #[strong]
+                    user_refs_for_upgrade_vec,
+                    move |flatpak_row: FlatpakRefRow| {
+                        select_button.set_label(&t!("select_button_select_all").to_string());
+                        update_button.set_sensitive(!is_all_children_unmarked(&packages_boxedlist));
+                        user_refs_for_upgrade_vec
+                            .borrow_mut()
+                            .retain(|x| x.flatref_ref_format() != flatpak_row.flatref_ref_format());
+                    }
+                ),
+            );
+            packages_boxedlist.append(&flatpak_row);
+            (*flatpak_update_count.borrow_mut() += 1);
+            if !flatref_struct.is_system && flatref_struct.is_last {
+                user_last_triggered = true
+            }
+        }
+    } else {
+        user_last_triggered = true
+    }
+    if user_last_triggered && system_last_triggered {
+        packages_boxedlist.set_sensitive(true);
+        update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(&[
+            *apt_update_count.borrow(),
+            *flatpak_update_count.borrow(),
+        ])));
+    }
 }
