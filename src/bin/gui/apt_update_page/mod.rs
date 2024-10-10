@@ -39,6 +39,8 @@ pub fn apt_update_page(
 ) -> gtk::Box {
     let (update_percent_sender, update_percent_receiver) = async_channel::unbounded::<String>();
     let update_percent_sender = update_percent_sender.clone();
+    let (update_speed_sender, update_speed_receiver) = async_channel::unbounded::<String>();
+    let update_speed_sender = update_speed_sender.clone();
     let (update_status_sender, update_status_receiver) = async_channel::unbounded::<String>();
     let update_status_sender = update_status_sender.clone();
     let update_status_sender_clone0 = update_status_sender.clone();
@@ -53,6 +55,13 @@ pub fn apt_update_page(
         Runtime::new().unwrap().block_on(start_socket_server_no_log(
             update_percent_sender,
             "/tmp/pika_apt_update_percent.sock",
+        ));
+    });
+
+    thread::spawn(move || {
+        Runtime::new().unwrap().block_on(start_socket_server_no_log(
+            update_speed_sender,
+            "/tmp/pika_apt_update_speed.sock",
         ));
     });
 
@@ -170,7 +179,14 @@ pub fn apt_update_page(
         .width_request(128)
         .build();
 
+    let apt_speed_label = gtk::Label::builder()
+        .halign(Align::Center)
+        .margin_top(10)
+        .margin_bottom(10)
+        .build();
+
     apt_update_dialog_child_box.append(&apt_update_dialog_spinner);
+    apt_update_dialog_child_box.append(&apt_speed_label);
     apt_update_dialog_child_box.append(&apt_update_dialog_progress_bar);
 
     let apt_update_dialog = adw::MessageDialog::builder()
@@ -296,6 +312,18 @@ pub fn apt_update_page(
                     Ok(p) => apt_update_dialog_progress_bar.set_fraction(p / 100.0),
                     Err(_) => {}
                 }
+            }
+        }
+    ));
+
+    let update_speed_server_context = MainContext::default();
+    // The main loop executes the asynchronous block
+    update_speed_server_context.spawn_local(clone!(
+        #[strong]
+        apt_speed_label,
+        async move {
+            while let Ok(state) = update_speed_receiver.recv().await {
+                apt_speed_label.set_label(&state);
             }
         }
     ));

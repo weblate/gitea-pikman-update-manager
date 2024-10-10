@@ -18,6 +18,8 @@ fn main() {
 
     let percent_socket_path = "/tmp/pika_apt_upgrade_percent.sock";
     let status_socket_path = "/tmp/pika_apt_upgrade_status.sock";
+    let speed_socket_path = "/tmp/pika_apt_upgrade_speed.sock";
+
     let json_file_path = "/tmp/pika-apt-exclusions.json";
     let mut excluded_updates_vec: Vec<String> = Vec::new();
 
@@ -74,6 +76,7 @@ fn main() {
     let mut acquire_progress = AcquireProgress::new(AptUpdateProgressSocket::new(
         percent_socket_path,
         status_socket_path,
+        speed_socket_path,
         &hit_strfmt_trans_str,
         &fetch_strfmt_trans_str,
         &done_strfmt_trans_str,

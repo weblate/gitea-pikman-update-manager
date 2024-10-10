@@ -7,9 +7,11 @@ use tokio::net::UnixStream;
 use tokio::runtime::Runtime;
 
 pub struct AptUpdateProgressSocket<'a> {
+    last_pulse_bytes: u64,
     pulse_interval: usize,
     percent_socket_path: &'a str,
     status_socket_path: &'a str,
+    speed_socket_path: &'a str,
     hit_strfmt_trans_str: &'a str,
     fetch_strfmt_trans_str: &'a str,
     done_strfmt_trans_str: &'a str,
@@ -21,15 +23,18 @@ impl<'a> AptUpdateProgressSocket<'a> {
     pub fn new(
         percent_socket_path: &'a str,
         status_socket_path: &'a str,
+        speed_socket_path: &'a str,
         hit_strfmt_trans_str: &'a str,
         fetch_strfmt_trans_str: &'a str,
         done_strfmt_trans_str: &'a str,
         fail_strfmt_trans_str: &'a str,
     ) -> Self {
         let progress = Self {
-            pulse_interval: 0,
+            last_pulse_bytes: 0,
+            pulse_interval: 1000000,
             percent_socket_path: percent_socket_path,
             status_socket_path: status_socket_path,
+            speed_socket_path: speed_socket_path,
             hit_strfmt_trans_str: hit_strfmt_trans_str,
             fetch_strfmt_trans_str: fetch_strfmt_trans_str,
             done_strfmt_trans_str: done_strfmt_trans_str,
@@ -156,9 +161,19 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
     fn pulse(&mut self, status: &AcqTextStatus, _owner: &PkgAcquire) {
         let progress_percent: f32 =
             (status.current_bytes() as f32 * 100.0) / status.total_bytes() as f32;
+        let speed = if self.pulse_interval != 0 {
+            (status.current_bytes() as f64 - self.last_pulse_bytes as f64) / (self.pulse_interval as f64 / 1000000.0)
+        } else {
+            status.current_bytes() as f64 - self.last_pulse_bytes as f64
+        };
+        self.last_pulse_bytes = status.current_bytes();
         Runtime::new().unwrap().block_on(send_progress_percent(
             progress_percent,
             self.percent_socket_path,
+        ));
+        Runtime::new().unwrap().block_on(send_progress_status(
+            &(pretty_bytes::converter::convert(speed) + "ps").to_lowercase(),
+            self.speed_socket_path,
         ));
     }
 }

@@ -385,6 +385,8 @@ fn apt_full_upgrade_from_socket(
 ) {
     let (upgrade_percent_sender, upgrade_percent_receiver) = async_channel::unbounded::<String>();
     let upgrade_percent_sender = upgrade_percent_sender.clone();
+    let (upgrade_speed_sender, upgrade_speed_receiver) = async_channel::unbounded::<String>();
+    let upgrade_speed_sender = upgrade_speed_sender.clone();
     let (upgrade_status_sender, upgrade_status_receiver) = async_channel::unbounded::<String>();
     let upgrade_status_sender = upgrade_status_sender.clone();
     let upgrade_status_sender_clone0 = upgrade_status_sender.clone();
@@ -399,6 +401,13 @@ fn apt_full_upgrade_from_socket(
         Runtime::new().unwrap().block_on(start_socket_server_no_log(
             upgrade_percent_sender,
             "/tmp/pika_apt_upgrade_percent.sock",
+        ));
+    });
+
+    thread::spawn(move || {
+        Runtime::new().unwrap().block_on(start_socket_server_no_log(
+            upgrade_speed_sender,
+            "/tmp/pika_apt_upgrade_speed.sock",
         ));
     });
 
@@ -456,8 +465,15 @@ fn apt_full_upgrade_from_socket(
         .height_request(128)
         .width_request(128)
         .build();
+    
+    let apt_speed_label = gtk::Label::builder()
+        .halign(Align::Center)
+        .margin_top(10)
+        .margin_bottom(10)
+        .build();
 
     apt_upgrade_dialog_child_box.append(&apt_upgrade_dialog_spinner);
+    apt_upgrade_dialog_child_box.append(&apt_speed_label);
     apt_upgrade_dialog_child_box.append(&apt_upgrade_dialog_progress_bar);
 
     let apt_upgrade_dialog = adw::MessageDialog::builder()
@@ -509,6 +525,18 @@ fn apt_full_upgrade_from_socket(
                         Err(_) => {}
                     },
                 }
+            }
+        }
+    ));
+
+    let upgrade_speed_server_context = MainContext::default();
+    // The main loop executes the asynchronous block
+    upgrade_speed_server_context.spawn_local(clone!(
+        #[weak]
+        apt_speed_label,
+        async move {
+            while let Ok(state) = upgrade_speed_receiver.recv().await {
+                apt_speed_label.set_label(&state);
             }
         }
     ));

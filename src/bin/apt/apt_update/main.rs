@@ -26,9 +26,11 @@ fn main() {
     let update_cache = new_cache!().unwrap();
     let percent_socket_path = "/tmp/pika_apt_update_percent.sock";
     let status_socket_path = "/tmp/pika_apt_update_status.sock";
+    let speed_socket_path = "/tmp/pika_apt_update_speed.sock";
     match update_cache.update(&mut AcquireProgress::new(AptUpdateProgressSocket::new(
         percent_socket_path,
         status_socket_path,
+        speed_socket_path,
         &hit_strfmt_trans_str,
         &fetch_strfmt_trans_str,
         &done_strfmt_trans_str,
