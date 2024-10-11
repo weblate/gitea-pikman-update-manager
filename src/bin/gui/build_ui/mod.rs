@@ -102,6 +102,8 @@ pub fn build_ui(app: &Application) {
     let update_interval_arc = Arc::new(Mutex::new(glib_settings.int("update-interval")));
     let internet_connected = Rc::new(RefCell::new(false));
 
+    let (thread_sleep_sender, thread_sleep_receiver) = std::sync::mpsc::channel::<()>();
+
     let (constant_loop_sender, constant_loop_receiver) = async_channel::unbounded();
     let constant_loop_sender_clone0 = constant_loop_sender.clone();
     let constant_loop_sender_clone1 = constant_loop_sender.clone();
@@ -216,22 +218,38 @@ pub fn build_ui(app: &Application) {
         }
     });
 
+    {
+    let automatically_check_for_updates_arc = automatically_check_for_updates_arc.clone();
+    let update_interval_arc = update_interval_arc.clone();
+
     // update interval loop
-    thread::spawn(move || loop {
-        let automatically_check_for_updates =
+    thread::spawn(move || {
+        loop {
+            let local_interval: i32;
+            let automatically_check_for_updates =
             automatically_check_for_updates_arc.load(std::sync::atomic::Ordering::Relaxed);
-        if automatically_check_for_updates {
-            match update_interval_arc.lock() {
-                Ok(update_interval) => {
-                    std::thread::sleep(std::time::Duration::from_millis(*update_interval as u64));
-                    constant_loop_sender_clone1
-                        .send_blocking(ConstantLoopMessage::RefreshRequest)
-                        .expect("The channel needs to be open.");
-                }
-                Err(_) => {}
+            if automatically_check_for_updates {
+                        let update_interval = match update_interval_arc.lock() {
+                            Ok(t) => t,
+                            Err(_) => {
+                                continue;
+                            }
+                        };
+                        local_interval = *update_interval;
+                        std::mem::drop(update_interval);
+                        //println!("Sleeping on auto update check: {}", local_interval);
+                        if let Ok(_) = thread_sleep_receiver.recv_timeout (std::time::Duration::from_millis(local_interval as u64)) {
+                            //println!("Sleeping on auto was interrupted was interrupted");
+                            continue;
+                        }
+                        //println!("Starting Refresh Request");
+                        constant_loop_sender_clone1
+                            .send_blocking(ConstantLoopMessage::RefreshRequest)
+                            .expect("The channel needs to be open.");
             }
         }
     });
+    }
 
     let window_banner = Banner::builder().revealed(false).build();
 
@@ -325,6 +343,9 @@ pub fn build_ui(app: &Application) {
     window_toolbar.add_top_bar(&window_headerbar);
     window_toolbar.add_top_bar(&window_banner);
 
+    let window_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    window_box.append(&window_content_page_split_view);
+
     // create the main Application window
     let window = ApplicationWindow::builder()
         // The text on the titlebar
@@ -338,9 +359,9 @@ pub fn build_ui(app: &Application) {
         .default_width(glib_settings.int("window-width"))
         .default_height(glib_settings.int("window-height"))
         //
-        .width_request(1000)
-        .height_request(700)
-        .content(&window_content_page_split_view)
+        .width_request(1140)
+        .height_request(780)
+        .content(&window_box)
         // Startup
         .startup_id(APP_ID)
         // build the window
@@ -354,13 +375,17 @@ pub fn build_ui(app: &Application) {
         window.maximize()
     }
 
-    window.connect_close_request(move |window| {
-        let size = window.default_size();
-        let _ = glib_settings.set_int("window-width", size.0);
-        let _ = glib_settings.set_int("window-height", size.1);
-        let _ = glib_settings.set_boolean("is-maximized", window.is_maximized());
-        glib::Propagation::Proceed
-    });
+    {
+        let glib_settings = glib_settings.clone();
+
+        window.connect_close_request(move |window| {
+            let size = window.default_size();
+            let _ = glib_settings.set_int("window-width", size.0);
+            let _ = glib_settings.set_int("window-height", size.1);
+            let _ = glib_settings.set_boolean("is-maximized", window.is_maximized());
+            glib::Propagation::Proceed
+        });
+    }
 
     let credits_button = gtk::Button::builder()
         .icon_name("dialog-information-symbolic")
@@ -497,7 +522,7 @@ pub fn build_ui(app: &Application) {
     window_adw_view_switcher_sidebar_box.append(&flatpak_update_page_toggle_button);
 
     window_adw_stack.add_titled(
-        &apt_manage_page(window.clone(), &apt_retry_signal_action),
+        &apt_manage_page(window.clone(), &glib_settings, &apt_retry_signal_action,&thread_sleep_sender, &automatically_check_for_updates_arc, &update_interval_arc),
         Some("apt_manage_page"),
         &t!("apt_manage_page_title"),
     );

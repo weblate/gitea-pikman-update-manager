@@ -7,6 +7,9 @@ use std::cell::Ref;
 use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 mod add_dialog;
 mod deb822_edit_dialog;
@@ -19,7 +22,11 @@ enum AptSourceConfig {
 
 pub fn apt_manage_page(
     window: adw::ApplicationWindow,
+    glib_settings: &gio::Settings,
     apt_retry_signal_action: &SimpleAction,
+    thread_sleep_sender: &std::sync::mpsc::Sender<()>,
+    automatically_check_for_updates_arc: &Arc<AtomicBool>,
+    update_interval_arc: &Arc<Mutex<i32>>,
 ) -> gtk::Box {
     let retry_signal_action = gio::SimpleAction::new("apt_manage_retry", None);
 
@@ -536,12 +543,115 @@ pub fn apt_manage_page(
 
     //
 
+    let retry_interval_box = gtk::Box::builder()
+        .orientation(Orientation::Horizontal)
+        .halign(Align::Start)
+        .valign(Align::Center)
+        .margin_start(10)
+        .margin_end(10)
+        .margin_bottom(10)
+        .build();
+
+    let retry_interval_labal = gtk::Label::builder()
+        .label(t!("retry_interval_labal_label"))
+        .margin_start(2)
+        .margin_end(5)
+        .halign(Align::Start)
+        .valign(Align::Center)
+        .build();
+
+    let retry_interval_switch = gtk::Switch::builder()
+        .active(glib_settings.boolean("check-for-updates"))
+        .margin_end(5)
+        .halign(Align::Start)
+        .valign(Align::Center)
+        .build();
+
+    let retry_interval_spinrow= adw::SpinRow::builder()
+        .title(t!("retry_interval_spinrow_title"))
+        .subtitle(t!("retry_interval_spinrow_title"))
+        .activatable(false)
+        .selectable(false)
+        .climb_rate(1.0)
+        .adjustment(&gtk::Adjustment::new((glib_settings.int("update-interval") as f64) / 3600000.0, 1.0, 24.0, 1.0, 0.0, 0.0))
+        .halign(Align::Start)
+        .valign(Align::Center)
+        .build();
+
+    retry_interval_spinrow.connect_value_notify(clone!(
+        #[strong]
+        glib_settings,
+        #[strong]
+        automatically_check_for_updates_arc,
+        #[strong]
+        update_interval_arc,
+        #[strong]
+        thread_sleep_sender,
+        move |spinrow| {
+            match glib_settings.set_int("update-interval", (spinrow.value() * 3600000.0) as i32) {
+                Ok(_) => {
+                    {
+                    automatically_check_for_updates_arc.store(glib_settings.boolean("check-for-updates"), std::sync::atomic::Ordering::Relaxed);
+                    let mut update_interval_arc_gaurd = loop{
+                        if let Ok(guard) = update_interval_arc.lock() {
+                            break guard;
+                        }
+                    };
+                    *update_interval_arc_gaurd = glib_settings.int("update-interval");
+                }
+                    thread_sleep_sender.send(()).unwrap();
+                }
+                Err(_) => {
+                    spinrow.set_value(glib_settings.int("update-interval") as f64 / 3600000.0);
+                }
+            }
+    }));
+
+    retry_interval_switch.connect_state_set(clone!(
+        #[strong]
+        glib_settings,
+        #[strong]
+        automatically_check_for_updates_arc,
+        #[strong]
+        update_interval_arc,
+        #[strong]
+        thread_sleep_sender,
+        move |switch, state| {
+            match glib_settings.set_boolean("check-for-updates", state) {
+                Ok(_) => {
+                    {
+                    automatically_check_for_updates_arc.store(glib_settings.boolean("check-for-updates"), std::sync::atomic::Ordering::Relaxed);
+                    let mut update_interval_arc_gaurd = loop{
+                        if let Ok(guard) = update_interval_arc.lock() {
+                            break guard;
+                        }
+                    };
+                    *update_interval_arc_gaurd = glib_settings.int("update-interval");
+                }
+                    thread_sleep_sender.send(()).unwrap();
+                }
+                Err(_) => {
+                    switch.set_active(!state);
+                }
+            }
+            glib::Propagation::Proceed
+        }
+    ));
+
+    retry_interval_spinrow.add_css_class("disable-outline");
+
     unofficial_sources_edit_box.append(&unofficial_source_add_button);
     unofficial_sources_edit_box.append(&unofficial_source_edit_button);
     unofficial_sources_edit_box.append(&unofficial_source_remove_button);
 
     unofficial_sources_box.append(&unofficial_sources_columnview_bin);
     unofficial_sources_box.append(&unofficial_sources_edit_box);
+
+    //
+    
+    retry_interval_box.append(&retry_interval_labal);
+    retry_interval_box.append(&retry_interval_switch);
+    retry_interval_box.append(&retry_interval_spinrow);
 
     //
 
@@ -555,6 +665,7 @@ pub fn apt_manage_page(
     main_box.append(&unofficial_sources_label0);
     main_box.append(&unofficial_sources_label1);
     main_box.append(&unofficial_sources_viewport);
+    main_box.append(&retry_interval_box);
 
     main_box
 }
