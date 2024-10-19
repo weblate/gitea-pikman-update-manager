@@ -1774,6 +1774,7 @@ dependencies = [
  "libadwaita",
  "libflatpak",
  "lock_api 0.4.12",
+ "os_pipe",
  "pretty-bytes",
  "regex",
  "reqwest",

@@ -20,7 +20,7 @@ Standards-Version: 3.9.5
 
 Package: pikman-update-manager
 Architecture: linux-any
-Pre-Depends: apt
+Pre-Depends: apt, libglib2.0-bin
 Depends: libadwaita-1-0,
          libgtk-4-1,
          coreutils,

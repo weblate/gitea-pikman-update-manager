@@ -450,15 +450,13 @@ pub fn build_ui(app: &Application) {
     let apt_update_view_stack_bin = Bin::builder().build();
 
     apt_retry_signal_action.connect_activate(clone!(
-        #[weak]
-        window,
         #[strong]
-        apt_retry_signal_action,
+        window,
         #[strong]
         flatpak_retry_signal_action,
         #[strong]
         apt_update_view_stack_bin,
-        #[weak]
+        #[strong]
         flatpak_ran_once,
         #[strong]
         update_sys_tray,
@@ -466,12 +464,12 @@ pub fn build_ui(app: &Application) {
         apt_update_count,
         #[strong]
         flatpak_update_count,
-        move |_, _| {
+        move |action, _| {
             apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(
-                window,
-                &apt_retry_signal_action,
+                window.clone(),
+                &action,
                 &flatpak_retry_signal_action,
-                flatpak_ran_once,
+                flatpak_ran_once.clone(),
                 &update_sys_tray,
                 &apt_update_count,
                 &flatpak_update_count,
@@ -483,7 +481,7 @@ pub fn build_ui(app: &Application) {
         window.clone(),
         &apt_retry_signal_action,
         &flatpak_retry_signal_action,
-        flatpak_ran_once,
+        flatpak_ran_once.clone(),
         &update_sys_tray,
         &apt_update_count,
         &flatpak_update_count,

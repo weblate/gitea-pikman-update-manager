@@ -22,7 +22,9 @@
 }
 
 .background-accent-bg {
-    background: @accent_bg_color;
+#    background: @accent_bg_color;
+    background: green;
+    animation:blink 1s linear infinite;
     border-radius: 10px;
     padding: 5px;
 }
@@ -68,4 +70,12 @@
 
 .disable-outline {
     outline: none;
+}
+
+@keyframes blink{
+    0%{opacity: 1;}
+    25%{opacity: 0.75;}
+    50%{opacity: 0.5;}
+    75%{opacity: 0.75;}
+    100%{opacity: 1;}
 }
