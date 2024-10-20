@@ -27,7 +27,6 @@ override_dh_auto_install:
 	cp -vf data/pikman-update-manager-autostart debian/pikman-update-manager/usr/bin/
 	cp -vf data/flatpak-installer debian/pikman-update-manager/usr/bin/
 	cp -vf data/software-properties-gtk debian/pikman-update-manager/usr/bin/
-#   cp -vf target/release/apt_update debian/pikman-update-manager/usr/lib/pika/pikman-update-manager/scripts/
     cp -vf data/apt_update debian/pikman-update-manager/usr/lib/pika/pikman-update-manager/scripts/
 	cp -vf target/release/apt_full_upgrade debian/pikman-update-manager/usr/lib/pika/pikman-update-manager/scripts/
 	cp -vf data/modify_repo.sh debian/pikman-update-manager/usr/lib/pika/pikman-update-manager/scripts/
