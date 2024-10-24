@@ -16,6 +16,41 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 
+fn get_gsettings_font() -> String {
+    let glib_settings = gio::Settings::new("org.gnome.desktop.interface");
+    let font = glib_settings.string("font-name").to_string();
+    let re = regex::Regex::new(r" [^ ]*$").unwrap();
+    re.replace(&font, "").to_string()
+}
+
+pub fn get_current_font() -> String {
+    let mut gtk_config_file = configparser::ini::Ini::new();
+    match std::fs::read_to_string(std::env::var_os("HOME").unwrap().to_string_lossy().to_string() + "/.config/gtk-4.0/settings.ini") {
+        Ok(t) => {
+            match gtk_config_file.read(t) {
+                Ok(_) => {
+                    match gtk_config_file.get("Settings", "gtk-font-name") {
+                        Some(s) => {
+                            let re = regex::Regex::new(r",[^,]*$").unwrap();
+                            return re.replace(&s, "").to_string();
+                        },
+                        None => {
+                            return get_gsettings_font();
+                        }
+                    }
+                }
+                Err(_) => {
+                    return get_gsettings_font();
+                }
+            }
+        }
+        Err(_) => {
+            return get_gsettings_font();
+        }
+    }
+    
+}
+
 #[derive(Debug)]
 struct PikmanTray {
     icon_name: Option<String>,

@@ -1,5 +1,6 @@
 mod process;
 
+use crate::build_ui::get_current_font;
 use crate::flatpak_ref_row::FlatpakRefRow;
 use adw::gio::SimpleAction;
 use adw::prelude::*;
@@ -205,19 +206,23 @@ pub fn flatpak_update_page(
 
     let flatpak_update_dialog_child_box = Box::builder().orientation(Orientation::Vertical).build();
 
-    let flatpak_update_dialog_progress_bar =
-        ProgressBar::builder().show_text(true).hexpand(true).build();
+    let flatpak_update_dialog_progress_bar = circularprogressbar_rs::CircularProgressBar::new();
+    flatpak_update_dialog_progress_bar.set_line_width(10.0);
+    flatpak_update_dialog_progress_bar.set_fill_radius(true);
+    flatpak_update_dialog_progress_bar.set_hexpand(true);
+    flatpak_update_dialog_progress_bar.set_vexpand(true);
+    flatpak_update_dialog_progress_bar.set_width_request(200);
+    flatpak_update_dialog_progress_bar.set_height_request(200);
+    #[allow(deprecated)]
+    flatpak_update_dialog_progress_bar.set_progress_fill_color(window.style_context().lookup_color("accent_bg_color").unwrap());
+    #[allow(deprecated)]
+    flatpak_update_dialog_progress_bar.set_radius_fill_color(window.style_context().lookup_color("headerbar_bg_color").unwrap());
+    #[warn(deprecated)]
+    flatpak_update_dialog_progress_bar.set_progress_font(get_current_font());
+    flatpak_update_dialog_progress_bar.set_center_text(t!("progress_bar_circle_center_text"));
+    flatpak_update_dialog_progress_bar.set_fraction_font_size(24);
+    flatpak_update_dialog_progress_bar.set_center_text_font_size(8);
 
-    let flatpak_update_dialog_spinner = Spinner::builder()
-        .hexpand(true)
-        .valign(Align::Start)
-        .halign(Align::Center)
-        .spinning(true)
-        .height_request(128)
-        .width_request(128)
-        .build();
-
-    flatpak_update_dialog_child_box.append(&flatpak_update_dialog_spinner);
     flatpak_update_dialog_child_box.append(&flatpak_update_dialog_progress_bar);
 
     let flatpak_update_dialog = adw::MessageDialog::builder()
@@ -344,7 +349,7 @@ pub fn flatpak_update_page(
         flatpak_update_dialog_progress_bar,
         async move {
             while let Ok(state) = appstream_sync_percent_receiver.recv().await {
-                flatpak_update_dialog_progress_bar.set_fraction(state as f64 / 100.0)
+                flatpak_update_dialog_progress_bar.set_fraction(state as f64 / 100.0);
             }
         }
     ));

@@ -167,5 +167,6 @@
   "apt_update_str_fail": "Download Failed: {DESC} {SHORT_DESC}",
   "retry_interval_labal_label": "Automatically Check for updates",
   "retry_interval_spinrow_title": "Automatic Check Interval",
-  "retry_interval_spinrow_subtitle": "In Hours"
+  "retry_interval_spinrow_subtitle": "In Hours",
+  "progress_bar_circle_center_text": "Percent %"
 } 

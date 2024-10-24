@@ -17,6 +17,8 @@ use std::rc::Rc;
 use std::thread;
 use tokio::runtime::Runtime;
 
+use crate::build_ui::get_current_font;
+
 struct AptChangesInfo {
     package_count_upgrade: u64,
     package_count_install: u64,
@@ -454,17 +456,22 @@ fn apt_full_upgrade_from_socket(
 
     let apt_upgrade_dialog_child_box = Box::builder().orientation(Orientation::Vertical).build();
 
-    let apt_upgrade_dialog_progress_bar =
-        ProgressBar::builder().show_text(true).hexpand(true).build();
-
-    let apt_upgrade_dialog_spinner = Spinner::builder()
-        .hexpand(true)
-        .valign(Align::Start)
-        .halign(Align::Center)
-        .spinning(true)
-        .height_request(128)
-        .width_request(128)
-        .build();
+    let apt_upgrade_dialog_progress_bar = circularprogressbar_rs::CircularProgressBar::new();
+    apt_upgrade_dialog_progress_bar.set_line_width(10.0);
+    apt_upgrade_dialog_progress_bar.set_fill_radius(true);
+    apt_upgrade_dialog_progress_bar.set_hexpand(true);
+    apt_upgrade_dialog_progress_bar.set_vexpand(true);
+    apt_upgrade_dialog_progress_bar.set_width_request(200);
+    apt_upgrade_dialog_progress_bar.set_height_request(200);
+    #[allow(deprecated)]
+    apt_upgrade_dialog_progress_bar.set_progress_fill_color(window.style_context().lookup_color("accent_bg_color").unwrap());
+    #[allow(deprecated)]
+    apt_upgrade_dialog_progress_bar.set_radius_fill_color(window.style_context().lookup_color("headerbar_bg_color").unwrap());
+    #[warn(deprecated)]
+    apt_upgrade_dialog_progress_bar.set_progress_font(get_current_font());
+    apt_upgrade_dialog_progress_bar.set_center_text(t!("progress_bar_circle_center_text"));
+    apt_upgrade_dialog_progress_bar.set_fraction_font_size(24);
+    apt_upgrade_dialog_progress_bar.set_center_text_font_size(8);
     
     let apt_speed_label = gtk::Label::builder()
         .halign(Align::Center)
@@ -472,9 +479,8 @@ fn apt_full_upgrade_from_socket(
         .margin_bottom(10)
         .build();
 
-    apt_upgrade_dialog_child_box.append(&apt_upgrade_dialog_spinner);
-    apt_upgrade_dialog_child_box.append(&apt_speed_label);
     apt_upgrade_dialog_child_box.append(&apt_upgrade_dialog_progress_bar);
+    apt_upgrade_dialog_child_box.append(&apt_speed_label);
 
     let apt_upgrade_dialog = adw::MessageDialog::builder()
         .transient_for(&window)
