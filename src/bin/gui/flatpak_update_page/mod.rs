@@ -172,7 +172,7 @@ pub fn flatpak_update_page(
         .sensitive(false)
         .build();
     packages_boxedlist.add_css_class("boxed-list");
-    packages_boxedlist.add_css_class("round-all-scroll");
+    packages_boxedlist.add_css_class("no-round-borders");
 
     let packages_viewport = ScrolledWindow::builder()
         .vexpand(true)
@@ -184,8 +184,9 @@ pub fn flatpak_update_page(
         .margin_start(15)
         .height_request(390)
         .child(&packages_boxedlist)
+        .overflow(Overflow::Hidden)
         .build();
-    packages_viewport.add_css_class("round-all-scroll");
+    packages_viewport.add_css_class("round-all-scroll-no-padding");
 
     let packages_no_viewport_page = adw::StatusPage::builder()
         .icon_name("emblem-default-symbolic")
@@ -395,6 +396,8 @@ pub fn flatpak_update_page(
         apt_update_count,
         #[strong]
         flatpak_update_count,
+        #[strong]
+        theme_changed_action,
         async move {
             while let Ok(state) = appstream_sync_status_receiver.recv().await {
                 match state.as_ref() {
@@ -406,6 +409,7 @@ pub fn flatpak_update_page(
                             &select_button,
                             &packages_viewport,
                             &packages_boxedlist,
+                            &theme_changed_action,
                             &system_refs_for_upgrade_vec,
                             &system_refs_for_upgrade_vec_all,
                             &user_refs_for_upgrade_vec,
@@ -424,6 +428,7 @@ pub fn flatpak_update_page(
                             &select_button,
                             &packages_viewport,
                             &packages_boxedlist,
+                            &theme_changed_action,
                             &system_refs_for_upgrade_vec,
                             &system_refs_for_upgrade_vec_all,
                             &user_refs_for_upgrade_vec,
@@ -540,6 +545,7 @@ fn get_flatpak_updates(
     select_button: &gtk::Button,
     packages_viewport: &gtk::ScrolledWindow,
     packages_boxedlist: &gtk::ListBox,
+    theme_changed_action: &gio::SimpleAction,
     system_refs_for_upgrade_vec: &Rc<RefCell<Vec<FlatpakRefRow>>>,
     system_refs_for_upgrade_vec_all: &Rc<RefCell<Vec<FlatpakRefRow>>>,
     user_refs_for_upgrade_vec: &Rc<RefCell<Vec<FlatpakRefRow>>>,
@@ -637,6 +643,8 @@ fn get_flatpak_updates(
             };
 
             let flatpak_row = FlatpakRefRow::new(&flatref_struct);
+
+            flatpak_row.set_theme_changed_action(theme_changed_action);
 
             system_refs_for_upgrade_vec
                 .borrow_mut()

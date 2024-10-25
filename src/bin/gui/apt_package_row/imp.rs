@@ -32,6 +32,8 @@ pub struct AptPackageRow {
     package_installed_size: RefCell<u64>,
     #[property(get, set)]
     package_marked: RefCell<bool>,
+    #[property(get, set)]
+    theme_changed_action: RefCell<Option<gio::SimpleAction>>,
 }
 // ANCHOR_END: custom_button
 
@@ -78,6 +80,27 @@ impl ObjectImpl for AptPackageRow {
 
         let expandable_box = Box::new(Orientation::Vertical, 0);
 
+        let temp_simple_action = gio::SimpleAction::new("theme_change2", None);
+
+        obj.connect_theme_changed_action_notify(clone!(
+            #[strong]
+            obj,
+            #[strong]
+            temp_simple_action,
+            move |_| {
+                match obj.theme_changed_action() {
+                    Some(a) => {
+                        a.connect_activate(clone!(
+                            #[strong]
+                            temp_simple_action,
+                            move |_, _| temp_simple_action.activate(None)
+                        ));
+                    }
+                    None => {}
+                }
+            }
+        ));
+
         obj.connect_package_name_notify(clone!(
             #[weak]
             prefix_box,
@@ -85,6 +108,8 @@ impl ObjectImpl for AptPackageRow {
             expandable_box,
             #[strong]
             obj,
+            #[strong]
+            temp_simple_action,
             move |_| {
                 remove_all_children_from_box(&prefix_box);
                 remove_all_children_from_box(&expandable_box);
@@ -110,6 +135,7 @@ impl ObjectImpl for AptPackageRow {
                 create_expandable_content(
                     &obj,
                     &expandable_box,
+                    &temp_simple_action,
                     package_description,
                     package_source_uri,
                     package_maintainer,
@@ -322,6 +348,7 @@ fn create_prefix_content(
 fn create_expandable_content(
     apt_package_row: &impl IsA<ExpanderRow>,
     expandable_box: &gtk::Box,
+    theme_changed_action: &gio::SimpleAction,
     package_description: String,
     package_source_uri: String,
     package_maintainer: String,
@@ -385,12 +412,15 @@ fn create_expandable_content(
         expandable_bin,
         #[strong]
         extra_info_page_button,
+        #[strong]
+        theme_changed_action,
         move |_| {
             if extra_info_page_button.is_active() {
                 expandable_bin.set_child(Some(&extra_info_stack_page(
                     &package_maintainer,
                     package_size,
                     package_installed_size,
+                    &theme_changed_action,
                 )));
             }
         }
@@ -482,6 +512,7 @@ fn extra_info_stack_page(
     package_maintainer: &str,
     package_size: u64,
     package_installed_size: u64,
+    theme_changed_action: &gio::SimpleAction,
 ) -> gtk::Box {
     let extra_info_badges_content_box = Box::builder()
         .hexpand(true)
@@ -497,6 +528,7 @@ fn extra_info_stack_page(
         &t!("extra_info_maintainer").to_string(),
         package_maintainer,
         "background-accent-bg",
+        &theme_changed_action,
         &extra_info_badges_size_group,
         &extra_info_badges_size_group0,
         &extra_info_badges_size_group1,
@@ -505,6 +537,7 @@ fn extra_info_stack_page(
         &t!("extra_info_download_size").to_string(),
         &convert(package_size),
         "background-accent-bg",
+        &theme_changed_action,
         &extra_info_badges_size_group,
         &extra_info_badges_size_group0,
         &extra_info_badges_size_group1,
@@ -513,6 +546,7 @@ fn extra_info_stack_page(
         &t!("extra_info_installed_size").to_string(),
         &convert(package_installed_size),
         "background-accent-bg",
+        &theme_changed_action,
         &extra_info_badges_size_group,
         &extra_info_badges_size_group0,
         &extra_info_badges_size_group1,
@@ -523,6 +557,7 @@ fn create_color_badge(
     label0_text: &str,
     label1_text: &str,
     css_style: &str,
+    theme_changed_action: &gio::SimpleAction,
     group_size: &SizeGroup,
     group_size0: &SizeGroup,
     group_size1: &SizeGroup,
@@ -558,6 +593,38 @@ fn create_color_badge(
     group_size1.add_widget(&label1);
 
     label1.add_css_class(css_style);
+
+    #[allow(deprecated)]
+    let color = label1
+        .style_context()
+        .lookup_color("accent_bg_color")
+        .unwrap();
+    if (color.red() * 0.299 + color.green() * 0.587 + color.blue() * 0.114) > 170.0 {
+        label1.remove_css_class("white-color-text");
+        label1.add_css_class("black-color-text");
+    } else {
+        label1.remove_css_class("black-color-text");
+        label1.add_css_class("white-color-text");
+    }
+
+    theme_changed_action.connect_activate(clone!(
+        #[strong]
+        label1,
+        move |_, _| {
+            #[allow(deprecated)]
+            let color = label1
+                .style_context()
+                .lookup_color("accent_bg_color")
+                .unwrap();
+            if (color.red() * 0.299 + color.green() * 0.587 + color.blue() * 0.114) > 170.0 {
+                label1.remove_css_class("white-color-text");
+                label1.add_css_class("black-color-text");
+            } else {
+                label1.remove_css_class("black-color-text");
+                label1.add_css_class("white-color-text");
+            }
+        }
+    ));
 
     badge_box.append(&label0);
     badge_box.append(&label_separator);

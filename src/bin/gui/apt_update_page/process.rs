@@ -209,6 +209,7 @@ fn apt_confirm_window(
         &t!("package_count_upgrade_badge_label"),
         &apt_changes_struct.package_count_upgrade.to_string(),
         "background-accent-bg",
+        &theme_changed_action,
         &apt_update_dialog_badges_size_group,
         &apt_update_dialog_badges_size_group0,
         &apt_update_dialog_badges_size_group1,
@@ -218,6 +219,7 @@ fn apt_confirm_window(
         &t!("package_count_install_badge_label"),
         &apt_changes_struct.package_count_install.to_string(),
         "background-accent-bg",
+        &theme_changed_action,
         &apt_update_dialog_badges_size_group,
         &apt_update_dialog_badges_size_group0,
         &apt_update_dialog_badges_size_group1,
@@ -227,6 +229,7 @@ fn apt_confirm_window(
         &t!("package_count_downgrade_badge_label"),
         &apt_changes_struct.package_count_downgrade.to_string(),
         "background-accent-bg",
+        &theme_changed_action,
         &apt_update_dialog_badges_size_group,
         &apt_update_dialog_badges_size_group0,
         &apt_update_dialog_badges_size_group1,
@@ -236,6 +239,7 @@ fn apt_confirm_window(
         &t!("package_count_remove_badge_label"),
         &apt_changes_struct.package_count_remove.to_string(),
         "background-accent-bg",
+        &theme_changed_action,
         &apt_update_dialog_badges_size_group,
         &apt_update_dialog_badges_size_group0,
         &apt_update_dialog_badges_size_group1,
@@ -245,6 +249,7 @@ fn apt_confirm_window(
         &t!("total_download_size_badge_label"),
         &convert(apt_changes_struct.total_download_size as f64),
         "background-accent-bg",
+        &theme_changed_action,
         &apt_update_dialog_badges_size_group,
         &apt_update_dialog_badges_size_group0,
         &apt_update_dialog_badges_size_group1,
@@ -254,6 +259,7 @@ fn apt_confirm_window(
         &t!("total_installed_size_badge_label"),
         &convert(apt_changes_struct.total_installed_size as f64),
         "background-accent-bg",
+        &theme_changed_action,
         &apt_update_dialog_badges_size_group,
         &apt_update_dialog_badges_size_group0,
         &apt_update_dialog_badges_size_group1,
@@ -661,6 +667,7 @@ fn create_color_badge(
     label0_text: &str,
     label1_text: &str,
     css_style: &str,
+    theme_changed_action: &SimpleAction,
     group_size: &SizeGroup,
     group_size0: &SizeGroup,
     group_size1: &SizeGroup,
@@ -696,6 +703,38 @@ fn create_color_badge(
     group_size1.add_widget(&label1);
 
     label1.add_css_class(css_style);
+
+    #[allow(deprecated)]
+    let color = label1
+        .style_context()
+        .lookup_color("accent_bg_color")
+        .unwrap();
+    if (color.red() * 0.299 + color.green() * 0.587 + color.blue() * 0.114) > 170.0 {
+        label1.remove_css_class("white-color-text");
+        label1.add_css_class("black-color-text");
+    } else {
+        label1.remove_css_class("black-color-text");
+        label1.add_css_class("white-color-text");
+    }
+
+    theme_changed_action.connect_activate(clone!(
+        #[strong]
+        label1,
+        move |_, _| {
+            #[allow(deprecated)]
+            let color = label1
+                .style_context()
+                .lookup_color("accent_bg_color")
+                .unwrap();
+            if (color.red() * 0.299 + color.green() * 0.587 + color.blue() * 0.114) > 170.0 {
+                label1.remove_css_class("white-color-text");
+                label1.add_css_class("black-color-text");
+            } else {
+                label1.remove_css_class("black-color-text");
+                label1.add_css_class("white-color-text");
+            }
+        }
+    ));
 
     badge_box.append(&label0);
     badge_box.append(&label_separator);

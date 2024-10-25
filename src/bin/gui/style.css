@@ -83,6 +83,14 @@
     color: @success_bg_color;
 }
 
+.black-color-text {
+    color: black;
+}
+
+.white-color-text {
+    color: white;
+}
+
 .size-20-bold-text {
     font-weight: 800;
     font-size: 20px;

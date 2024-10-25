@@ -190,7 +190,7 @@ pub fn apt_update_page(
         .sensitive(false)
         .build();
     packages_boxedlist.add_css_class("boxed-list");
-    packages_boxedlist.add_css_class("round-all-scroll");
+    packages_boxedlist.add_css_class("no-round-borders");
 
     let packages_viewport = ScrolledWindow::builder()
         .vexpand(true)
@@ -202,8 +202,9 @@ pub fn apt_update_page(
         .margin_start(15)
         .height_request(390)
         .child(&packages_boxedlist)
+        .overflow(Overflow::Hidden)
         .build();
-    packages_viewport.add_css_class("round-all-scroll");
+    packages_viewport.add_css_class("round-all-scroll-no-padding");
 
     let packages_no_viewport_page = adw::StatusPage::builder()
         .icon_name("emblem-default-symbolic")
@@ -571,11 +572,14 @@ pub fn apt_update_page(
         apt_update_count,
         #[strong]
         flatpak_update_count,
+        #[strong]
+        theme_changed_action,
         async move {
             while let Ok(state) = get_upgradable_receiver.recv().await {
                 viewport_bin.set_child(Some(&packages_viewport));
                 update_button.set_sensitive(true);
                 let apt_row = AptPackageRow::new(state.clone());
+                apt_row.set_theme_changed_action(&theme_changed_action);
                 apt_row.connect_closure(
                     "checkbutton-toggled",
                     false,

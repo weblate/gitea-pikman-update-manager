@@ -346,13 +346,7 @@ pub fn apt_manage_page(
 
     retry_signal_action.activate(None);
 
-    let unofficial_sources_box = Box::builder()
-        .orientation(Orientation::Vertical)
-        .margin_bottom(3)
-        .margin_top(3)
-        .margin_end(3)
-        .margin_start(3)
-        .build();
+    let unofficial_sources_box = Box::builder().orientation(Orientation::Vertical).build();
 
     let unofficial_sources_viewport = ScrolledWindow::builder()
         .vexpand(true)
@@ -363,9 +357,10 @@ pub fn apt_manage_page(
         .margin_end(15)
         .margin_start(15)
         .child(&unofficial_sources_box)
+        .overflow(Overflow::Hidden)
         .height_request(390)
         .build();
-    unofficial_sources_viewport.add_css_class("round-all-scroll");
+    unofficial_sources_viewport.add_css_class("round-all-scroll-no-padding");
 
     //
 

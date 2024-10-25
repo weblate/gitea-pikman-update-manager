@@ -432,7 +432,7 @@ pub fn build_ui(app: &Application) {
                 let theme_changed_action = theme_changed_action.clone();
                 glib::timeout_add_seconds_local(5, move || {
                     theme_changed_action.activate(None);
-                    glib::ControlFlow::Continue
+                    glib::ControlFlow::Break
                 });
             }
         ));
@@ -443,7 +443,7 @@ pub fn build_ui(app: &Application) {
                 let theme_changed_action = theme_changed_action.clone();
                 glib::timeout_add_seconds_local(5, move || {
                     theme_changed_action.activate(None);
-                    glib::ControlFlow::Continue
+                    glib::ControlFlow::Break
                 });
             }
         ));
@@ -462,7 +462,7 @@ pub fn build_ui(app: &Application) {
                     let gsettings_change_sender_clone0 = gsettings_change_sender_clone0.clone();
                     glib::timeout_add_seconds_local(5, move || {
                         gsettings_change_sender_clone0.send_blocking(()).unwrap();
-                        glib::ControlFlow::Continue
+                        glib::ControlFlow::Break
                     });
                 }
             ),
