@@ -16,39 +16,9 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 
-fn get_gsettings_font() -> String {
-    let glib_settings = gio::Settings::new("org.gnome.desktop.interface");
-    let font = glib_settings.string("font-name").to_string();
-    let re = regex::Regex::new(r" [^ ]*$").unwrap();
-    re.replace(&font, "").to_string()
-}
-
 pub fn get_current_font() -> String {
-    let mut gtk_config_file = configparser::ini::Ini::new();
-    match std::fs::read_to_string(std::env::var_os("HOME").unwrap().to_string_lossy().to_string() + "/.config/gtk-4.0/settings.ini") {
-        Ok(t) => {
-            match gtk_config_file.read(t) {
-                Ok(_) => {
-                    match gtk_config_file.get("Settings", "gtk-font-name") {
-                        Some(s) => {
-                            let re = regex::Regex::new(r",[^,]*$").unwrap();
-                            return re.replace(&s, "").to_string();
-                        },
-                        None => {
-                            return get_gsettings_font();
-                        }
-                    }
-                }
-                Err(_) => {
-                    return get_gsettings_font();
-                }
-            }
-        }
-        Err(_) => {
-            return get_gsettings_font();
-        }
-    }
-    
+    let settings = gtk::Settings::default().unwrap();
+    settings.gtk_font_name().unwrap().to_string()
 }
 
 #[derive(Debug)]
@@ -143,6 +113,9 @@ pub fn build_ui(app: &Application) {
     let constant_loop_sender_clone0 = constant_loop_sender.clone();
     let constant_loop_sender_clone1 = constant_loop_sender.clone();
 
+    let (gsettings_change_sender, gsettings_change_receiver) = async_channel::unbounded();
+    let gsettings_change_sender_clone0 = gsettings_change_sender.clone();
+
     let refresh_button = gtk::Button::builder()
         .icon_name("view-refresh-symbolic")
         .tooltip_text(t!("refresh_button_tooltip_text"))
@@ -154,6 +127,7 @@ pub fn build_ui(app: &Application) {
     let flatpak_update_count = Rc::new(RefCell::new(0));
 
     let update_sys_tray = gio::SimpleAction::new("sys_tray", Some(glib::VariantTy::ARRAY));
+    let theme_changed_action = gio::SimpleAction::new("theme_changed", None);
 
     let (tray_service_sender, tray_service_receiver) = async_channel::unbounded();
     let tray_service_sender = tray_service_sender.clone();
@@ -254,36 +228,38 @@ pub fn build_ui(app: &Application) {
     });
 
     {
-    let automatically_check_for_updates_arc = automatically_check_for_updates_arc.clone();
-    let update_interval_arc = update_interval_arc.clone();
+        let automatically_check_for_updates_arc = automatically_check_for_updates_arc.clone();
+        let update_interval_arc = update_interval_arc.clone();
 
-    // update interval loop
-    thread::spawn(move || {
-        loop {
-            let local_interval: i32;
-            let automatically_check_for_updates =
-            automatically_check_for_updates_arc.load(std::sync::atomic::Ordering::Relaxed);
-            if automatically_check_for_updates {
-                        let update_interval = match update_interval_arc.lock() {
-                            Ok(t) => t,
-                            Err(_) => {
-                                continue;
-                            }
-                        };
-                        local_interval = *update_interval;
-                        std::mem::drop(update_interval);
-                        //println!("Sleeping on auto update check: {}", local_interval);
-                        if let Ok(_) = thread_sleep_receiver.recv_timeout (std::time::Duration::from_millis(local_interval as u64)) {
-                            //println!("Sleeping on auto was interrupted was interrupted");
+        // update interval loop
+        thread::spawn(move || {
+            loop {
+                let local_interval: i32;
+                let automatically_check_for_updates =
+                    automatically_check_for_updates_arc.load(std::sync::atomic::Ordering::Relaxed);
+                if automatically_check_for_updates {
+                    let update_interval = match update_interval_arc.lock() {
+                        Ok(t) => t,
+                        Err(_) => {
                             continue;
                         }
-                        //println!("Starting Refresh Request");
-                        constant_loop_sender_clone1
-                            .send_blocking(ConstantLoopMessage::RefreshRequest)
-                            .expect("The channel needs to be open.");
+                    };
+                    local_interval = *update_interval;
+                    std::mem::drop(update_interval);
+                    //println!("Sleeping on auto update check: {}", local_interval);
+                    if let Ok(_) = thread_sleep_receiver
+                        .recv_timeout(std::time::Duration::from_millis(local_interval as u64))
+                    {
+                        //println!("Sleeping on auto was interrupted was interrupted");
+                        continue;
+                    }
+                    //println!("Starting Refresh Request");
+                    constant_loop_sender_clone1
+                        .send_blocking(ConstantLoopMessage::RefreshRequest)
+                        .expect("The channel needs to be open.");
+                }
             }
-        }
-    });
+        });
     }
 
     let window_banner = Banner::builder().revealed(false).build();
@@ -445,6 +421,66 @@ pub fn build_ui(app: &Application) {
 
     //window.present();
 
+    // Theme update actions
+    {
+        let setting = gtk::Settings::default().unwrap();
+
+        setting.connect_gtk_application_prefer_dark_theme_notify(clone!(
+            #[strong]
+            theme_changed_action,
+            move |_| {
+                let theme_changed_action = theme_changed_action.clone();
+                glib::timeout_add_seconds_local(5, move || {
+                    theme_changed_action.activate(None);
+                    glib::ControlFlow::Continue
+                });
+            }
+        ));
+        setting.connect_gtk_font_name_notify(clone!(
+            #[strong]
+            theme_changed_action,
+            move |_| {
+                let theme_changed_action = theme_changed_action.clone();
+                glib::timeout_add_seconds_local(5, move || {
+                    theme_changed_action.activate(None);
+                    glib::ControlFlow::Continue
+                });
+            }
+        ));
+    }
+
+    thread::spawn(move || {
+        let context = glib::MainContext::default();
+        let main_loop = glib::MainLoop::new(Some(&context), false);
+        let gsettings = gtk::gio::Settings::new("org.gnome.desktop.interface");
+        gsettings.connect_changed(
+            Some("accent-color"),
+            clone!(
+                #[strong]
+                gsettings_change_sender_clone0,
+                move |_, _| {
+                    let gsettings_change_sender_clone0 = gsettings_change_sender_clone0.clone();
+                    glib::timeout_add_seconds_local(5, move || {
+                        gsettings_change_sender_clone0.send_blocking(()).unwrap();
+                        glib::ControlFlow::Continue
+                    });
+                }
+            ),
+        );
+        main_loop.run()
+    });
+
+    let gsettings_changed_context = MainContext::default();
+    // The main loop executes the asynchronous block
+    gsettings_changed_context.spawn_local(clone!(
+        #[strong]
+        theme_changed_action,
+        async move {
+            while let Ok(()) = gsettings_change_receiver.recv().await {
+                theme_changed_action.activate(None);
+            }
+        }
+    ));
     // Flatpak Update Page
 
     let flatpak_retry_signal_action = gio::SimpleAction::new("retry", None);
@@ -464,11 +500,14 @@ pub fn build_ui(app: &Application) {
         apt_update_count,
         #[strong]
         flatpak_update_count,
+        #[strong]
+        theme_changed_action,
         move |_, _| {
             flatpak_update_view_stack_bin.set_child(Some(
                 &flatpak_update_page::flatpak_update_page(
                     window,
                     &flatpak_retry_signal_action,
+                    &theme_changed_action,
                     &update_sys_tray,
                     &apt_update_count,
                     &flatpak_update_count,
@@ -499,11 +538,14 @@ pub fn build_ui(app: &Application) {
         apt_update_count,
         #[strong]
         flatpak_update_count,
+        #[strong]
+        theme_changed_action,
         move |action, _| {
             apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(
                 window.clone(),
                 &action,
                 &flatpak_retry_signal_action,
+                &theme_changed_action,
                 flatpak_ran_once.clone(),
                 &update_sys_tray,
                 &apt_update_count,
@@ -516,6 +558,7 @@ pub fn build_ui(app: &Application) {
         window.clone(),
         &apt_retry_signal_action,
         &flatpak_retry_signal_action,
+        &theme_changed_action,
         flatpak_ran_once.clone(),
         &update_sys_tray,
         &apt_update_count,
@@ -555,7 +598,14 @@ pub fn build_ui(app: &Application) {
     window_adw_view_switcher_sidebar_box.append(&flatpak_update_page_toggle_button);
 
     window_adw_stack.add_titled(
-        &apt_manage_page(window.clone(), &glib_settings, &apt_retry_signal_action,&thread_sleep_sender, &automatically_check_for_updates_arc, &update_interval_arc),
+        &apt_manage_page(
+            window.clone(),
+            &glib_settings,
+            &apt_retry_signal_action,
+            &thread_sleep_sender,
+            &automatically_check_for_updates_arc,
+            &update_interval_arc,
+        ),
         Some("apt_manage_page"),
         &t!("apt_manage_page_title"),
     );

@@ -28,6 +28,7 @@ pub struct FlatpakRefStruct {
 pub fn flatpak_update_page(
     window: adw::ApplicationWindow,
     retry_signal_action: &SimpleAction,
+    theme_changed_action: &SimpleAction,
     update_sys_tray: &SimpleAction,
     apt_update_count: &Rc<RefCell<i32>>,
     flatpak_update_count: &Rc<RefCell<i32>>,
@@ -214,9 +215,19 @@ pub fn flatpak_update_page(
     flatpak_update_dialog_progress_bar.set_width_request(200);
     flatpak_update_dialog_progress_bar.set_height_request(200);
     #[allow(deprecated)]
-    flatpak_update_dialog_progress_bar.set_progress_fill_color(window.style_context().lookup_color("accent_bg_color").unwrap());
+    flatpak_update_dialog_progress_bar.set_progress_fill_color(
+        window
+            .style_context()
+            .lookup_color("accent_bg_color")
+            .unwrap(),
+    );
     #[allow(deprecated)]
-    flatpak_update_dialog_progress_bar.set_radius_fill_color(window.style_context().lookup_color("headerbar_bg_color").unwrap());
+    flatpak_update_dialog_progress_bar.set_radius_fill_color(
+        window
+            .style_context()
+            .lookup_color("headerbar_bg_color")
+            .unwrap(),
+    );
     #[warn(deprecated)]
     flatpak_update_dialog_progress_bar.set_progress_font(get_current_font());
     flatpak_update_dialog_progress_bar.set_center_text(t!("progress_bar_circle_center_text"));
@@ -324,6 +335,8 @@ pub fn flatpak_update_page(
         #[weak]
         retry_signal_action,
         #[strong]
+        theme_changed_action,
+        #[strong]
         system_refs_for_upgrade_vec_all_clone0,
         #[strong]
         user_refs_for_upgrade_vec_all_clone0,
@@ -335,6 +348,7 @@ pub fn flatpak_update_page(
                 &user_refs_for_upgrade_vec_all_clone0.borrow(),
                 window,
                 &retry_signal_action,
+                &theme_changed_action,
             )
         }
     ));

@@ -162,7 +162,8 @@ impl<'a> DynAcquireProgress for AptUpdateProgressSocket<'a> {
         let progress_percent: f32 =
             (status.current_bytes() as f32 * 100.0) / status.total_bytes() as f32;
         let speed = if self.pulse_interval != 0 {
-            (status.current_bytes() as f64 - self.last_pulse_bytes as f64) / (self.pulse_interval as f64 / 1000000.0)
+            (status.current_bytes() as f64 - self.last_pulse_bytes as f64)
+                / (self.pulse_interval as f64 / 1000000.0)
         } else {
             status.current_bytes() as f64 - self.last_pulse_bytes as f64
         };

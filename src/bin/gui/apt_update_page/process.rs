@@ -63,6 +63,7 @@ pub fn apt_process_update(
     excluded_updates_vec: &Vec<String>,
     window: adw::ApplicationWindow,
     retry_signal_action: &SimpleAction,
+    theme_changed_action: &SimpleAction,
 ) {
     let excluded_updates_alert_dialog = adw::MessageDialog::builder()
         .transient_for(&window)
@@ -97,7 +98,14 @@ pub fn apt_process_update(
         retry_signal_action,
         #[strong]
         excluded_updates_vec,
-        move |_, _| apt_confirm_window(&excluded_updates_vec, window, &retry_signal_action)
+        #[strong]
+        theme_changed_action,
+        move |_, _| apt_confirm_window(
+            &excluded_updates_vec,
+            window,
+            &retry_signal_action,
+            &theme_changed_action
+        )
     ));
 
     if excluded_updates_vec.is_empty() {
@@ -115,6 +123,7 @@ fn apt_confirm_window(
     excluded_updates_vec: &Vec<String>,
     window: adw::ApplicationWindow,
     retry_signal_action: &SimpleAction,
+    theme_changed_action: &SimpleAction,
 ) {
     let to_be_removed_packages_vec: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
     // Emulate Apt Full Upgrade to get transaction info
@@ -306,13 +315,20 @@ fn apt_confirm_window(
         retry_signal_action,
         #[strong]
         apt_confirm_dialog,
+        #[strong]
+        theme_changed_action,
         move |_, _| {
             let retry_signal_action0 = retry_signal_action.clone();
+            let theme_changed_action0 = theme_changed_action.clone();
             apt_confirm_dialog
                 .clone()
                 .choose(None::<&gio::Cancellable>, move |choice| {
                     if choice == "apt_confirm_dialog_confirm" {
-                        apt_full_upgrade_from_socket(window, &retry_signal_action0);
+                        apt_full_upgrade_from_socket(
+                            window,
+                            &retry_signal_action0,
+                            &theme_changed_action0,
+                        );
                     }
                 });
         }
@@ -384,6 +400,7 @@ fn apt_confirm_window(
 fn apt_full_upgrade_from_socket(
     window: adw::ApplicationWindow,
     retry_signal_action: &SimpleAction,
+    theme_changed_action: &SimpleAction,
 ) {
     let (upgrade_percent_sender, upgrade_percent_receiver) = async_channel::unbounded::<String>();
     let upgrade_percent_sender = upgrade_percent_sender.clone();
@@ -464,15 +481,49 @@ fn apt_full_upgrade_from_socket(
     apt_upgrade_dialog_progress_bar.set_width_request(200);
     apt_upgrade_dialog_progress_bar.set_height_request(200);
     #[allow(deprecated)]
-    apt_upgrade_dialog_progress_bar.set_progress_fill_color(window.style_context().lookup_color("accent_bg_color").unwrap());
+    apt_upgrade_dialog_progress_bar.set_progress_fill_color(
+        window
+            .style_context()
+            .lookup_color("accent_bg_color")
+            .unwrap(),
+    );
     #[allow(deprecated)]
-    apt_upgrade_dialog_progress_bar.set_radius_fill_color(window.style_context().lookup_color("headerbar_bg_color").unwrap());
+    apt_upgrade_dialog_progress_bar.set_radius_fill_color(
+        window
+            .style_context()
+            .lookup_color("headerbar_bg_color")
+            .unwrap(),
+    );
     #[warn(deprecated)]
     apt_upgrade_dialog_progress_bar.set_progress_font(get_current_font());
     apt_upgrade_dialog_progress_bar.set_center_text(t!("progress_bar_circle_center_text"));
     apt_upgrade_dialog_progress_bar.set_fraction_font_size(24);
     apt_upgrade_dialog_progress_bar.set_center_text_font_size(8);
-    
+    theme_changed_action.connect_activate(clone!(
+        #[strong]
+        window,
+        #[strong]
+        apt_upgrade_dialog_progress_bar,
+        move |_, _| {
+            #[allow(deprecated)]
+            apt_upgrade_dialog_progress_bar.set_progress_fill_color(
+                window
+                    .style_context()
+                    .lookup_color("accent_bg_color")
+                    .unwrap(),
+            );
+            #[allow(deprecated)]
+            apt_upgrade_dialog_progress_bar.set_radius_fill_color(
+                window
+                    .style_context()
+                    .lookup_color("headerbar_bg_color")
+                    .unwrap(),
+            );
+            #[warn(deprecated)]
+            apt_upgrade_dialog_progress_bar.set_progress_font(get_current_font());
+        }
+    ));
+
     let apt_speed_label = gtk::Label::builder()
         .halign(Align::Center)
         .margin_top(10)

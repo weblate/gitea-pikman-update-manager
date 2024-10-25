@@ -20,17 +20,20 @@ use duct::cmd;
 
 enum AddonChannelMsg {
     LogLoopLine(String),
-    LogLoopStatus(bool)
+    LogLoopStatus(bool),
 }
 
 fn run_addon_command(
     log_loop_sender: async_channel::Sender<AddonChannelMsg>,
 ) -> Result<(), std::boxed::Box<dyn std::error::Error + Send + Sync>> {
     let (pipe_reader, pipe_writer) = os_pipe::pipe()?;
-    let child = cmd!("pkexec", "/usr/lib/pika/pikman-update-manager/scripts/apt_update")
-        .stderr_to_stdout()
-        .stdout_file(pipe_writer)
-        .start()?;
+    let child = cmd!(
+        "pkexec",
+        "/usr/lib/pika/pikman-update-manager/scripts/apt_update"
+    )
+    .stderr_to_stdout()
+    .stdout_file(pipe_writer)
+    .start()?;
     for line in BufReader::new(pipe_reader).lines() {
         let line_clone = line?;
         log_loop_sender
@@ -60,6 +63,7 @@ pub fn apt_update_page(
     window: adw::ApplicationWindow,
     retry_signal_action: &SimpleAction,
     flatpak_retry_signal_action: &SimpleAction,
+    theme_changed_action: &SimpleAction,
     flatpak_ran_once: Rc<RefCell<bool>>,
     update_sys_tray: &SimpleAction,
     apt_update_count: &Rc<RefCell<i32>>,
@@ -143,22 +147,26 @@ pub fn apt_update_page(
     // TEMP APT FIX
     let (log_loop_sender, log_loop_receiver) = async_channel::unbounded();
     let log_loop_sender: async_channel::Sender<AddonChannelMsg> = log_loop_sender.clone();
-    
+
     let log_loop_sender_clone0 = log_loop_sender.clone();
     let log_loop_sender_clone1 = log_loop_sender.clone();
 
     std::thread::spawn(move || {
         let command = run_addon_command(log_loop_sender_clone0);
-            match command {
-                Ok(_) => {
-                    println!("Status: Addon Command Successful");
-                    log_loop_sender_clone1.send_blocking(AddonChannelMsg::LogLoopStatus(true)).expect("The channel needs to be open.");
-                }
-                Err(_) => {
-                    println!("Status: Addon Command Failed");
-                    log_loop_sender_clone1.send_blocking(AddonChannelMsg::LogLoopStatus(false)).expect("The channel needs to be open.");
-                }
+        match command {
+            Ok(_) => {
+                println!("Status: Addon Command Successful");
+                log_loop_sender_clone1
+                    .send_blocking(AddonChannelMsg::LogLoopStatus(true))
+                    .expect("The channel needs to be open.");
             }
+            Err(_) => {
+                println!("Status: Addon Command Failed");
+                log_loop_sender_clone1
+                    .send_blocking(AddonChannelMsg::LogLoopStatus(false))
+                    .expect("The channel needs to be open.");
+            }
+        }
     });
     // End of TEMP APT FIX
 
@@ -252,7 +260,7 @@ pub fn apt_update_page(
         .margin_top(10)
         .margin_bottom(10)
         .build();
-    
+
     apt_update_dialog_child_box.append(&apt_update_dialog_spinner);
     apt_update_dialog_child_box.append(&apt_speed_label);
     apt_update_dialog_child_box.append(&apt_update_dialog_progress_bar);
@@ -359,11 +367,14 @@ pub fn apt_update_page(
         retry_signal_action,
         #[strong]
         excluded_updates_vec,
+        #[strong]
+        theme_changed_action,
         move |_| {
             process::apt_process_update(
                 &excluded_updates_vec.borrow(),
                 window,
                 &retry_signal_action,
+                &theme_changed_action,
             );
         }
     ));
@@ -482,17 +493,22 @@ pub fn apt_update_page(
                         match state {
                             true => {
                                 get_apt_upgrades(&get_upgradable_sender);
-                                log_terminal_buffer.delete(&mut log_terminal_buffer.start_iter(), &mut log_terminal_buffer.end_iter());
+                                log_terminal_buffer.delete(
+                                    &mut log_terminal_buffer.start_iter(),
+                                    &mut log_terminal_buffer.end_iter(),
+                                );
                                 apt_update_dialog.close();
                                 let mut flatpak_ran_once_borrow = flatpak_ran_once.borrow_mut();
                                 if *flatpak_ran_once_borrow != true {
                                     flatpak_retry_signal_action.activate(None);
                                     *flatpak_ran_once_borrow = true;
                                 }
-                                update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(&[
-                                    *apt_update_count.borrow(),
-                                    *flatpak_update_count.borrow(),
-                                ])));
+                                update_sys_tray.activate(Some(
+                                    &glib::Variant::array_from_fixed_array(&[
+                                        *apt_update_count.borrow(),
+                                        *flatpak_update_count.borrow(),
+                                    ]),
+                                ));
                             }
                             false => {
                                 get_apt_upgrades(&get_upgradable_sender);
@@ -504,25 +520,31 @@ pub fn apt_update_page(
                                         .halign(Align::Center)
                                         .build(),
                                 ));
+                                apt_update_dialog.set_title(Some(
+                                    &t!("apt_update_dialog_status_failed").to_string(),
+                                ));
                                 apt_update_dialog
-                                    .set_title(Some(&t!("apt_update_dialog_status_failed").to_string()));
-                                apt_update_dialog.set_response_enabled("apt_update_dialog_retry", true);
-                                apt_update_dialog.set_response_enabled("apt_update_dialog_ignore", true);
+                                    .set_response_enabled("apt_update_dialog_retry", true);
+                                apt_update_dialog
+                                    .set_response_enabled("apt_update_dialog_ignore", true);
                                 let mut flatpak_ran_once_borrow = flatpak_ran_once.borrow_mut();
                                 if *flatpak_ran_once_borrow != true {
                                     flatpak_retry_signal_action.activate(None);
                                     *flatpak_ran_once_borrow = true;
                                 }
-                                update_sys_tray.activate(Some(&glib::Variant::array_from_fixed_array(&[
-                                    *apt_update_count.borrow(),
-                                    *flatpak_update_count.borrow(),
-                                ])));
+                                update_sys_tray.activate(Some(
+                                    &glib::Variant::array_from_fixed_array(&[
+                                        *apt_update_count.borrow(),
+                                        *flatpak_update_count.borrow(),
+                                    ]),
+                                ));
                             }
                         }
                     }
-                    AddonChannelMsg::LogLoopLine(state) => {
-                        log_terminal_buffer.insert(&mut log_terminal_buffer.end_iter(), &("\n".to_string() + &state))
-                    }
+                    AddonChannelMsg::LogLoopLine(state) => log_terminal_buffer.insert(
+                        &mut log_terminal_buffer.end_iter(),
+                        &("\n".to_string() + &state),
+                    ),
                 }
             }
         }

@@ -567,13 +567,20 @@ pub fn apt_manage_page(
         .valign(Align::Center)
         .build();
 
-    let retry_interval_spinrow= adw::SpinRow::builder()
+    let retry_interval_spinrow = adw::SpinRow::builder()
         .title(t!("retry_interval_spinrow_title"))
         .subtitle(t!("retry_interval_spinrow_title"))
         .activatable(false)
         .selectable(false)
         .climb_rate(1.0)
-        .adjustment(&gtk::Adjustment::new((glib_settings.int("update-interval") as f64) / 3600000.0, 1.0, 24.0, 1.0, 0.0, 0.0))
+        .adjustment(&gtk::Adjustment::new(
+            (glib_settings.int("update-interval") as f64) / 3600000.0,
+            1.0,
+            24.0,
+            1.0,
+            0.0,
+            0.0,
+        ))
         .halign(Align::Start)
         .valign(Align::Center)
         .build();
@@ -591,21 +598,25 @@ pub fn apt_manage_page(
             match glib_settings.set_int("update-interval", (spinrow.value() * 3600000.0) as i32) {
                 Ok(_) => {
                     {
-                    automatically_check_for_updates_arc.store(glib_settings.boolean("check-for-updates"), std::sync::atomic::Ordering::Relaxed);
-                    let mut update_interval_arc_gaurd = loop{
-                        if let Ok(guard) = update_interval_arc.lock() {
-                            break guard;
-                        }
-                    };
-                    *update_interval_arc_gaurd = glib_settings.int("update-interval");
-                }
+                        automatically_check_for_updates_arc.store(
+                            glib_settings.boolean("check-for-updates"),
+                            std::sync::atomic::Ordering::Relaxed,
+                        );
+                        let mut update_interval_arc_gaurd = loop {
+                            if let Ok(guard) = update_interval_arc.lock() {
+                                break guard;
+                            }
+                        };
+                        *update_interval_arc_gaurd = glib_settings.int("update-interval");
+                    }
                     thread_sleep_sender.send(()).unwrap();
                 }
                 Err(_) => {
                     spinrow.set_value(glib_settings.int("update-interval") as f64 / 3600000.0);
                 }
             }
-    }));
+        }
+    ));
 
     retry_interval_switch.connect_state_set(clone!(
         #[strong]
@@ -620,14 +631,17 @@ pub fn apt_manage_page(
             match glib_settings.set_boolean("check-for-updates", state) {
                 Ok(_) => {
                     {
-                    automatically_check_for_updates_arc.store(glib_settings.boolean("check-for-updates"), std::sync::atomic::Ordering::Relaxed);
-                    let mut update_interval_arc_gaurd = loop{
-                        if let Ok(guard) = update_interval_arc.lock() {
-                            break guard;
-                        }
-                    };
-                    *update_interval_arc_gaurd = glib_settings.int("update-interval");
-                }
+                        automatically_check_for_updates_arc.store(
+                            glib_settings.boolean("check-for-updates"),
+                            std::sync::atomic::Ordering::Relaxed,
+                        );
+                        let mut update_interval_arc_gaurd = loop {
+                            if let Ok(guard) = update_interval_arc.lock() {
+                                break guard;
+                            }
+                        };
+                        *update_interval_arc_gaurd = glib_settings.int("update-interval");
+                    }
                     thread_sleep_sender.send(()).unwrap();
                 }
                 Err(_) => {
@@ -648,7 +662,7 @@ pub fn apt_manage_page(
     unofficial_sources_box.append(&unofficial_sources_edit_box);
 
     //
-    
+
     retry_interval_box.append(&retry_interval_labal);
     retry_interval_box.append(&retry_interval_switch);
     retry_interval_box.append(&retry_interval_spinrow);

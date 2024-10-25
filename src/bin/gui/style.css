@@ -21,10 +21,30 @@
     padding-bottom: 3px;
 }
 
+.round-all-scroll-no-padding {
+    border-top-right-radius: 15px;
+    border-top-left-radius: 15px;
+    border-bottom-right-radius: 15px;
+    border-bottom-left-radius: 15px;
+    padding-top: 0px;
+    padding-right: 0px;
+    padding-left: 0px;
+    padding-bottom: 0px;
+}
+
+.no-round-borders {
+    border-top-right-radius: 0px;
+    border-top-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+    border-bottom-left-radius: 0px;
+    padding-top: 0px;
+    padding-right: 0px;
+    padding-left: 0px;
+    padding-bottom: 0px;
+}
+
 .background-accent-bg {
-#    background: @accent_bg_color;
-    background: green;
-    animation:blink 1s linear infinite;
+    background: @accent_bg_color;
     border-radius: 10px;
     padding: 5px;
 }
@@ -70,12 +90,4 @@
 
 .disable-outline {
     outline: none;
-}
-
-@keyframes blink{
-    0%{opacity: 1;}
-    25%{opacity: 0.75;}
-    50%{opacity: 0.5;}
-    75%{opacity: 0.75;}
-    100%{opacity: 1;}
 }

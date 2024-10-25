@@ -51,6 +51,7 @@ pub fn flatpak_process_update(
     user_refs_for_upgrade_vec_all: &Vec<FlatpakRefRow>,
     window: adw::ApplicationWindow,
     retry_signal_action: &SimpleAction,
+    theme_changed_action: &SimpleAction,
 ) {
     // Emulate Flatpak Full Upgrade to get transaction info
     let mut flatpak_changes_struct = FlatpakChangesInfo {
@@ -207,6 +208,7 @@ pub fn flatpak_process_update(
     flatpak_confirm_dialog.set_close_response("flatpak_confirm_dialog_cancel");
 
     let retry_signal_action0 = retry_signal_action.clone();
+    let theme_changed_action0 = theme_changed_action.clone();
     flatpak_confirm_dialog
         .clone()
         .choose(None::<&gio::Cancellable>, move |choice| {
@@ -216,6 +218,7 @@ pub fn flatpak_process_update(
                     user_refs_for_upgrade_vec,
                     window,
                     &retry_signal_action0,
+                    &theme_changed_action0,
                 );
             }
         });
@@ -226,6 +229,7 @@ fn flatpak_run_transactions(
     user_refs_for_upgrade_vec: Vec<String>,
     window: adw::ApplicationWindow,
     retry_signal_action: &SimpleAction,
+    theme_changed_action: &SimpleAction,
 ) {
     let (transaction_percent_sender, transaction_percent_receiver) =
         async_channel::unbounded::<u32>();
@@ -363,7 +367,8 @@ fn flatpak_run_transactions(
     let flatpak_transaction_dialog_child_box =
         Box::builder().orientation(Orientation::Vertical).build();
 
-    let flatpak_transaction_dialog_progress_bar = circularprogressbar_rs::CircularProgressBar::new();
+    let flatpak_transaction_dialog_progress_bar =
+        circularprogressbar_rs::CircularProgressBar::new();
     flatpak_transaction_dialog_progress_bar.set_line_width(10.0);
     flatpak_transaction_dialog_progress_bar.set_fill_radius(true);
     flatpak_transaction_dialog_progress_bar.set_hexpand(true);
@@ -371,14 +376,48 @@ fn flatpak_run_transactions(
     flatpak_transaction_dialog_progress_bar.set_width_request(200);
     flatpak_transaction_dialog_progress_bar.set_height_request(200);
     #[allow(deprecated)]
-    flatpak_transaction_dialog_progress_bar.set_progress_fill_color(window.style_context().lookup_color("accent_bg_color").unwrap());
+    flatpak_transaction_dialog_progress_bar.set_progress_fill_color(
+        window
+            .style_context()
+            .lookup_color("accent_bg_color")
+            .unwrap(),
+    );
     #[allow(deprecated)]
-    flatpak_transaction_dialog_progress_bar.set_radius_fill_color(window.style_context().lookup_color("headerbar_bg_color").unwrap());
+    flatpak_transaction_dialog_progress_bar.set_radius_fill_color(
+        window
+            .style_context()
+            .lookup_color("headerbar_bg_color")
+            .unwrap(),
+    );
     #[warn(deprecated)]
     flatpak_transaction_dialog_progress_bar.set_progress_font(get_current_font());
     flatpak_transaction_dialog_progress_bar.set_center_text(t!("progress_bar_circle_center_text"));
     flatpak_transaction_dialog_progress_bar.set_fraction_font_size(24);
     flatpak_transaction_dialog_progress_bar.set_center_text_font_size(8);
+    theme_changed_action.connect_activate(clone!(
+        #[strong]
+        window,
+        #[strong]
+        flatpak_transaction_dialog_progress_bar,
+        move |_, _| {
+            #[allow(deprecated)]
+            flatpak_transaction_dialog_progress_bar.set_progress_fill_color(
+                window
+                    .style_context()
+                    .lookup_color("accent_bg_color")
+                    .unwrap(),
+            );
+            #[allow(deprecated)]
+            flatpak_transaction_dialog_progress_bar.set_radius_fill_color(
+                window
+                    .style_context()
+                    .lookup_color("headerbar_bg_color")
+                    .unwrap(),
+            );
+            #[warn(deprecated)]
+            flatpak_transaction_dialog_progress_bar.set_progress_font(get_current_font());
+        }
+    ));
 
     flatpak_transaction_dialog_child_box.append(&flatpak_transaction_dialog_progress_bar);
 
