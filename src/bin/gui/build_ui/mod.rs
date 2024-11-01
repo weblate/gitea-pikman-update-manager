@@ -289,33 +289,7 @@ pub fn build_ui(app: &Application) {
         .bottom_bar_style(ToolbarStyle::Flat)
         .build();
 
-    let window_adw_view_switcher_sidebar_control_box = gtk::Box::builder()
-        .orientation(gtk::Orientation::Horizontal)
-        .margin_top(10)
-        .margin_bottom(20)
-        .margin_start(5)
-        .margin_end(5)
-        .hexpand(true)
-        .build();
-    window_adw_view_switcher_sidebar_control_box.append(
-        &WindowControls::builder()
-            .halign(gtk::Align::Start)
-            .valign(gtk::Align::Center)
-            .build(),
-    );
-    window_adw_view_switcher_sidebar_control_box.append(
-        &WindowTitle::builder()
-            .halign(gtk::Align::Center)
-            .margin_top(10)
-            .margin_bottom(20)
-            .valign(gtk::Align::Center)
-            .hexpand(true)
-            .title(t!("application_name"))
-            .build(),
-    );
-
     let window_adw_view_switcher_sidebar_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
-    window_adw_view_switcher_sidebar_box.append(&window_adw_view_switcher_sidebar_control_box);
 
     let null_toggle_button: gtk::ToggleButton = gtk::ToggleButton::new();
 
@@ -324,9 +298,20 @@ pub fn build_ui(app: &Application) {
         .visible(false)
         .build();
 
+    let window_adw_view_switcher_sidebar_toolbar = ToolbarView::builder()
+        .content(&window_adw_view_switcher_sidebar_box)
+        .top_bar_style(ToolbarStyle::Flat)
+        .bottom_bar_style(ToolbarStyle::Flat)
+        .build();
+
+    window_adw_view_switcher_sidebar_toolbar.add_top_bar(&HeaderBar::builder()
+        .title_widget(&WindowTitle::builder().title(t!("application_name")).build())
+        .show_title(true)
+        .build());
+
     let window_content_page_split_view = adw::OverlaySplitView::builder()
         .content(&window_toolbar)
-        .sidebar(&window_adw_view_switcher_sidebar_box)
+        .sidebar(&window_adw_view_switcher_sidebar_toolbar)
         .max_sidebar_width(300.0)
         .min_sidebar_width(290.0)
         .sidebar_width_unit(adw::LengthUnit::Px)
