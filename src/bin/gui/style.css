@@ -96,6 +96,11 @@
     font-size: 20px;
 }
 
+.size-35-bold-text {
+    font-weight: 800;
+    font-size: 35px;
+}
+
 .disable-outline {
     outline: none;
 }

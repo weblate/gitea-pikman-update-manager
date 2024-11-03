@@ -169,5 +169,11 @@
   "retry_interval_spinrow_title": "Automatic Check Interval",
   "retry_interval_spinrow_subtitle": "In Hours",
   "progress_bar_circle_center_text": "Percent %",
-  "main_update_page_title": "Main Updates Page"
+  "main_update_page_title": "Main Updates Page",
+  "update_button_main_label": "Commit APT & Flatpak Upgrades",
+  "update_badge_box_total_label": "Total Updates",
+  "update_badge_box_apt_label": "APT Updates",
+  "update_badge_box_flatpak_label": "Flatpak Updates",
+  "main_page_header_label_yes_label": "Updates Available!",
+  "main_page_header_label_no_label": "Up-to-date!"
 } 

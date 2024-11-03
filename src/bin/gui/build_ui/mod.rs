@@ -584,6 +584,7 @@ pub fn build_ui(app: &Application) {
             &apt_update_button,
             &initiated_by_main,
             &theme_changed_action,
+            &update_sys_tray,
         ),
         Some("main_update_page"),
         &t!("main_update_page_title"),
@@ -848,4 +849,96 @@ fn add_content_button(
         }
     ));
     toggle_button
+}
+
+pub fn create_color_badge(
+    label0_text: &str,
+    label1_text: &str,
+    css_style: &str,
+    theme_changed_action: &gio::SimpleAction,
+    group_size: &gtk::SizeGroup,
+    group_size0: &gtk::SizeGroup,
+    group_size1: &gtk::SizeGroup,
+) -> gtk::ListBox {
+    let badge_box = gtk::Box::builder().build();
+
+    let label0 = gtk::Label::builder()
+        .label(label0_text)
+        .margin_start(5)
+        .margin_end(5)
+        .margin_bottom(1)
+        .margin_top(1)
+        .valign(gtk::Align::Center)
+        .halign(gtk::Align::Center)
+        .hexpand(true)
+        .vexpand(true)
+        .build();
+    group_size0.add_widget(&label0);
+
+    let label_separator = gtk::Separator::builder().build();
+
+    let label1 = gtk::Label::builder()
+        .label(label1_text)
+        .margin_start(3)
+        .margin_end(0)
+        .margin_bottom(1)
+        .margin_top(1)
+        .valign(gtk::Align::Center)
+        .halign(gtk::Align::Center)
+        .hexpand(true)
+        .vexpand(true)
+        .build();
+    group_size1.add_widget(&label1);
+
+    label1.add_css_class(css_style);
+
+    #[allow(deprecated)]
+    let color = label1
+        .style_context()
+        .lookup_color("accent_bg_color")
+        .unwrap();
+    if (color.red() * 0.299 + color.green() * 0.587 + color.blue() * 0.114) > 170.0 {
+        label1.remove_css_class("white-color-text");
+        label1.add_css_class("black-color-text");
+    } else {
+        label1.remove_css_class("black-color-text");
+        label1.add_css_class("white-color-text");
+    }
+
+    theme_changed_action.connect_activate(clone!(
+        #[strong]
+        label1,
+        move |_, _| {
+            #[allow(deprecated)]
+            let color = label1
+                .style_context()
+                .lookup_color("accent_bg_color")
+                .unwrap();
+            if (color.red() * 0.299 + color.green() * 0.587 + color.blue() * 0.114) > 170.0 {
+                label1.remove_css_class("white-color-text");
+                label1.add_css_class("black-color-text");
+            } else {
+                label1.remove_css_class("black-color-text");
+                label1.add_css_class("white-color-text");
+            }
+        }
+    ));
+
+    badge_box.append(&label0);
+    badge_box.append(&label_separator);
+    badge_box.append(&label1);
+
+    let boxedlist = gtk::ListBox::builder()
+        .selection_mode(gtk::SelectionMode::None)
+        .halign(gtk::Align::Center)
+        .margin_start(10)
+        .margin_end(10)
+        .margin_bottom(10)
+        .margin_top(10)
+        .build();
+
+    boxedlist.add_css_class("boxed-list");
+    boxedlist.append(&badge_box);
+    group_size.add_widget(&boxedlist);
+    boxedlist
 }

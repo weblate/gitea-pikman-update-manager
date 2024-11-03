@@ -17,7 +17,7 @@ use std::rc::Rc;
 use std::thread;
 use tokio::runtime::Runtime;
 
-use crate::build_ui::get_current_font;
+use crate::build_ui::{create_color_badge, get_current_font};
 
 struct AptChangesInfo {
     package_count_upgrade: u64,
@@ -688,96 +688,4 @@ fn apt_full_upgrade_from_socket(
             _ => {}
         }
     });
-}
-
-fn create_color_badge(
-    label0_text: &str,
-    label1_text: &str,
-    css_style: &str,
-    theme_changed_action: &SimpleAction,
-    group_size: &SizeGroup,
-    group_size0: &SizeGroup,
-    group_size1: &SizeGroup,
-) -> ListBox {
-    let badge_box = Box::builder().build();
-
-    let label0 = Label::builder()
-        .label(label0_text)
-        .margin_start(5)
-        .margin_end(5)
-        .margin_bottom(1)
-        .margin_top(1)
-        .valign(Align::Center)
-        .halign(Align::Center)
-        .hexpand(true)
-        .vexpand(true)
-        .build();
-    group_size0.add_widget(&label0);
-
-    let label_separator = Separator::builder().build();
-
-    let label1 = Label::builder()
-        .label(label1_text)
-        .margin_start(3)
-        .margin_end(0)
-        .margin_bottom(1)
-        .margin_top(1)
-        .valign(Align::Center)
-        .halign(Align::Center)
-        .hexpand(true)
-        .vexpand(true)
-        .build();
-    group_size1.add_widget(&label1);
-
-    label1.add_css_class(css_style);
-
-    #[allow(deprecated)]
-    let color = label1
-        .style_context()
-        .lookup_color("accent_bg_color")
-        .unwrap();
-    if (color.red() * 0.299 + color.green() * 0.587 + color.blue() * 0.114) > 170.0 {
-        label1.remove_css_class("white-color-text");
-        label1.add_css_class("black-color-text");
-    } else {
-        label1.remove_css_class("black-color-text");
-        label1.add_css_class("white-color-text");
-    }
-
-    theme_changed_action.connect_activate(clone!(
-        #[strong]
-        label1,
-        move |_, _| {
-            #[allow(deprecated)]
-            let color = label1
-                .style_context()
-                .lookup_color("accent_bg_color")
-                .unwrap();
-            if (color.red() * 0.299 + color.green() * 0.587 + color.blue() * 0.114) > 170.0 {
-                label1.remove_css_class("white-color-text");
-                label1.add_css_class("black-color-text");
-            } else {
-                label1.remove_css_class("black-color-text");
-                label1.add_css_class("white-color-text");
-            }
-        }
-    ));
-
-    badge_box.append(&label0);
-    badge_box.append(&label_separator);
-    badge_box.append(&label1);
-
-    let boxedlist = ListBox::builder()
-        .selection_mode(SelectionMode::None)
-        .halign(Align::Center)
-        .margin_start(10)
-        .margin_end(10)
-        .margin_bottom(10)
-        .margin_top(10)
-        .build();
-
-    boxedlist.add_css_class("boxed-list");
-    boxedlist.append(&badge_box);
-    group_size.add_widget(&boxedlist);
-    boxedlist
 }
