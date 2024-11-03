@@ -61,10 +61,13 @@ pub struct AptPackageSocket {
 }
 pub fn apt_update_page(
     window: adw::ApplicationWindow,
+    update_button: &Rc<RefCell<Button>>,
+    flatpak_update_button: &Rc<RefCell<Button>>,
     retry_signal_action: &SimpleAction,
     flatpak_retry_signal_action: &SimpleAction,
     theme_changed_action: &SimpleAction,
     flatpak_ran_once: Rc<RefCell<bool>>,
+    initiated_by_main: Rc<RefCell<bool>>,
     update_sys_tray: &SimpleAction,
     apt_update_count: &Rc<RefCell<i32>>,
     flatpak_update_count: &Rc<RefCell<i32>>,
@@ -180,8 +183,8 @@ pub fn apt_update_page(
         .search_delay(500)
         .margin_top(15)
         .margin_bottom(15)
-        .margin_end(30)
-        .margin_start(30)
+        .margin_end(15)
+        .margin_start(15)
         .build();
     searchbar.add_css_class("rounded-all-25");
 
@@ -349,16 +352,16 @@ pub fn apt_update_page(
         }
     ));
 
-    let update_button = Button::builder()
-        .halign(Align::End)
-        .valign(Align::Center)
-        .hexpand(false)
-        .sensitive(false)
-        .margin_start(10)
-        .margin_end(30)
-        .margin_bottom(15)
-        .label(t!("update_button_label"))
-        .build();
+    let update_button = update_button.borrow().clone();
+
+    update_button.set_halign(Align::End);
+    update_button.set_valign(Align::Center);
+    update_button.set_hexpand(false);
+    update_button.set_sensitive(false);
+    update_button.set_margin_start(10);
+    update_button.set_margin_end(30);
+    update_button.set_margin_bottom(15);
+    update_button.set_label(&t!("update_button_label"));
     update_button.add_css_class("destructive-action");
 
     update_button.connect_clicked(clone!(
@@ -370,11 +373,17 @@ pub fn apt_update_page(
         excluded_updates_vec,
         #[strong]
         theme_changed_action,
+        #[strong]
+        flatpak_update_button,
+        #[strong]
+        initiated_by_main,
         move |_| {
             process::apt_process_update(
                 &excluded_updates_vec.borrow(),
                 window,
                 &retry_signal_action,
+                &flatpak_update_button.borrow(),
+                initiated_by_main.clone(),
                 &theme_changed_action,
             );
         }

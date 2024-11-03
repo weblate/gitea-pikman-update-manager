@@ -63,6 +63,8 @@ pub fn apt_process_update(
     excluded_updates_vec: &Vec<String>,
     window: adw::ApplicationWindow,
     retry_signal_action: &SimpleAction,
+    flatpak_update_button: &Button,
+    initiated_by_main: Rc<RefCell<bool>>,
     theme_changed_action: &SimpleAction,
 ) {
     let excluded_updates_alert_dialog = adw::MessageDialog::builder()
@@ -100,10 +102,16 @@ pub fn apt_process_update(
         excluded_updates_vec,
         #[strong]
         theme_changed_action,
+        #[strong]
+        initiated_by_main,
+        #[strong]
+        flatpak_update_button,
         move |_, _| apt_confirm_window(
             &excluded_updates_vec,
             window,
             &retry_signal_action,
+            &flatpak_update_button,
+            initiated_by_main.clone(),
             &theme_changed_action
         )
     ));
@@ -123,6 +131,8 @@ fn apt_confirm_window(
     excluded_updates_vec: &Vec<String>,
     window: adw::ApplicationWindow,
     retry_signal_action: &SimpleAction,
+    flatpak_update_button: &Button,
+    initiated_by_main: Rc<RefCell<bool>>,
     theme_changed_action: &SimpleAction,
 ) {
     let to_be_removed_packages_vec: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
@@ -323,9 +333,15 @@ fn apt_confirm_window(
         apt_confirm_dialog,
         #[strong]
         theme_changed_action,
+        #[strong]
+        flatpak_update_button,
+        #[strong]
+        initiated_by_main,
         move |_, _| {
             let retry_signal_action0 = retry_signal_action.clone();
             let theme_changed_action0 = theme_changed_action.clone();
+            let flatpak_update_button0 = flatpak_update_button.clone();
+            let initiated_by_main0 = initiated_by_main.clone();
             apt_confirm_dialog
                 .clone()
                 .choose(None::<&gio::Cancellable>, move |choice| {
@@ -333,6 +349,8 @@ fn apt_confirm_window(
                         apt_full_upgrade_from_socket(
                             window,
                             &retry_signal_action0,
+                            &flatpak_update_button0,
+                            initiated_by_main0,
                             &theme_changed_action0,
                         );
                     }
@@ -406,6 +424,8 @@ fn apt_confirm_window(
 fn apt_full_upgrade_from_socket(
     window: adw::ApplicationWindow,
     retry_signal_action: &SimpleAction,
+    flatpak_update_button: &Button,
+    initiated_by_main: Rc<RefCell<bool>>,
     theme_changed_action: &SimpleAction,
 ) {
     let (upgrade_percent_sender, upgrade_percent_receiver) = async_channel::unbounded::<String>();
@@ -646,6 +666,8 @@ fn apt_full_upgrade_from_socket(
     ));
 
     let retry_signal_action0 = retry_signal_action.clone();
+    let flatpak_update_button0 = flatpak_update_button.clone();
+    let initiated_by_main_clone0 = initiated_by_main.clone();
 
     apt_upgrade_log_button.connect_clicked(move |_| {
         let _ = Command::new("xdg-open")
@@ -657,6 +679,11 @@ fn apt_full_upgrade_from_socket(
         match choice.as_str() {
             "apt_upgrade_dialog_ok" => {
                 retry_signal_action0.activate(None);
+                let mut initiated_by_main_borrow = initiated_by_main_clone0.borrow_mut();
+                if *initiated_by_main_borrow == true {
+                    flatpak_update_button0.emit_clicked();
+                    *initiated_by_main_borrow = false;
+                }
             }
             _ => {}
         }

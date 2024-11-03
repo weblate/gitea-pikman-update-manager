@@ -6,6 +6,7 @@ mod config;
 mod flatpak_manage_page;
 mod flatpak_ref_row;
 mod flatpak_update_page;
+mod main_update_page;
 
 use crate::config::APP_ID;
 use adw::prelude::*;

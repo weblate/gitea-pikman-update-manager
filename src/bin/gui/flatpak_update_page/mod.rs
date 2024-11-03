@@ -27,6 +27,7 @@ pub struct FlatpakRefStruct {
 }
 pub fn flatpak_update_page(
     window: adw::ApplicationWindow,
+    update_button: &Rc<RefCell<Button>>,
     retry_signal_action: &SimpleAction,
     theme_changed_action: &SimpleAction,
     update_sys_tray: &SimpleAction,
@@ -162,8 +163,8 @@ pub fn flatpak_update_page(
         .search_delay(500)
         .margin_top(15)
         .margin_bottom(15)
-        .margin_end(30)
-        .margin_start(30)
+        .margin_end(15)
+        .margin_start(15)
         .build();
     searchbar.add_css_class("rounded-all-25");
 
@@ -312,16 +313,16 @@ pub fn flatpak_update_page(
         }
     ));
 
-    let update_button = Button::builder()
-        .halign(Align::End)
-        .valign(Align::Center)
-        .sensitive(false)
-        .hexpand(false)
-        .margin_start(10)
-        .margin_end(30)
-        .margin_bottom(15)
-        .label(t!("update_button_label"))
-        .build();
+    let update_button = update_button.borrow().clone();
+
+    update_button.set_halign(Align::End);
+    update_button.set_valign(Align::Center);
+    update_button.set_hexpand(false);
+    update_button.set_sensitive(false);
+    update_button.set_margin_start(10);
+    update_button.set_margin_end(30);
+    update_button.set_margin_bottom(15);
+    update_button.set_label(&t!("update_button_label"));
     update_button.add_css_class("destructive-action");
 
     let system_refs_for_upgrade_vec_all_clone0 = &system_refs_for_upgrade_vec_all.clone();
@@ -354,9 +355,6 @@ pub fn flatpak_update_page(
         }
     ));
 
-    bottom_bar.append(&select_button);
-    bottom_bar.append(&update_button);
-
     let appstream_sync_percent_server_context = MainContext::default();
     // The main loop executes the asynchronous block
     appstream_sync_percent_server_context.spawn_local(clone!(
@@ -388,6 +386,10 @@ pub fn flatpak_update_page(
         user_refs_for_upgrade_vec,
         #[strong]
         viewport_bin,
+        #[strong]
+        update_button,
+        #[strong]
+        select_button,
         #[strong]
         packages_viewport,
         #[strong]
@@ -491,6 +493,9 @@ pub fn flatpak_update_page(
             }
         }
     ));
+
+    bottom_bar.append(&select_button);
+    bottom_bar.append(&update_button);
 
     main_box.append(&searchbar);
     main_box.append(&viewport_bin);

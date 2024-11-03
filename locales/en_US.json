@@ -168,5 +168,6 @@
   "retry_interval_labal_label": "Automatically Check for updates",
   "retry_interval_spinrow_title": "Automatic Check Interval",
   "retry_interval_spinrow_subtitle": "In Hours",
-  "progress_bar_circle_center_text": "Percent %"
+  "progress_bar_circle_center_text": "Percent %",
+  "main_update_page_title": "Main Updates Page"
 } 

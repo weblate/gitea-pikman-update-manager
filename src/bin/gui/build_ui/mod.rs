@@ -3,10 +3,11 @@ use crate::apt_update_page;
 use crate::config::{APP_GITHUB, APP_ICON, APP_ID, VERSION};
 use crate::flatpak_manage_page::flatpak_manage_page;
 use crate::flatpak_update_page;
+use crate::main_update_page::main_update_page;
 use adw::prelude::*;
 use adw::*;
 use gtk::glib::{clone, MainContext};
-use gtk::{License, WindowControls};
+use gtk::License;
 use ksni;
 use std::cell::RefCell;
 use std::process::Command;
@@ -304,10 +305,12 @@ pub fn build_ui(app: &Application) {
         .bottom_bar_style(ToolbarStyle::Flat)
         .build();
 
-    window_adw_view_switcher_sidebar_toolbar.add_top_bar(&HeaderBar::builder()
-        .title_widget(&WindowTitle::builder().title(t!("application_name")).build())
-        .show_title(true)
-        .build());
+    window_adw_view_switcher_sidebar_toolbar.add_top_bar(
+        &HeaderBar::builder()
+            .title_widget(&WindowTitle::builder().title(t!("application_name")).build())
+            .show_title(true)
+            .build(),
+    );
 
     let window_content_page_split_view = adw::OverlaySplitView::builder()
         .content(&window_toolbar)
@@ -466,6 +469,12 @@ pub fn build_ui(app: &Application) {
             }
         }
     ));
+
+    // Update buttons
+
+    let apt_update_button = Rc::new(RefCell::new(gtk::Button::new()));
+    let flatpak_update_button = Rc::new(RefCell::new(gtk::Button::new()));
+
     // Flatpak Update Page
 
     let flatpak_retry_signal_action = gio::SimpleAction::new("retry", None);
@@ -475,6 +484,8 @@ pub fn build_ui(app: &Application) {
     flatpak_retry_signal_action.connect_activate(clone!(
         #[weak]
         window,
+        #[strong]
+        flatpak_update_button,
         #[strong]
         flatpak_retry_signal_action,
         #[strong]
@@ -488,9 +499,11 @@ pub fn build_ui(app: &Application) {
         #[strong]
         theme_changed_action,
         move |_, _| {
+            (*flatpak_update_button.borrow_mut() = gtk::Button::new());
             flatpak_update_view_stack_bin.set_child(Some(
                 &flatpak_update_page::flatpak_update_page(
                     window,
+                    &flatpak_update_button,
                     &flatpak_retry_signal_action,
                     &theme_changed_action,
                     &update_sys_tray,
@@ -505,6 +518,7 @@ pub fn build_ui(app: &Application) {
     let apt_retry_signal_action = gio::SimpleAction::new("retry", None);
 
     let flatpak_ran_once = Rc::new(RefCell::new(false));
+    let initiated_by_main = Rc::new(RefCell::new(false));
 
     let apt_update_view_stack_bin = Bin::builder().build();
 
@@ -512,11 +526,17 @@ pub fn build_ui(app: &Application) {
         #[strong]
         window,
         #[strong]
+        apt_update_button,
+        #[strong]
+        flatpak_update_button,
+        #[strong]
         flatpak_retry_signal_action,
         #[strong]
         apt_update_view_stack_bin,
         #[strong]
         flatpak_ran_once,
+        #[strong]
+        initiated_by_main,
         #[strong]
         update_sys_tray,
         #[strong]
@@ -526,12 +546,16 @@ pub fn build_ui(app: &Application) {
         #[strong]
         theme_changed_action,
         move |action, _| {
+            (*apt_update_button.borrow_mut() = gtk::Button::new());
             apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(
                 window.clone(),
+                &apt_update_button,
+                &flatpak_update_button,
                 &action,
                 &flatpak_retry_signal_action,
                 &theme_changed_action,
                 flatpak_ran_once.clone(),
+                initiated_by_main.clone(),
                 &update_sys_tray,
                 &apt_update_count,
                 &flatpak_update_count,
@@ -541,16 +565,38 @@ pub fn build_ui(app: &Application) {
 
     apt_update_view_stack_bin.set_child(Some(&apt_update_page::apt_update_page(
         window.clone(),
+        &apt_update_button,
+        &flatpak_update_button,
         &apt_retry_signal_action,
         &flatpak_retry_signal_action,
         &theme_changed_action,
         flatpak_ran_once.clone(),
+        initiated_by_main.clone(),
         &update_sys_tray,
         &apt_update_count,
         &flatpak_update_count,
     )));
 
     // Add to stack switcher
+
+    window_adw_stack.add_titled(
+        &main_update_page(
+            &apt_update_button,
+            &initiated_by_main,
+            &theme_changed_action,
+        ),
+        Some("main_update_page"),
+        &t!("main_update_page_title"),
+    );
+
+    let main_update_page_toggle_button = add_content_button(
+        &window_adw_stack,
+        true,
+        "main_update_page".to_string(),
+        t!("main_update_page_title").to_string(),
+        &null_toggle_button,
+    );
+    window_adw_view_switcher_sidebar_box.append(&main_update_page_toggle_button);
 
     window_adw_stack.add_titled(
         &apt_update_view_stack_bin,
@@ -560,7 +606,7 @@ pub fn build_ui(app: &Application) {
 
     let apt_update_page_toggle_button = add_content_button(
         &window_adw_stack,
-        true,
+        false,
         "apt_update_page".to_string(),
         t!("apt_update_page_title").to_string(),
         &null_toggle_button,
@@ -699,8 +745,14 @@ pub fn build_ui(app: &Application) {
         flatpak_retry_signal_action,
         #[weak]
         window_adw_stack,
+        #[strong]
+        flatpak_ran_once,
         move |_| {
             match window_adw_stack.visible_child_name().unwrap().as_str() {
+                "main_update_page" => {
+                    *flatpak_ran_once.borrow_mut() = false;
+                    apt_retry_signal_action.activate(None);
+                }
                 "apt_update_page" => apt_retry_signal_action.activate(None),
                 "apt_manage_page" => apt_retry_signal_action.activate(None),
                 "flatpak_update_page" => flatpak_retry_signal_action.activate(None),
