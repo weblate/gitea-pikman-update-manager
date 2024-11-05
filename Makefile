@@ -17,8 +17,10 @@ install:
 	cp -vf data/flatpak-installer $(DESTDIR)/usr/bin/
 	cp -vf data/software-properties-gtk $(DESTDIR)/usr/bin/
 #	cp -vf target/release/apt_update $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
+#	cp -vf target/release/apt_full_upgrade $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
 	cp -vf data/apt_update $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
-	cp -vf target/release/apt_full_upgrade $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
+	cp -vf target/release/apt_full_upgrade $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/apt_full_upgrade_bin
+	cp -vf data/apt_full_upgrade $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
 	cp -vf data/modify_repo.sh $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
 	cp -vf data/*.gschema.xml $(DESTDIR)/usr/share/glib-2.0/schemas/
 	cp -vf data/com.github.pikaos-linux.pikmanupdatemanager.svg $(DESTDIR)/usr/share/icons/hicolor/scalable/apps/
@@ -42,9 +44,11 @@ install_no_build_debug:
 	cp -vf data/pikman-update-manager-autostart $(DESTDIR)/usr/bin/
 	cp -vf data/flatpak-installer $(DESTDIR)/usr/bin/
 	cp -vf data/software-properties-gtk $(DESTDIR)/usr/bin/
-#	cp -vf target/debug/apt_update $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
+#	cp -vf target/release/apt_update $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
+#	cp -vf target/release/apt_full_upgrade $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
 	cp -vf data/apt_update $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
-	cp -vf target/debug/apt_full_upgrade $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
+	cp -vf target/release/apt_full_upgrade $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/apt_full_upgrade_bin
+	cp -vf data/apt_full_upgrade $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
 	cp -vf data/modify_repo.sh $(DESTDIR)/usr/lib/pika/pikman-update-manager/scripts/
 	cp -vf data/*.gschema.xml $(DESTDIR)/usr/share/glib-2.0/schemas/
 	cp -vf data/com.github.pikaos-linux.pikmanupdatemanager.svg $(DESTDIR)/usr/share/icons/hicolor/scalable/apps/
