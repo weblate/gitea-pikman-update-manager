@@ -145,7 +145,7 @@
   "flatpak_remote_add_error_dialog_used_error_body": "Should We Force Remove The Remote Alongside Everything Using It?",
   "flatpak_remote_add_error_used_no_label": "No",
   "flatpak_remote_add_error_used_yes_label": "Yes",
-  "flatpak_flatref_install_button_tooltip_text": "Install a FlatRef File",
+  "flatpak_flatref_install_button_tooltip_text": "Install a Flatref File",
   "flatpak_ref_install_flatref_path_file_dialog_title": "Open a Flatpak Repository Reference File",
   "flatpak_ref_install_flatref_path_file_dialog_accept_label": "Open",
   "flatpak_ref_install_flatref_path_file_dialog_cancel_label": "Cancel",
